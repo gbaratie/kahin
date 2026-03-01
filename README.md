@@ -71,12 +71,12 @@ Sans `NEXT_PUBLIC_API_URL`, chaque app utilise son propre stockage **in-memory**
 - **UI Participant** : build → `apps/participant/out`. Idem, déploiement séparé possible.
 - **API** : build → `apps/api/dist`, puis `node dist/index.js`. Déployable sur Render (Web Service).
 
-Pour GitHub Pages (admin par défaut), configurer le workflow dans `.github/workflows/` pour builder `apps/admin` et déployer le dossier `apps/admin/out`. Variables optionnelles : `NEXT_PUBLIC_BASE_PATH`, `NEXT_PUBLIC_SITE_NAME`.
+Pour GitHub Pages, le workflow dans `.github/workflows/deploy.yml` build admin et participant puis déploie le dossier `deploy/`. **Base path** : si la variable de dépôt `NEXT_PUBLIC_BASE_PATH` n’est pas définie, elle est fixée par défaut à `/<nom-du-repo>` (ex. `/kahin`), afin que les liens et assets fonctionnent correctement sous `https://<user>.github.io/<repo>/`. Variables optionnelles : `NEXT_PUBLIC_BASE_PATH`, `NEXT_PUBLIC_SITE_NAME`.
 
 ## Configuration
 
 - Chaque app a son `next.config.js` (admin, participant) ou point d’entrée (api).
-- `NEXT_PUBLIC_BASE_PATH` : base path pour les assets (ex. `/kahin` sur GitHub Pages).
+- `NEXT_PUBLIC_BASE_PATH` : base path pour les assets et la navigation (ex. `/kahin` sur GitHub Pages). En CI, par défaut = `/<nom-du-repo>` si non défini.
 - `NEXT_PUBLIC_SITE_NAME` : titre du site.
 - `NEXT_PUBLIC_API_URL` : URL de l’API (ex. `http://localhost:4000`). Si défini, admin et participant utilisent l’API pour quiz/sessions (nécessaire pour rejoindre une partie entre les deux apps).
 - API : `PORT` (défaut 4000).

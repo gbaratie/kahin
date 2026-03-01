@@ -38,16 +38,27 @@ jobs:
           npm run build -w @kahin/qcm-application
           npm run build -w @kahin/qcm-infrastructure
 
+      # Base path pour GitHub Pages : variable repo ou défaut = /nom-du-repo
+      - name: Set base path for GitHub Pages
+        id: basepath
+        run: |
+          if [ -n "${{ vars.NEXT_PUBLIC_BASE_PATH }}" ]; then
+            echo "admin=${{ vars.NEXT_PUBLIC_BASE_PATH }}" >> $GITHUB_OUTPUT
+            echo "participant=${{ vars.NEXT_PUBLIC_BASE_PATH }}/participant" >> $GITHUB_OUTPUT
+          else
+            echo "admin=/${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            echo "participant=/${{ github.event.repository.name }}/participant" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build Admin app
         run: npm run build -w admin
         env:
-          NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH || '' }}
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.basepath.outputs.admin }}
 
       - name: Build Participant app
         run: npm run build -w participant
         env:
-          # Sous-chemin participant (ex. /participant ou /kahin/participant)
-          NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH || '' }}/participant
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.basepath.outputs.participant }}
 
       - name: Merge Admin + Participant for Pages
         run: |
