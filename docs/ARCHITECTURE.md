@@ -2,13 +2,12 @@
 
 ## 1. Structure du monorepo (implémentée)
 
-Le code est organisé en **monorepo** avec des packages partagés et trois applications déployables :
+Le code est organisé en **monorepo** avec des packages partagés et deux applications déployables :
 
 ```
 kahin/
 ├── apps/
-│   ├── admin/           # Next.js — créer QCM, lancer session, vue animateur
-│   ├── participant/      # Next.js — rejoindre session, vue participant
+│   ├── front/           # Next.js — accueil, créer QCM, lancer session, rejoindre, participer
 │   └── api/             # Express — REST API (Render)
 └── packages/
     ├── qcm-domain/      # Entités + ports (cœur métier, aucune dépendance externe)
@@ -16,7 +15,7 @@ kahin/
     └── qcm-infrastructure/ # Repositories in-memory + MockRealtimeTransport (dépend de qcm-domain)
 ```
 
-Chaque app (admin, participant) contient sa propre **couche présentation** (context, hooks, composants) et dépend des packages `@kahin/qcm-domain`, `@kahin/qcm-application`, `@kahin/qcm-infrastructure`. L’architecture reste **hexagonale** (ports & adapters) au niveau des packages.
+L’app **front** contient la **couche présentation** (context, hooks, composants) pour l’admin (création, lancement, vue animateur) et le participant (rejoindre, répondre). Elle dépend des packages `@kahin/qcm-domain`, `@kahin/qcm-application`, `@kahin/qcm-infrastructure`. L’architecture reste **hexagonale** (ports & adapters) au niveau des packages.
 
 ---
 
@@ -52,42 +51,27 @@ Chaque app (admin, participant) contient sa propre **couche présentation** (con
 
 ---
 
-## 3. Déploiement : deux fronts + un back
+## 3. Déploiement : un front + un back
 
-Objectif :
-
-- **UI Création / Admin** : créer un QCM, lancer une session, vue animateur (host).
-- **UI Participant** : rejoindre une session, répondre aux questions (vue participant).
-- **Backend** (Render) : API REST + temps réel (WebSocket ou équivalent), persistance réelle.
-
-Aujourd’hui tout est dans **une seule app Next.js** à la racine : pages admin et participant mélangées, pas de backend, tout en mémoire côté client. Pour déployer deux fronts et un back séparément, une **meilleure séparation du code** est utile.
+- **Front** (Next.js) : une seule app avec toutes les pages (accueil, créer QCM, lancer session, rejoindre, participer). Déployable sur GitHub Pages.
+- **Backend** (Render) : API REST + temps réel (WebSocket ou équivalent à venir), persistance quiz en JSON, sessions en mémoire.
 
 ---
 
-## 4. Proposition : monorepo avec `apps/` et `packages/`
-
-Séparer en **applications déployables** et **packages partagés** :
+## 4. Monorepo avec `apps/` et `packages/`
 
 ```
 kahin/
 ├── apps/
-│   ├── admin/                 # UI Création / Admin (Next.js)
+│   ├── front/                 # UI unifiée (Next.js) — admin + participant
 │   │   ├── src/
-│   │   │   ├── pages/         # create, launch, session/[id] (host only)
-│   │   │   ├── components/    # Layout, etc.
-│   │   │   └── ...
-│   │   ├── package.json
-│   │   └── next.config.js
-│   │
-│   ├── participant/           # UI Participant (Next.js)
-│   │   ├── src/
-│   │   │   ├── pages/         # join, session/[id]?participantId=...
+│   │   │   ├── pages/         # index, qcm/create, qcm/launch, qcm/session/[id], join, session/[id]
 │   │   │   ├── components/
 │   │   │   └── ...
 │   │   ├── package.json
 │   │   └── next.config.js
 │   │
-│   └── api/                   # Backend (Node/Express ou autre) → Render
+│   └── api/                   # Backend (Node/Express) → Render
 │       ├── src/
 │       │   ├── routes/        # REST (quiz, sessions, answers)
 │       │   ├── realtime/      # WebSocket / SSE
@@ -120,24 +104,22 @@ kahin/
 
 ### Intérêt de cette séparation
 
-| Besoin                                           | Réponse                                                                                                                                                                  |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Déployer **Admin** et **Participant** séparément | Chaque app dans `apps/` a son propre build et son propre déploiement (ex. deux sites GitHub Pages ou deux services Render/Vercel).                                       |
-| Backend sur **Render**                           | `apps/api` est une app Node déployable seule (REST + WebSocket).                                                                                                         |
-| Réutiliser la logique métier                     | `qcm-domain` et `qcm-application` sont des packages utilisés par l’API et, si besoin, par les fronts (ex. typage, validation, ou use cases en mode “local” pour le dev). |
-| Éviter la duplication                            | Entités, ports et cas d’usage vivent dans des packages à la racine (`packages/`), pas éparpillés dans chaque app.                                                        |
+| Besoin                       | Réponse                                                                                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Déployer le **front**        | Une seule app Next.js (export statique) déployable sur GitHub Pages, avec toutes les pages (admin + participant).                         |
+| Backend sur **Render**      | `apps/api` est une app Node déployable seule (REST).                                                                                      |
+| Réutiliser la logique métier | `qcm-domain` et `qcm-application` sont des packages utilisés par l’API et par le front (typage, validation, use cases en mode “local”).  |
+| Éviter la duplication       | Entités, ports et cas d’usage vivent dans des packages à la racine (`packages/`), pas éparpillés dans les apps.                           |
 
 ### Ce qui reste “à la racine”
 
-- **Config monorepo** : `package.json` (workspaces), `pnpm-workspace.yaml` (ou `npm workspaces`), éventuellement `tsconfig.base.json`.
-- **Outillage partagé** : ESLint, Prettier, TypeScript de base (souvent dans `packages/` ou à la racine).
-- **CI/CD** : un workflow par app (build + deploy admin, build + deploy participant, build + deploy api) ou un workflow unique qui build/déploie les trois.
-
-Ainsi, la “plein de choses à la racine” se limite à la **configuration du monorepo** et au **versioning partagé** ; le code métier et les trois déploiements sont clairement séparés dans `apps/` et `packages/`.
+- **Config monorepo** : `package.json` (workspaces), `tsconfig.base.json`.
+- **Outillage partagé** : ESLint, Prettier, TypeScript de base.
+- **CI/CD** : un workflow (build front + deploy GitHub Pages) et la config Render pour l’API.
 
 ---
 
 ## 5. Résumé
 
-- La structure actuelle **`src/qcm/`** (domain → application → infrastructure → presentation) respecte bien les **principes SOLID** et une architecture hexagonale.
-- Pour **deux fronts (Admin + Participant) et un back sur Render**, une organisation en **monorepo** avec **`apps/admin`**, **`apps/participant`**, **`apps/api`** et des **packages partagés** (`qcm-domain`, `qcm-application`, `qcm-infrastructure`) permet de garder une seule base de code tout en déployant chaque partie indépendamment et en réutilisant le domaine et les use cases.
+- La structure **`apps/front/src/qcm/`** (domain → application → infrastructure → presentation) respecte les **principes SOLID** et une architecture hexagonale.
+- **Un front unifié** (`apps/front`) et **une API** (`apps/api`) avec des **packages partagés** (`qcm-domain`, `qcm-application`, `qcm-infrastructure`) permettent une seule base de code, un déploiement front sur GitHub Pages et l’API sur Render.

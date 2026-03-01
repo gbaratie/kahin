@@ -2,17 +2,12 @@
   "name": "kahin",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "build": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w admin && npm run build -w participant && npm run build -w api",
-    "build:admin": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w admin",
-    "build:participant": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w participant",
+    "build": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w front && npm run build -w api",
+    "build:front": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w front",
     "build:api": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w api",
-    "dev:admin": "npm run dev -w apps/admin",
-    "dev:participant": "npm run dev -w apps/participant",
+    "dev:front": "npm run dev -w front",
     "dev:api": "npm run dev -w apps/api",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
