@@ -8,7 +8,7 @@ Monorepo pour créer des sondages QCM et faire participer l’audience en temps 
 
 Construit avec **Next.js 14**, **React 18**, **TypeScript**, **MUI** et une architecture hexagonale (domaine partagé dans `packages/`).
 
-## Structure du monorepo
+## Structure du monorepo 
 
 ```
 kahin/
