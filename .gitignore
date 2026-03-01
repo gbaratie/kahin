@@ -25,13 +25,16 @@ Gemfile.lock
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
+# next.js (tous les dossiers .next et out, dans toutes les apps)
+.next/
+out/
 
-# production
-/build
-/dist
+# production (build des packages et de l'API)
+build/
+dist/
+
+# données persistées (quiz JSON)
+apps/api/data/
 
 # misc
 .DS_Store

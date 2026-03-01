@@ -1,0 +1,27 @@
+{
+  "name": "@kahin/qcm-infrastructure",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@kahin/qcm-domain": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}

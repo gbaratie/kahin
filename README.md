@@ -1,95 +1,94 @@
-# Guillaume Baratier – Portfolio
+# Kahin — QCM interactif
 
-Site vitrine personnel (projets, mes coups de cœur). Construit avec **Next.js 14**, **React 18**, **TypeScript** et **Material UI (MUI)**. Thème sombre, export statique pour GitHub Pages ou hébergement de fichiers statiques.
+Monorepo pour créer des sondages QCM et faire participer l’audience en temps réel. Trois déploiements possibles :
+
+- **UI Admin** (création, lancement, vue animateur)
+- **UI Participant** (rejoindre une session, répondre aux questions)
+- **API** (backend Node/Express pour Render)
+
+Construit avec **Next.js 14**, **React 18**, **TypeScript**, **MUI** et une architecture hexagonale (domaine partagé dans `packages/`).
+
+## Structure du monorepo
+
+```
+kahin/
+├── apps/
+│   ├── admin/          # Next.js — créer QCM, lancer session, vue host (port 3000)
+│   ├── participant/     # Next.js — rejoindre session, vue participant (port 3001)
+│   └── api/             # Express — REST API pour Render (port 4000)
+├── packages/
+│   ├── qcm-domain/      # Entités + ports (partagé)
+│   ├── qcm-application/ # Cas d’usage (partagé)
+│   └── qcm-infrastructure/ # Repos in-memory + MockRealtimeTransport
+├── docs/
+│   └── ARCHITECTURE.md  # Principes SOLID et déploiement
+├── package.json        # Workspaces npm
+└── tsconfig.base.json
+```
 
 ## Quick Start
 
 ```bash
 npm install
-cp .env.example .env   # optionnel : basePath et nom du site
-npm run dev
+# Build des packages partagés (nécessaire avant de lancer les apps)
+npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure
 ```
 
-Ouvrez [http://localhost:3000](http://localhost:3000).
+### Lancer une app
 
-## Scripts
+| App         | Commande                  | URL                   |
+| ----------- | ------------------------- | --------------------- |
+| Admin       | `npm run dev:admin`       | http://localhost:3000 |
+| Participant | `npm run dev:participant` | http://localhost:3001 |
+| API         | `npm run dev:api`         | http://localhost:4000 |
 
-| Commande         | Description                                          |
-| ---------------- | ---------------------------------------------------- |
-| `npm run dev`    | Serveur de développement                             |
-| `npm run build`  | Build de production → génère le dossier `out/`       |
-| `npm run lint`   | Vérification ESLint                                  |
-| `npm run deploy` | Build puis push de `out/` vers GitHub Pages (manuel) |
+**Pour que « rejoindre une partie » fonctionne** (participant qui rejoint une session lancée par l’admin), il faut que les deux apps partagent le même état via l’API :
 
-> **Note :** `npm run start` n'est pas utilisé pour ce projet. Avec `output: export`, Next.js génère des fichiers statiques. Pour tester en local après un build : `npx serve@latest out`.
+1. Démarrer l’API : `npm run dev:api`
+2. Dans `apps/admin/.env.local` et `apps/participant/.env.local`, définir :  
+   `NEXT_PUBLIC_API_URL=http://localhost:4000`
+3. Démarrer l’admin et le participant. Créer un QCM et lancer une session depuis l’admin, puis rejoindre avec le code depuis le participant.
 
-## Modifier le contenu (data & config)
+Sans `NEXT_PUBLIC_API_URL`, chaque app utilise son propre stockage **in-memory** (sessions créées côté admin invisibles côté participant).
 
-Tout le contenu éditable se trouve dans **`src/config/`** et **`src/data/`** :
+## Scripts racine
 
-| Fichier                       | Rôle                                                                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`src/config/site.ts`**      | Nom du site, libellés et URLs de la navigation (Accueil, Projets, Mes coups de cœur).                                                                              |
-| **`src/config/basePath.ts`**  | Chemin de base des assets en production (surcharge via `NEXT_PUBLIC_BASE_PATH`).                                                                                   |
-| **`src/data/profile.ts`**     | Nom, headline et bio courte (affichés sur l'accueil).                                                                                                              |
-| **`src/data/projects.ts`**    | Liste des projets. Chaque projet : `title`, `description`, `category` (`'pro'` ou `'side'`), `tags`, optionnellement `links` (label + url) et `image` (src + alt). |
-| **`src/data/selection.ts`**   | Items de la section « Initiatives inspirantes » (page Mes coups de cœur) : `title`, `description`, `tags`, `url`, optionnellement `image`.                         |
-| **`src/data/amis.ts`**        | Items de la section « Projet de mes amis » (page Mes coups de cœur), même structure que la sélection.                                                              |
-| **`src/data/types.ts`**       | Types TypeScript `Project`, `LinkItem`, `ClientLogo`, etc. ; à consulter pour ajouter des champs.                                                                  |
-| **`src/data/client-logos.ts`**| Logos des clients (carousel en bas de la page Projets).                                                                                                             |
+| Commande                    | Description                                                                            |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| `npm run build`             | Build tous les packages puis admin, participant et api (ordre de dépendances respecté) |
+| `npm run build:admin`       | Build packages + app admin uniquement                                                  |
+| `npm run build:participant` | Build packages + app participant uniquement                                            |
+| `npm run build:api`         | Build packages + app API uniquement                                                    |
+| `npm run dev:admin`         | Dev app admin (Next.js, port 3000)                                                     |
+| `npm run dev:participant`   | Dev app participant (Next.js, port 3001)                                               |
+| `npm run dev:api`           | Dev API (tsx watch, port 4000)                                                         |
+| `npm run format`            | Formatage Prettier                                                                     |
+| `npm run format:check`      | Vérification Prettier                                                                  |
 
-**Images** : déposer les fichiers dans **`public/images/`** — logos clients dans `public/images/clients/`, photos projets et coups de cœur dans `public/images/projets/`. En production avec sous-chemins (ex. GitHub Pages), le préfixe est géré par `src/config/basePath.ts` et `NEXT_PUBLIC_BASE_PATH`.
+## Déploiement
 
-**Ajouter des photos aux coups de cœur (amis ou initiatives)** : dans `src/data/amis.ts` ou `src/data/selection.ts`, ajoutez pour chaque item la propriété optionnelle `image` :
+- **UI Admin** : build → `apps/admin/out` (export statique). Déployable sur GitHub Pages, Vercel, etc.
+- **UI Participant** : build → `apps/participant/out`. Idem, déploiement séparé possible.
+- **API** : build → `apps/api/dist`, puis `node dist/index.js`. Déployable sur Render (Web Service).
 
-```ts
-import { basePath } from '@/src/config/basePath';
+Pour GitHub Pages (admin par défaut), configurer le workflow dans `.github/workflows/` pour builder `apps/admin` et déployer le dossier `apps/admin/out`. Variables optionnelles : `NEXT_PUBLIC_BASE_PATH`, `NEXT_PUBLIC_SITE_NAME`.
 
-// Dans un item :
-image: { src: `${basePath}/images/projets/nom-fichier.jpg`, alt: 'Description courte pour l'accessibilité' }
-```
+## Configuration
 
-Placez le fichier (ex. `nom-fichier.jpg`) dans **`public/images/projets/`**. Le composant `LinkCard` affichera l'image en en-tête de la carte.
-
-**Thème** (couleurs, typo) : **`src/config/index.ts`** (thème MUI exporté par défaut).
-
-## Structure du projet
-
-```
-├── .github/workflows/     # CI/CD (déploiement GitHub Pages)
-├── public/
-│   └── images/            # Assets : clients/ (logos), projets/ (photos)
-├── src/
-│   ├── components/        # Composants réutilisables
-│   │   ├── Layout.tsx
-│   │   ├── ClientLogosCarousel.tsx
-│   │   ├── projets/       # ProjectCard, ProjectScopeTabs
-│   │   └── coups-de-coeur/# LinkCard
-│   ├── config/            # site.ts (titre, nav), basePath.ts, index.ts (thème MUI)
-│   ├── data/              # types, profile, projects, selection, amis, client-logos
-│   └── pages/             # _app, index, projets, coups-de-coeur
-└── next.config.js
-```
-
-## Déploiement (GitHub Pages)
-
-### Automatique (recommandé)
-
-1. **Settings → Pages → Source** : **GitHub Actions**
-2. À chaque push sur `main`, le workflow `.github/workflows/deploy.yml` build et déploie automatiquement le site
-3. Si le site est sous une sous-URL (ex. `https://user.github.io/gb`), configurer **Secrets and variables → Actions** : `NEXT_PUBLIC_BASE_PATH=/gb`
-
-### Manuel
-
-- **Settings → Pages → Source** : **Deploy from a branch**, branche **gh-pages**, dossier **/ (root)**
-- En local : `npm run deploy` (build + push de `out/` sur la branche `gh-pages`)
-
-> Le `basePath` dans `next.config.js` doit correspondre à l'URL du dépôt (ex. `/gb`).
+- Chaque app a son `next.config.js` (admin, participant) ou point d’entrée (api).
+- `NEXT_PUBLIC_BASE_PATH` : base path pour les assets (ex. `/kahin` sur GitHub Pages).
+- `NEXT_PUBLIC_SITE_NAME` : titre du site.
+- `NEXT_PUBLIC_API_URL` : URL de l’API (ex. `http://localhost:4000`). Si défini, admin et participant utilisent l’API pour quiz/sessions (nécessaire pour rejoindre une partie entre les deux apps).
+- API : `PORT` (défaut 4000).
 
 ## Prérequis
 
 - Node.js 18+ (recommandé : 20)
-- npm (ou yarn)
+- npm
+
+## Documentation
+
+- [Architecture et SOLID](docs/ARCHITECTURE.md) : structure des packages, principes SOLID, proposition de déploiement.
 
 ## Licence
 
