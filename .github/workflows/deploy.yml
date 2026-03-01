@@ -19,6 +19,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Pour que les variables d'environnement GitHub (NEXT_PUBLIC_API_URL, etc.)
+    # soient disponibles pendant le build Next.js.
+    environment: github-pages
     steps:
       - name: Checkout
         uses: actions/checkout@v4
