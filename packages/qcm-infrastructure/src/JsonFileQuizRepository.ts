@@ -61,4 +61,11 @@ export class JsonFileQuizRepository implements QuizRepository {
     const quizzes = await this.readAll();
     return Object.values(quizzes).map((q) => ({ id: q.id, title: q.title }));
   }
+
+  async delete(id: string): Promise<void> {
+    const quizzes = await this.readAll();
+    if (!(id in quizzes)) return;
+    delete quizzes[id];
+    await this.writeAll(quizzes);
+  }
 }

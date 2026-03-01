@@ -50,6 +50,16 @@ export const apiGetQuiz = {
   },
 };
 
+export const apiDeleteQuiz = {
+  async execute(quizId: string): Promise<void> {
+    const { error } = await apiFetch(
+      `/api/quiz/${encodeURIComponent(quizId)}`,
+      { method: 'DELETE' }
+    );
+    if (error) throw new Error(error);
+  },
+};
+
 export const apiCreateQuiz = {
   async execute(input: CreateQuizInput): Promise<Quiz> {
     const { data, error } = await apiFetch<Quiz>('/api/quiz', {

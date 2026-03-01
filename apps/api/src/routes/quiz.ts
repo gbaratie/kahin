@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createQuizUseCase,
+  deleteQuiz,
   getQuizById,
   launchSessionUseCase,
   listQuizzes,
@@ -73,5 +74,22 @@ quizRoutes.post('/:quizId/launch', async (req, res) => {
     res
       .status(500)
       .json({ error: e instanceof Error ? e.message : 'Launch failed' });
+  }
+});
+
+quizRoutes.delete('/:quizId', async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const quiz = await getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ error: 'Quiz not found' });
+      return;
+    }
+    await deleteQuiz(quizId);
+    res.status(204).send();
+  } catch (e) {
+    res
+      .status(500)
+      .json({ error: e instanceof Error ? e.message : 'Delete quiz failed' });
   }
 });

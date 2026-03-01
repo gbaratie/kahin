@@ -6,4 +6,5 @@ export interface QuizRepository {
   save(quiz: Quiz): Promise<void>;
   getById(id: string): Promise<Quiz | null>;
   list(): Promise<QuizSummary[]>;
+  delete(id: string): Promise<void>;
 }

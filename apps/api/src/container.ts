@@ -30,6 +30,7 @@ const realtimeTransport = new MockRealtimeTransport();
 export const createQuizUseCase = new CreateQuizUseCase(quizRepo);
 export const getQuizById = (id: string) => quizRepo.getById(id);
 export const listQuizzes = () => quizRepo.list();
+export const deleteQuiz = (id: string) => quizRepo.delete(id);
 export const launchSessionUseCase = new LaunchSessionUseCase(
   quizRepo,
   sessionRepo,

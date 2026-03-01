@@ -11,28 +11,58 @@ import {
   ListItemSecondaryAction,
   CircularProgress,
   Alert,
+  IconButton,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { siteName } from '@/config/site';
-import { apiListQuizzes, isApiMode } from '@/qcm/apiClient';
+import { apiListQuizzes, apiDeleteQuiz, isApiMode } from '@/qcm/apiClient';
 import type { QuizSummary } from '@/qcm/apiClient';
+
+function loadQuizzes(
+  setQuizzes: (q: QuizSummary[]) => void,
+  setLoading: (l: boolean) => void,
+  setError: (e: string | null) => void
+) {
+  if (!isApiMode()) return;
+  setLoading(true);
+  setError(null);
+  apiListQuizzes
+    .execute()
+    .then(setQuizzes)
+    .catch((e) => setError(e instanceof Error ? e.message : 'Erreur'))
+    .finally(() => setLoading(false));
+}
 
 export default function HomePage() {
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isApiMode()) return;
-    setLoading(true);
-    setError(null);
-    apiListQuizzes
-      .execute()
-      .then(setQuizzes)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Erreur'))
-      .finally(() => setLoading(false));
+    loadQuizzes(setQuizzes, setLoading, setError);
   }, []);
+
+  const handleDelete = async (q: QuizSummary) => {
+    if (
+      !window.confirm(
+        `Supprimer le QCM « ${q.title} » ? Cette action est irréversible.`
+      )
+    )
+      return;
+    setDeletingId(q.id);
+    setError(null);
+    try {
+      await apiDeleteQuiz.execute(q.id);
+      setQuizzes((prev) => prev.filter((item) => item.id !== q.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur lors de la suppression');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <Layout>
@@ -109,9 +139,19 @@ export default function HomePage() {
                           href={`/qcm/launch?quizId=${encodeURIComponent(q.id)}`}
                           size="small"
                           variant="outlined"
+                          sx={{ mr: 0.5 }}
                         >
                           Lancer
                         </Button>
+                        <IconButton
+                          aria-label="Supprimer le QCM"
+                          size="small"
+                          color="primary"
+                          disabled={deletingId === q.id}
+                          onClick={() => handleDelete(q)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                       </ListItemSecondaryAction>
                     </ListItem>
                   ))}

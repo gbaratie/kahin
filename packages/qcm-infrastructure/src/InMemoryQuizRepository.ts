@@ -19,4 +19,8 @@ export class InMemoryQuizRepository implements QuizRepository {
       title: q.title,
     }));
   }
+
+  async delete(id: string): Promise<void> {
+    this.store.delete(id);
+  }
 }
