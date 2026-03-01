@@ -37,7 +37,9 @@ export function SessionHostView({
     : finished || sessionFinished;
 
   const handleNextQuestion = () => {
-    nextQuestion(sessionId).then(() => isApi && refetch());
+    nextQuestion(sessionId).then(() => {
+      if (isApi) refetch();
+    });
   };
 
   return (
