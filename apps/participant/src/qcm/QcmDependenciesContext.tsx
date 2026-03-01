@@ -4,6 +4,9 @@ import {
   InMemorySessionRepository,
   MockRealtimeTransport,
 } from '@kahin/qcm-infrastructure';
+import type { JoinSessionInput, JoinSessionResult } from '@kahin/qcm-application';
+import type { SubmitAnswerInput } from '@kahin/qcm-application';
+import type { Session } from '@kahin/qcm-domain';
 import {
   CreateQuizUseCase,
   LaunchSessionUseCase,
@@ -18,6 +21,17 @@ import {
   apiSubmitAnswer,
   isApiMode,
 } from './apiClient';
+
+/** Ports pour accepter use case ou adaptateur API (même signature execute). */
+type JoinSessionPort = {
+  execute(input: JoinSessionInput): Promise<JoinSessionResult>;
+};
+type GetSessionPort = {
+  execute(sessionId: string): Promise<Session | null>;
+};
+type SubmitAnswerPort = {
+  execute(input: SubmitAnswerInput): Promise<void>;
+};
 
 const quizRepo = new InMemoryQuizRepository();
 const sessionRepo = new InMemorySessionRepository();
@@ -47,10 +61,10 @@ const getSessionUseCase = new GetSessionUseCase(sessionRepo);
 export type QcmDependencies = {
   createQuiz: CreateQuizUseCase;
   launchSession: LaunchSessionUseCase;
-  joinSession: JoinSessionUseCase;
-  submitAnswer: SubmitAnswerUseCase;
+  joinSession: JoinSessionPort;
+  submitAnswer: SubmitAnswerPort;
   nextQuestion: NextQuestionUseCase;
-  getSession: GetSessionUseCase;
+  getSession: GetSessionPort;
   realtimeTransport: MockRealtimeTransport;
 };
 
