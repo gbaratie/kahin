@@ -5,7 +5,7 @@
 import type { CreateQuizInput } from '@kahin/qcm-application';
 import type { Quiz, Session } from '@kahin/qcm-domain';
 
-const getApiUrl = () =>
+export const getApiUrl = () =>
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
 
 async function apiFetch<T>(

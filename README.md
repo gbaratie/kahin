@@ -45,11 +45,12 @@ npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application &&
 **Pour que « rejoindre une partie » fonctionne** (participant qui rejoint une session lancée par l’admin), il faut que les deux apps partagent le même état via l’API :
 
 1. Démarrer l’API : `npm run dev:api`
-2. Dans `apps/admin/.env.local` et `apps/participant/.env.local`, définir :  
+2. Dans `apps/admin/.env` et `apps/participant/.env` (ou `.env.local`), définir :  
    `NEXT_PUBLIC_API_URL=http://localhost:4000`
-3. Démarrer l’admin et le participant. Créer un QCM et lancer une session depuis l’admin, puis rejoindre avec le code depuis le participant.
+3. **Redémarrer** les serveurs dev admin et participant après toute modification des variables d’environnement (les variables `NEXT_PUBLIC_*` sont prises au démarrage).
+4. Démarrer l’admin et le participant. Créer un QCM et lancer une session depuis l’admin, puis rejoindre avec le code depuis le participant.
 
-Sans `NEXT_PUBLIC_API_URL`, chaque app utilise son propre stockage **in-memory** (sessions créées côté admin invisibles côté participant).
+Sans `NEXT_PUBLIC_API_URL`, chaque app utilise son propre stockage **in-memory** (sessions créées côté admin invisibles côté participant). En haut de chaque interface, un indicateur affiche **Mode local** ou **API … — OK** / **Injoignable** pour vérifier que le front envoie bien les requêtes vers le back.
 
 ## Scripts racine
 
@@ -79,7 +80,9 @@ Pour GitHub Pages, le workflow dans `.github/workflows/deploy.yml` build admin e
 - `NEXT_PUBLIC_BASE_PATH` : base path pour les assets et la navigation (ex. `/kahin` sur GitHub Pages). En CI, par défaut = `/<nom-du-repo>` si non défini.
 - `NEXT_PUBLIC_SITE_NAME` : titre du site.
 - `NEXT_PUBLIC_API_URL` : URL de l’API (ex. `http://localhost:4000`). Si défini, admin et participant utilisent l’API pour quiz/sessions (nécessaire pour rejoindre une partie entre les deux apps).
-- API : `PORT` (défaut 4000).
+- API : `PORT` (défaut 4000), `QUIZ_JSON_PATH` (optionnel, défaut `data/quizzes.json`).
+
+**Persistance des données** : l’API enregistre les **quiz** dans un fichier JSON (`apps/api/data/quizzes.json` par défaut). Les **sessions** et réponses sont en mémoire : elles disparaissent au redémarrage de l’API. Pour une persistance des sessions, il faudrait ajouter un stockage (fichier ou base) côté API.
 
 ## Prérequis
 

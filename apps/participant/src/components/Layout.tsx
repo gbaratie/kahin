@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Link as MuiLink, Stack, Typography } from '@mui/material';
 import Link from 'next/link';
 import { siteName, navItems } from '@/config/site';
+import ApiStatus from '@/components/ApiStatus';
 
 type LayoutProps = { children: React.ReactNode };
 
@@ -18,14 +19,17 @@ export default function Layout({ children }: LayoutProps) {
           justifyContent="space-between"
           sx={{ maxWidth: 960, mx: 'auto' }}
         >
-          <Typography
-            component={Link}
-            href="/"
-            variant="h6"
-            sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }}
-          >
-            {siteName}
-          </Typography>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Typography
+              component={Link}
+              href="/"
+              variant="h6"
+              sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }}
+            >
+              {siteName}
+            </Typography>
+            <ApiStatus />
+          </Stack>
           <Stack direction="row" spacing={2}>
             {navItems.map((item) => (
               <MuiLink
