@@ -20,11 +20,11 @@
 
 À mettre dans l’interface Render pour le service de l’API :
 
-| Champ | Valeur |
-|--------|--------|
-| **Root Directory** | *(laisser vide)* |
-| **Build Command** | `npm ci && npm run build:api` |
-| **Start Command** | `cd apps/api && node dist/index.js` |
+| Champ              | Valeur                              |
+| ------------------ | ----------------------------------- |
+| **Root Directory** | _(laisser vide)_                    |
+| **Build Command**  | `npm ci && npm run build:api`       |
+| **Start Command**  | `cd apps/api && node dist/index.js` |
 
 - **Root Directory vide** : Render travaille à la racine du dépôt, donc `npm ci` installe tout le monorepo (dont les workspaces) et `npm run build:api` build les packages puis l’API.
 - **Start Command** : on se place dans `apps/api` puis on lance le binaire compilé `dist/index.js`, comme en local avec `npm run start` dans `apps/api`.

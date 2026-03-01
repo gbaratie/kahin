@@ -35,15 +35,9 @@ export function useSessionStream(sessionId: string | null) {
         setSessionFinished(true);
         return;
       }
-      if (
-        session.currentQuestionIndex >= 0 &&
-        session.quizId
-      ) {
+      if (session.currentQuestionIndex >= 0 && session.quizId) {
         const quiz = await apiGetQuiz.execute(session.quizId);
-        if (
-          quiz &&
-          session.currentQuestionIndex < quiz.questions.length
-        ) {
+        if (quiz && session.currentQuestionIndex < quiz.questions.length) {
           const question = quiz.questions[session.currentQuestionIndex];
           setCurrentQuestion({
             sessionId,

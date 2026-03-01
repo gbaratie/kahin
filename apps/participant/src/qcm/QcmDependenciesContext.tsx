@@ -4,7 +4,10 @@ import {
   InMemorySessionRepository,
   MockRealtimeTransport,
 } from '@kahin/qcm-infrastructure';
-import type { JoinSessionInput, JoinSessionResult } from '@kahin/qcm-application';
+import type {
+  JoinSessionInput,
+  JoinSessionResult,
+} from '@kahin/qcm-application';
 import type { SubmitAnswerInput } from '@kahin/qcm-application';
 import type { Session } from '@kahin/qcm-domain';
 import {

@@ -27,10 +27,13 @@ export function SessionHostView({
   );
 
   const displayedQuestion: Question | null = isApi
-    ? session && quiz && session.currentQuestionIndex >= 0 && session.currentQuestionIndex < quiz.questions.length
+    ? session &&
+      quiz &&
+      session.currentQuestionIndex >= 0 &&
+      session.currentQuestionIndex < quiz.questions.length
       ? quiz.questions[session.currentQuestionIndex]
       : null
-    : currentQuestion?.question ?? null;
+    : (currentQuestion?.question ?? null);
 
   const isFinished = isApi
     ? session?.status === 'finished' || finished
