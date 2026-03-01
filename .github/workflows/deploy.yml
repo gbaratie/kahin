@@ -1,7 +1,7 @@
-# Build et déploiement de l'app Admin vers GitHub Pages.
-# Pour déployer aussi Participant ou l'API, dupliquer le job ou ajouter des workflows dédiés.
+# Build et déploiement Admin + Participant vers GitHub Pages.
+# Admin à la racine, Participant sous /participant (ou $BASE_PATH/participant).
 
-name: Deploy Admin to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -43,13 +43,25 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH || '' }}
 
+      - name: Build Participant app
+        run: npm run build -w participant
+        env:
+          # Sous-chemin participant (ex. /participant ou /kahin/participant)
+          NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH || '' }}/participant
+
+      - name: Merge Admin + Participant for Pages
+        run: |
+          mkdir -p deploy/participant
+          cp -r apps/admin/out/* deploy/
+          cp -r apps/participant/out/* deploy/participant/
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'apps/admin/out'
+          path: 'deploy'
 
   deploy:
     environment:
