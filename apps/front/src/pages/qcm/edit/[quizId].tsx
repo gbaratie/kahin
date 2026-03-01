@@ -13,7 +13,7 @@ import {
   Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { useUpdateQuiz } from '@/qcm/hooks/useUpdateQuiz';
@@ -175,7 +175,7 @@ export default function QcmEditPage() {
                   onClick={() => removeQuestion(qIndex)}
                   disabled={questions.length <= 1}
                 >
-                  <DeleteIcon />
+                  <CloseIcon />
                 </IconButton>
               </Stack>
               <TextField
@@ -207,7 +207,7 @@ export default function QcmEditPage() {
                     onClick={() => removeChoice(qIndex, cIndex)}
                     disabled={q.choices.length <= 2}
                   >
-                    <DeleteIcon fontSize="small" />
+                    <CloseIcon fontSize="small" />
                   </IconButton>
                 </Stack>
               ))}
