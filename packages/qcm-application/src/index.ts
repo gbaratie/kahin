@@ -1,5 +1,7 @@
 export { CreateQuizUseCase } from './CreateQuizUseCase';
 export type { CreateQuizInput } from './CreateQuizUseCase';
+export { UpdateQuizUseCase } from './UpdateQuizUseCase';
+export type { UpdateQuizInput } from './UpdateQuizUseCase';
 export { LaunchSessionUseCase } from './LaunchSessionUseCase';
 export { JoinSessionUseCase } from './JoinSessionUseCase';
 export type { JoinSessionInput, JoinSessionResult } from './JoinSessionUseCase';

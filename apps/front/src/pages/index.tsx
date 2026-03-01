@@ -14,6 +14,7 @@ import {
   IconButton,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { siteName } from '@/config/site';
@@ -143,6 +144,16 @@ export default function HomePage() {
                         >
                           Lancer
                         </Button>
+                        <IconButton
+                          component={Link}
+                          href={`/qcm/edit/${encodeURIComponent(q.id)}`}
+                          aria-label="Modifier le QCM"
+                          size="small"
+                          color="primary"
+                          sx={{ mr: 0.5 }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
                         <IconButton
                           aria-label="Supprimer le QCM"
                           size="small"

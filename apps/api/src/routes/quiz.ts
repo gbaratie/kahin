@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createQuizUseCase,
+  updateQuizUseCase,
   deleteQuiz,
   getQuizById,
   launchSessionUseCase,
@@ -58,6 +59,37 @@ quizRoutes.post('/', async (req, res) => {
     res
       .status(500)
       .json({ error: e instanceof Error ? e.message : 'Create quiz failed' });
+  }
+});
+
+quizRoutes.put('/:quizId', async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { title, questions } = req.body;
+    if (!title || !Array.isArray(questions)) {
+      res.status(400).json({ error: 'title and questions required' });
+      return;
+    }
+    const quiz = await updateQuizUseCase.execute(quizId, {
+      title: String(title),
+      questions: questions.map(
+        (q: { label: string; choices: Array<{ label: string }> }) => ({
+          label: String(q?.label ?? ''),
+          choices: (q?.choices ?? []).map((c: { label: string }) => ({
+            label: String(c?.label ?? ''),
+          })),
+        })
+      ),
+    });
+    res.json(quiz);
+  } catch (e) {
+    if (e instanceof Error && (e as Error & { code?: string }).code === 'QUIZ_NOT_FOUND') {
+      res.status(404).json({ error: 'Quiz not found' });
+      return;
+    }
+    res
+      .status(500)
+      .json({ error: e instanceof Error ? e.message : 'Update quiz failed' });
   }
 });
 

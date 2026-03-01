@@ -2,7 +2,7 @@
  * Client API pour le front unifié : quiz, sessions, join, answer, etc.
  * Utilisé quand NEXT_PUBLIC_API_URL est défini.
  */
-import type { CreateQuizInput } from '@kahin/qcm-application';
+import type { CreateQuizInput, UpdateQuizInput } from '@kahin/qcm-application';
 import type {
   JoinSessionInput,
   JoinSessionResult,
@@ -74,6 +74,27 @@ export const apiCreateQuiz = {
     });
     if (error) throw new Error(error);
     if (!data) throw new Error('Create quiz failed');
+    return data;
+  },
+};
+
+export const apiUpdateQuiz = {
+  async execute(quizId: string, input: UpdateQuizInput): Promise<Quiz> {
+    const { data, error } = await apiFetch<Quiz>(
+      `/api/quiz/${encodeURIComponent(quizId)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: input.title,
+          questions: input.questions.map((q) => ({
+            label: q.label,
+            choices: (q.choices ?? []).map((c) => ({ label: c.label })),
+          })),
+        }),
+      }
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Update quiz failed');
     return data;
   },
 };

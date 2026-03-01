@@ -11,6 +11,7 @@ import {
 } from '@kahin/qcm-infrastructure';
 import {
   CreateQuizUseCase,
+  UpdateQuizUseCase,
   LaunchSessionUseCase,
   JoinSessionUseCase,
   GetSessionUseCase,
@@ -28,6 +29,7 @@ const sessionRepo = new InMemorySessionRepository();
 const realtimeTransport = new MockRealtimeTransport();
 
 export const createQuizUseCase = new CreateQuizUseCase(quizRepo);
+export const updateQuizUseCase = new UpdateQuizUseCase(quizRepo);
 export const getQuizById = (id: string) => quizRepo.getById(id);
 export const listQuizzes = () => quizRepo.list();
 export const deleteQuiz = (id: string) => quizRepo.delete(id);
