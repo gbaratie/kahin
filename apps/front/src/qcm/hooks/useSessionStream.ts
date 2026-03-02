@@ -37,7 +37,11 @@ export function useSessionStream(sessionId: string | null) {
         setSessionFinished(true);
         return;
       }
-      if (session.currentQuestionIndex >= 0 && session.quizId) {
+      if (
+        session.currentQuestionIndex >= 0 &&
+        session.quizId &&
+        session.showingResult !== true
+      ) {
         const quiz = await apiGetQuiz.execute(session.quizId);
         if (quiz && session.currentQuestionIndex < quiz.questions.length) {
           const question = quiz.questions[session.currentQuestionIndex];
@@ -89,10 +93,19 @@ export function useSessionStream(sessionId: string | null) {
       }
     );
 
+    const unsubResult = realtimeTransport.subscribe(
+      'question_result',
+      (payload: unknown) => {
+        const p = payload as { sessionId: string };
+        if (p.sessionId === sessionId) setCurrentQuestion(null);
+      }
+    );
+
     return () => {
       unsubQuestion();
       unsubAnswer();
       unsubFinished();
+      unsubResult();
       realtimeTransport.leaveChannel?.(sessionId);
     };
   }, [sessionId, realtimeTransport]);

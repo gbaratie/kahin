@@ -17,9 +17,6 @@ function computeRanking(
   upToQuestionIndex: number
 ): RankEntry[] {
   if (upToQuestionIndex <= 0) return [];
-  const questionIds = quiz.questions
-    .slice(0, upToQuestionIndex)
-    .map((q) => q.id);
   const scoreByParticipant = new Map<string, number>();
   for (const p of session.participants) {
     scoreByParticipant.set(p.id, 0);
@@ -70,14 +67,21 @@ export function SessionHostView({
     isApi ? null : sessionId
   );
 
-  const displayedQuestion: Question | null = isApi
-    ? session &&
-      quiz &&
-      session.currentQuestionIndex >= 0 &&
-      session.currentQuestionIndex < quiz.questions.length
-      ? quiz.questions[session.currentQuestionIndex]
-      : null
-    : (currentQuestion?.question ?? null);
+  const isWaiting = session?.status === 'waiting';
+  const showingResult = Boolean(session?.showingResult);
+  const isInProgress = session?.status === 'in_progress';
+
+  const displayedQuestion: Question | null =
+    isInProgress && !showingResult
+      ? isApi
+        ? session &&
+          quiz &&
+          session.currentQuestionIndex >= 0 &&
+          session.currentQuestionIndex < quiz.questions.length
+          ? quiz.questions[session.currentQuestionIndex]
+          : null
+        : (currentQuestion?.question ?? null)
+      : null;
 
   const isFinished = isApi
     ? session?.status === 'finished' || finished
@@ -88,19 +92,38 @@ export function SessionHostView({
   };
 
   const showRanking =
-    session && quiz && (session.currentQuestionIndex >= 1 || isFinished);
+    session &&
+    quiz &&
+    (showingResult || isFinished) &&
+    session.currentQuestionIndex >= 0;
+  const rankingUpTo = useMemo(() => {
+    if (!session || !quiz) return 0;
+    if (isFinished) return quiz.questions.length;
+    if (showingResult) return session.currentQuestionIndex + 1;
+    return 0;
+  }, [session, quiz, isFinished, showingResult]);
   const ranking = useMemo(() => {
-    if (!session || !quiz) return [];
-    const upTo = isFinished
-      ? quiz.questions.length
-      : session.currentQuestionIndex;
-    return computeRanking(session, quiz, upTo);
-  }, [session, quiz, isFinished]);
+    if (!session || !quiz || rankingUpTo <= 0) return [];
+    return computeRanking(session, quiz, rankingUpTo);
+  }, [session, quiz, rankingUpTo]);
+
+  const getRankingTitle = () => {
+    if (isFinished) return 'Classement final';
+    if (rankingUpTo <= 1) return 'Résultat de la question 1';
+    return `Résultats cumulés (après ${rankingUpTo} questions)`;
+  };
+
+  const getButtonLabel = () => {
+    if (loading) return 'Envoi…';
+    if (isWaiting) return 'Lancer la session';
+    if (showingResult) return 'Continuer';
+    return 'Voir les résultats';
+  };
 
   return (
     <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
       <Typography variant="h5" gutterBottom>
-        Session en cours
+        {isWaiting ? 'En attente des participants' : 'Session en cours'}
       </Typography>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
@@ -114,18 +137,18 @@ export function SessionHostView({
         </Typography>
       </Paper>
 
-      {session?.status === 'waiting' && (
+      {isWaiting && (
         <Paper sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
             Participants connectés
           </Typography>
-          {session.participants.length === 0 ? (
+          {session?.participants.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               Aucun participant pour l&apos;instant.
             </Typography>
           ) : (
             <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
-              {session.participants.map((p) => (
+              {session?.participants.map((p) => (
                 <Typography
                   key={p.id}
                   component="li"
@@ -149,7 +172,7 @@ export function SessionHostView({
       {showRanking && (
         <Paper sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            {isFinished ? 'Classement final' : 'Scores (questions précédentes)'}
+            {getRankingTitle()}
           </Typography>
           {ranking.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
@@ -157,7 +180,7 @@ export function SessionHostView({
             </Typography>
           ) : (
             <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
-              {ranking.map((entry, idx) => (
+              {ranking.map((entry) => (
                 <Typography
                   key={entry.participantId}
                   component="li"
@@ -204,7 +227,7 @@ export function SessionHostView({
           onClick={handleNextQuestion}
           disabled={loading}
         >
-          {loading ? 'Envoi…' : 'Question suivante'}
+          {getButtonLabel()}
         </Button>
       ) : (
         <Alert severity="success">Le QCM est terminé.</Alert>

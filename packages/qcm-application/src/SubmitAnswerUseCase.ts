@@ -22,6 +22,9 @@ export class SubmitAnswerUseCase {
     if (session.status !== 'in_progress') {
       throw new Error('Session is not accepting answers');
     }
+    if (session.showingResult === true) {
+      throw new Error('Session is not accepting answers');
+    }
 
     const existingIndex = session.answers.findIndex(
       (a) =>
