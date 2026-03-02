@@ -19,7 +19,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@kahin/qcm-domain": "1.0.0"
+    "@kahin/qcm-domain": "1.0.0",
+    "pg": "^8.11.5"
   },
   "devDependencies": {
     "typescript": "^5.1.6"
