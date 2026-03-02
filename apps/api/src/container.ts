@@ -1,10 +1,14 @@
 /**
  * Injection des dépendances : use cases + repositories.
- * Quiz : persistance JSON (fichier). Sessions : in-memory.
+ * Quiz : persistance JSON (fichier) en dev, Postgres en production.
+ * Sessions : in-memory.
  */
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { JsonFileQuizRepository } from '@kahin/qcm-infrastructure/node';
+import {
+  JsonFileQuizRepository,
+  PostgresQuizRepository,
+} from '@kahin/qcm-infrastructure/node';
 import {
   InMemorySessionRepository,
   MockRealtimeTransport,
@@ -24,7 +28,19 @@ const defaultQuizJsonPath = path.join(__dirname, '..', 'data', 'quizzes.json');
 const quizJsonPath = process.env.QUIZ_JSON_PATH ?? defaultQuizJsonPath;
 
 export const QUIZ_JSON_STORAGE_PATH = quizJsonPath;
-const quizRepo = new JsonFileQuizRepository(quizJsonPath);
+
+function createQuizRepository() {
+  const nodeEnv = process.env.NODE_ENV;
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (nodeEnv === 'production' && databaseUrl) {
+    return new PostgresQuizRepository();
+  }
+
+  return new JsonFileQuizRepository(quizJsonPath);
+}
+
+const quizRepo = createQuizRepository();
 const sessionRepo = new InMemorySessionRepository();
 const realtimeTransport = new MockRealtimeTransport();
 

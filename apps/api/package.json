@@ -8,7 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "db:import-quizzes": "tsx scripts/import-quizzes-to-postgres.ts"
   },
   "dependencies": {
     "@kahin/qcm-application": "1.0.0",
