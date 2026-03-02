@@ -23,6 +23,7 @@ import {
   apiCreateQuiz,
   apiLaunchSession,
   apiGetSession,
+  apiGetQuiz,
   apiNextQuestion,
   apiJoinSession,
   apiSubmitAnswer,
@@ -63,6 +64,7 @@ export type QcmDependencies = {
     execute(sessionId: string): Promise<{ finished: boolean }>;
   };
   getSession: { execute(sessionId: string): Promise<Session | null> };
+  getQuiz: { execute(quizId: string): Promise<Quiz | null> };
   realtimeTransport: MockRealtimeTransport;
 };
 
@@ -75,6 +77,7 @@ const defaultDeps: QcmDependencies = (() => {
     submitAnswer: useApi ? apiSubmitAnswer : submitAnswerUseCase,
     nextQuestion: useApi ? apiNextQuestion : nextQuestionUseCase,
     getSession: useApi ? apiGetSession : getSessionUseCase,
+    getQuiz: useApi ? apiGetQuiz : { execute: (id: string) => quizRepo.getById(id) },
     realtimeTransport,
   };
 })();

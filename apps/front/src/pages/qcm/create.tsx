@@ -9,13 +9,20 @@ import {
   Stack,
   IconButton,
   Paper,
+  Checkbox,
 } from '@mui/material';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Layout from '@/components/Layout';
 import { useCreateQuiz } from '@/qcm/hooks/useCreateQuiz';
 
-type QuestionDraft = { label: string; choices: string[] };
+type QuestionDraft = {
+  label: string;
+  choices: string[];
+  correctChoiceIndex?: number;
+};
 const initialQuestion: QuestionDraft = { label: '', choices: ['', ''] };
 
 export default function QcmCreatePage() {
@@ -52,10 +59,22 @@ export default function QcmCreatePage() {
     );
   const removeChoice = (qIndex: number, cIndex: number) =>
     setQuestions((q) =>
+      q.map((item, i) => {
+        if (i !== qIndex) return item;
+        const nextChoices = item.choices.filter((_, j) => j !== cIndex);
+        let nextCorrect: number | undefined = item.correctChoiceIndex;
+        if (nextCorrect !== undefined) {
+          if (nextCorrect === cIndex) nextCorrect = undefined;
+          else if (nextCorrect > cIndex) nextCorrect = nextCorrect - 1;
+        }
+        return { ...item, choices: nextChoices, correctChoiceIndex: nextCorrect };
+      })
+    );
+
+  const setCorrectChoiceIndex = (qIndex: number, choiceIndex: number | undefined) =>
+    setQuestions((q) =>
       q.map((item, i) =>
-        i === qIndex
-          ? { ...item, choices: item.choices.filter((_, j) => j !== cIndex) }
-          : item
+        i === qIndex ? { ...item, correctChoiceIndex: choiceIndex } : item
       )
     );
 
@@ -65,12 +84,26 @@ export default function QcmCreatePage() {
       title: title.trim() || 'Sans titre',
       questions: questions
         .filter((q) => q.label.trim())
-        .map((q) => ({
-          label: q.label.trim(),
-          choices: q.choices
+        .map((q) => {
+          const trimmedChoices = q.choices
             .filter((c) => c.trim())
-            .map((c) => ({ label: c.trim() })),
-        })),
+            .map((c) => ({ label: c.trim() }));
+          const submittedCorrectIndex =
+            q.correctChoiceIndex != null &&
+            q.choices[q.correctChoiceIndex]?.trim()
+              ? (() => {
+                  const idx = trimmedChoices.findIndex(
+                    (c) => c.label === q.choices[q.correctChoiceIndex!].trim()
+                  );
+                  return idx >= 0 ? idx : undefined;
+                })()
+              : undefined;
+          return {
+            label: q.label.trim(),
+            choices: trimmedChoices,
+            correctChoiceIndex: submittedCorrectIndex,
+          };
+        }),
     });
     if (quiz) router.push(`/qcm/launch?quizId=${quiz.id}`);
   };
@@ -134,6 +167,26 @@ export default function QcmCreatePage() {
                     onChange={(e) =>
                       updateChoice(qIndex, cIndex, e.target.value)
                     }
+                  />
+                  <Checkbox
+                    size="small"
+                    icon={<CheckBoxOutlineBlankIcon />}
+                    checkedIcon={<CheckBoxIcon color="success" />}
+                    checked={q.correctChoiceIndex === cIndex}
+                    onChange={() =>
+                      setCorrectChoiceIndex(
+                        qIndex,
+                        q.correctChoiceIndex === cIndex ? undefined : cIndex
+                      )
+                    }
+                    sx={{
+                      color: 'action.disabled',
+                      '&.Mui-checked': { color: 'success.main' },
+                      p: 0.5,
+                      borderRadius: 0,
+                      '& .MuiSvgIcon-root': { borderRadius: 0 },
+                    }}
+                    titleAccess="Bonne réponse"
                   />
                   <IconButton
                     size="small"

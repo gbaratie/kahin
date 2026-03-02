@@ -11,7 +11,10 @@ import {
   Paper,
   CircularProgress,
   Alert,
+  Checkbox,
 } from '@mui/material';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import Link from 'next/link';
@@ -20,14 +23,26 @@ import { useUpdateQuiz } from '@/qcm/hooks/useUpdateQuiz';
 import { apiGetQuiz } from '@/qcm/apiClient';
 import type { Quiz } from '@kahin/qcm-domain';
 
-type QuestionDraft = { label: string; choices: string[] };
+type QuestionDraft = {
+  label: string;
+  choices: string[];
+  correctChoiceIndex?: number;
+};
 const initialQuestion: QuestionDraft = { label: '', choices: ['', ''] };
 
 function quizToDraft(quiz: Quiz): QuestionDraft[] {
-  return quiz.questions.map((q) => ({
-    label: q.label,
-    choices: q.choices.length > 0 ? q.choices.map((c) => c.label) : ['', ''],
-  }));
+  return quiz.questions.map((q) => {
+    const choices = q.choices.length > 0 ? q.choices.map((c) => c.label) : ['', ''];
+    const correctChoiceIndex =
+      q.correctChoiceId != null
+        ? q.choices.findIndex((c) => c.id === q.correctChoiceId)
+        : undefined;
+    return {
+      label: q.label,
+      choices,
+      correctChoiceIndex: correctChoiceIndex >= 0 ? correctChoiceIndex : undefined,
+    };
+  });
 }
 
 export default function QcmEditPage() {
@@ -85,10 +100,22 @@ export default function QcmEditPage() {
     );
   const removeChoice = (qIndex: number, cIndex: number) =>
     setQuestions((q) =>
+      q.map((item, i) => {
+        if (i !== qIndex) return item;
+        const nextChoices = item.choices.filter((_, j) => j !== cIndex);
+        let nextCorrect: number | undefined = item.correctChoiceIndex;
+        if (nextCorrect !== undefined) {
+          if (nextCorrect === cIndex) nextCorrect = undefined;
+          else if (nextCorrect > cIndex) nextCorrect = nextCorrect - 1;
+        }
+        return { ...item, choices: nextChoices, correctChoiceIndex: nextCorrect };
+      })
+    );
+
+  const setCorrectChoiceIndex = (qIndex: number, choiceIndex: number | undefined) =>
+    setQuestions((q) =>
       q.map((item, i) =>
-        i === qIndex
-          ? { ...item, choices: item.choices.filter((_, j) => j !== cIndex) }
-          : item
+        i === qIndex ? { ...item, correctChoiceIndex: choiceIndex } : item
       )
     );
 
@@ -99,12 +126,26 @@ export default function QcmEditPage() {
       title: title.trim() || 'Sans titre',
       questions: questions
         .filter((q) => q.label.trim())
-        .map((q) => ({
-          label: q.label.trim(),
-          choices: q.choices
+        .map((q) => {
+          const trimmedChoices = q.choices
             .filter((c) => c.trim())
-            .map((c) => ({ label: c.trim() })),
-        })),
+            .map((c) => ({ label: c.trim() }));
+          const submittedCorrectIndex =
+            q.correctChoiceIndex != null &&
+            q.choices[q.correctChoiceIndex]?.trim()
+              ? (() => {
+                  const idx = trimmedChoices.findIndex(
+                    (c) => c.label === q.choices[q.correctChoiceIndex!].trim()
+                  );
+                  return idx >= 0 ? idx : undefined;
+                })()
+              : undefined;
+          return {
+            label: q.label.trim(),
+            choices: trimmedChoices,
+            correctChoiceIndex: submittedCorrectIndex,
+          };
+        }),
     });
     if (quiz) router.push(`/qcm/launch?quizId=${quiz.id}`);
   };
@@ -201,6 +242,26 @@ export default function QcmEditPage() {
                     onChange={(e) =>
                       updateChoice(qIndex, cIndex, e.target.value)
                     }
+                  />
+                  <Checkbox
+                    size="small"
+                    icon={<CheckBoxOutlineBlankIcon />}
+                    checkedIcon={<CheckBoxIcon color="success" />}
+                    checked={q.correctChoiceIndex === cIndex}
+                    onChange={() =>
+                      setCorrectChoiceIndex(
+                        qIndex,
+                        q.correctChoiceIndex === cIndex ? undefined : cIndex
+                      )
+                    }
+                    sx={{
+                      color: 'action.disabled',
+                      '&.Mui-checked': { color: 'success.main' },
+                      p: 0.5,
+                      borderRadius: 0,
+                      '& .MuiSvgIcon-root': { borderRadius: 0 },
+                    }}
+                    titleAccess="Bonne réponse"
                   />
                   <IconButton
                     size="small"
