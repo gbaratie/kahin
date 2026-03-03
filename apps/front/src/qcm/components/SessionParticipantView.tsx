@@ -25,16 +25,29 @@ export function SessionParticipantView({
   const { execute: submitAnswer, loading, error } = useSubmitAnswer();
   const [selectedChoiceId, setSelectedChoiceId] =
     React.useState<string | null>(null);
+  const [hasAnsweredCurrentQuestion, setHasAnsweredCurrentQuestion] =
+    React.useState(false);
 
-  const handleSubmit = () => {
+  // Réinitialiser "a répondu" quand la question affichée change
+  const currentQuestionId = currentQuestion?.question.id;
+  React.useEffect(() => {
+    setHasAnsweredCurrentQuestion(false);
+  }, [currentQuestionId]);
+
+  const handleSubmit = async () => {
     if (!currentQuestion || !selectedChoiceId) return;
-    submitAnswer({
-      sessionId,
-      participantId,
-      questionId: currentQuestion.question.id,
-      choiceId: selectedChoiceId,
-    });
-    setSelectedChoiceId(null);
+    try {
+      await submitAnswer({
+        sessionId,
+        participantId,
+        questionId: currentQuestion.question.id,
+        choiceId: selectedChoiceId,
+      });
+      setSelectedChoiceId(null);
+      setHasAnsweredCurrentQuestion(true);
+    } catch {
+      // L'erreur est déjà affichée par useSubmitAnswer
+    }
   };
 
   if (sessionFinished) {
@@ -53,6 +66,22 @@ export function SessionParticipantView({
         <Typography color="text.secondary">
           En attente de la prochaine question…
         </Typography>
+      </Box>
+    );
+  }
+
+  // Le participant a déjà répondu à cette question : page d'attente
+  if (hasAnsweredCurrentQuestion) {
+    return (
+      <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+        <Alert severity="success" icon={false}>
+          <Typography variant="body1" fontWeight={500}>
+            Merci d&apos;avoir répondu à cette question.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            En attente de la prochaine question…
+          </Typography>
+        </Alert>
       </Box>
     );
   }
