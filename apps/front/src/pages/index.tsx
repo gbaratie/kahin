@@ -12,6 +12,11 @@ import {
   CircularProgress,
   Alert,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -41,18 +46,22 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmQuiz, setDeleteConfirmQuiz] = useState<QuizSummary | null>(
+    null
+  );
 
   useEffect(() => {
     loadQuizzes(setQuizzes, setLoading, setError);
   }, []);
 
-  const handleDelete = async (q: QuizSummary) => {
-    if (
-      !window.confirm(
-        `Supprimer le QCM « ${q.title} » ? Cette action est irréversible.`
-      )
-    )
-      return;
+  const handleDeleteClick = (q: QuizSummary) => {
+    setDeleteConfirmQuiz(q);
+  };
+
+  const handleDeleteConfirm = async () => {
+    const q = deleteConfirmQuiz;
+    if (!q) return;
+    setDeleteConfirmQuiz(null);
     setDeletingId(q.id);
     setError(null);
     try {
@@ -63,6 +72,10 @@ export default function HomePage() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmQuiz(null);
   };
 
   return (
@@ -159,7 +172,7 @@ export default function HomePage() {
                           size="small"
                           color="primary"
                           disabled={deletingId === q.id}
-                          onClick={() => handleDelete(q)}
+                          onClick={() => handleDeleteClick(q)}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -172,6 +185,43 @@ export default function HomePage() {
           )}
         </Stack>
       </Box>
+
+      <Dialog
+        open={deleteConfirmQuiz !== null}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+        PaperProps={{
+          sx: { borderRadius: 2, minWidth: 320 },
+        }}
+      >
+        <DialogTitle id="delete-dialog-title">
+          Supprimer le QCM
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            {deleteConfirmQuiz && (
+              <>
+                Supprimer le QCM « {deleteConfirmQuiz.title} » ? Cette action
+                est irréversible.
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, pt: 0 }}>
+          <Button onClick={handleDeleteCancel} color="inherit">
+            Annuler
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            autoFocus
+          >
+            Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }
