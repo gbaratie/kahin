@@ -7,14 +7,17 @@ import {
   TextField,
   Button,
   Stack,
-  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import Layout from '@/components/Layout';
 import { useJoinSession } from '@/qcm/hooks/useJoinSession';
 
 export default function JoinPage() {
   const router = useRouter();
-  const { execute: joinSession, loading, error } = useJoinSession();
+  const { execute: joinSession, loading, error, clearError } = useJoinSession();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
 
@@ -30,6 +33,7 @@ export default function JoinPage() {
       );
     }
   };
+
 
   return (
     <Layout>
@@ -66,11 +70,23 @@ export default function JoinPage() {
             </Button>
           </Stack>
         </form>
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error.message}
-          </Alert>
-        )}
+        <Dialog open={Boolean(error)} onClose={clearError}>
+          <DialogTitle>Erreur</DialogTitle>
+          <DialogContent>
+            <Typography>
+              {error?.message === 'Session not found'
+                ? 'Cette session n’existe pas ou le code est incorrect. Vérifiez le code et réessayez.'
+                : error?.message === 'Session is already finished'
+                  ? 'Cette session est déjà terminée.'
+                  : error?.message ?? 'Une erreur est survenue.'}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={clearError} variant="contained" autoFocus>
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Layout>
   );

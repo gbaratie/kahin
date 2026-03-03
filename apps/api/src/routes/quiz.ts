@@ -46,11 +46,17 @@ quizRoutes.post('/', async (req, res) => {
     const quiz = await createQuizUseCase.execute({
       title: String(title),
       questions: questions.map(
-        (q: { label: string; choices: Array<{ label: string }> }) => ({
+        (q: {
+          label: string;
+          choices: Array<{ label: string }>;
+          correctChoiceIndex?: number;
+        }) => ({
           label: String(q?.label ?? ''),
           choices: (q?.choices ?? []).map((c: { label: string }) => ({
             label: String(c?.label ?? ''),
           })),
+          correctChoiceIndex:
+            typeof q?.correctChoiceIndex === 'number' ? q.correctChoiceIndex : undefined,
         })
       ),
     });
@@ -73,11 +79,17 @@ quizRoutes.put('/:quizId', async (req, res) => {
     const quiz = await updateQuizUseCase.execute(quizId, {
       title: String(title),
       questions: questions.map(
-        (q: { label: string; choices: Array<{ label: string }> }) => ({
+        (q: {
+          label: string;
+          choices: Array<{ label: string }>;
+          correctChoiceIndex?: number;
+        }) => ({
           label: String(q?.label ?? ''),
           choices: (q?.choices ?? []).map((c: { label: string }) => ({
             label: String(c?.label ?? ''),
           })),
+          correctChoiceIndex:
+            typeof q?.correctChoiceIndex === 'number' ? q.correctChoiceIndex : undefined,
         })
       ),
     });

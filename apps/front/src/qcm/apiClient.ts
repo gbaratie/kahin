@@ -69,6 +69,7 @@ export const apiCreateQuiz = {
         questions: input.questions.map((q) => ({
           label: q.label,
           choices: (q.choices ?? []).map((c) => ({ label: c.label })),
+          correctChoiceIndex: q.correctChoiceIndex,
         })),
       }),
     });
@@ -89,6 +90,7 @@ export const apiUpdateQuiz = {
           questions: input.questions.map((q) => ({
             label: q.label,
             choices: (q.choices ?? []).map((c) => ({ label: c.label })),
+            correctChoiceIndex: q.correctChoiceIndex,
           })),
         }),
       }

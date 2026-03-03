@@ -23,7 +23,7 @@ export function useJoinSession() {
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
         setError(err);
-        throw err;
+        return undefined;
       } finally {
         setLoading(false);
       }
@@ -31,5 +31,7 @@ export function useJoinSession() {
     [joinSession]
   );
 
-  return { execute, loading, error, result };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { execute, loading, error, result, clearError };
 }
