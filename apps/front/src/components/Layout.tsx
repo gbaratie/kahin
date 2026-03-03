@@ -43,9 +43,7 @@ export default function Layout({ children }: LayoutProps) {
             fontSize: '0.875rem',
             letterSpacing: '0.05em',
             color: 'text.secondary',
-            borderBottom: isActive(item.href)
-              ? 2
-              : 0,
+            borderBottom: isActive(item.href) ? 2 : 0,
             borderColor: 'primary.main',
             borderRadius: 0,
             pb: 0.5,

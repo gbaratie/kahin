@@ -29,7 +29,14 @@ export const initialQuestion: QuestionDraft = { label: '', choices: ['', ''] };
 export function draftToPayload(
   title: string,
   questions: QuestionDraft[]
-): { title: string; questions: Array<{ label: string; choices: { label: string }[]; correctChoiceIndex?: number }> } {
+): {
+  title: string;
+  questions: Array<{
+    label: string;
+    choices: { label: string }[];
+    correctChoiceIndex?: number;
+  }>;
+} {
   return {
     title: title.trim() || 'Sans titre',
     questions: questions
@@ -106,8 +113,7 @@ export default function QcmForm({
   error,
   cancelButton,
 }: QcmFormProps) {
-  const addQuestion = () =>
-    setQuestions((q) => [...q, { ...initialQuestion }]);
+  const addQuestion = () => setQuestions((q) => [...q, { ...initialQuestion }]);
   const removeQuestion = (index: number) =>
     setQuestions((q) => q.filter((_, i) => i !== index));
   const updateQuestion = (index: number, label: string) =>
@@ -141,7 +147,11 @@ export default function QcmForm({
           if (nextCorrect === cIndex) nextCorrect = undefined;
           else if (nextCorrect > cIndex) nextCorrect = nextCorrect - 1;
         }
-        return { ...item, choices: nextChoices, correctChoiceIndex: nextCorrect };
+        return {
+          ...item,
+          choices: nextChoices,
+          correctChoiceIndex: nextCorrect,
+        };
       })
     );
   const setCorrectChoiceIndex = (
@@ -177,9 +187,7 @@ export default function QcmForm({
               justifyContent="space-between"
               sx={{ mb: 1 }}
             >
-              <Typography variant="subtitle2">
-                Question {qIndex + 1}
-              </Typography>
+              <Typography variant="subtitle2">Question {qIndex + 1}</Typography>
               <IconButton
                 size="small"
                 onClick={() => removeQuestion(qIndex)}
@@ -214,9 +222,7 @@ export default function QcmForm({
                   fullWidth
                   label={`Choix ${cIndex + 1}`}
                   value={choice}
-                  onChange={(e) =>
-                    updateChoice(qIndex, cIndex, e.target.value)
-                  }
+                  onChange={(e) => updateChoice(qIndex, cIndex, e.target.value)}
                 />
                 <Tooltip title="Bonne réponse">
                   <Checkbox
@@ -269,11 +275,7 @@ export default function QcmForm({
           <Stack direction="row" spacing={2} flexWrap="wrap">
             {secondarySubmitLabel && onSecondarySubmit ? (
               <>
-                <Button
-                  type="submit"
-                  variant="outlined"
-                  disabled={loading}
-                >
+                <Button type="submit" variant="outlined" disabled={loading}>
                   {submitLabel}
                 </Button>
                 <Button

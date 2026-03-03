@@ -22,8 +22,9 @@ export function useSessionStream(sessionId: string | null) {
   const { realtimeTransport } = useQcmDependencies();
   const [currentQuestion, setCurrentQuestion] =
     useState<QuestionShowPayload | null>(null);
-  const [lastAnswer, setLastAnswer] =
-    useState<AnswerSubmittedPayload | null>(null);
+  const [lastAnswer, setLastAnswer] = useState<AnswerSubmittedPayload | null>(
+    null
+  );
   const [sessionFinished, setSessionFinished] = useState(false);
 
   // Mode API : polling session + quiz pour currentQuestion et sessionFinished

@@ -5,59 +5,40 @@ import {
   submitAnswerUseCase,
   nextQuestionUseCase,
 } from '../container.js';
+import { handleAsync } from '../middleware/handleAsync.js';
 
 export const sessionRoutes = Router();
 
-sessionRoutes.get('/:id', async (req, res) => {
-  try {
+sessionRoutes.get(
+  '/:id',
+  handleAsync(async (req, res) => {
     const session = await getSessionUseCase.execute(req.params.id);
-    if (!session) {
-      res.status(404).json({ error: 'Session not found' });
-      return;
-    }
+    if (!session) throw new Error('Session not found');
     res.json(session);
-  } catch (e) {
-    res
-      .status(500)
-      .json({ error: e instanceof Error ? e.message : 'Get session failed' });
-  }
-});
+  })
+);
 
-sessionRoutes.post('/join', async (req, res) => {
-  try {
+sessionRoutes.post(
+  '/join',
+  handleAsync(async (req, res) => {
     const { code, participantName } = req.body;
     if (!code || !participantName) {
-      res.status(400).json({ error: 'code and participantName required' });
-      return;
+      throw new Error('code and participantName required');
     }
     const result = await joinSessionUseCase.execute({
       code: String(code).trim().toUpperCase(),
       participantName: String(participantName).trim() || 'Participant',
     });
     res.status(201).json(result);
-  } catch (e) {
-    if (
-      e instanceof Error &&
-      (e.message === 'Session not found' ||
-        e.message === 'Session is already finished')
-    ) {
-      res.status(400).json({ error: e.message });
-      return;
-    }
-    res
-      .status(500)
-      .json({ error: e instanceof Error ? e.message : 'Join failed' });
-  }
-});
+  })
+);
 
-sessionRoutes.post('/:id/answer', async (req, res) => {
-  try {
+sessionRoutes.post(
+  '/:id/answer',
+  handleAsync(async (req, res) => {
     const { participantId, questionId, choiceId } = req.body;
     if (!participantId || !questionId || !choiceId) {
-      res
-        .status(400)
-        .json({ error: 'participantId, questionId, choiceId required' });
-      return;
+      throw new Error('participantId, questionId, choiceId required');
     }
     await submitAnswerUseCase.execute({
       sessionId: req.params.id,
@@ -66,32 +47,13 @@ sessionRoutes.post('/:id/answer', async (req, res) => {
       choiceId: String(choiceId),
     });
     res.status(204).send();
-  } catch (e) {
-    if (
-      e instanceof Error &&
-      (e.message === 'Session not found' ||
-        e.message === 'Session is not accepting answers')
-    ) {
-      res.status(400).json({ error: e.message });
-      return;
-    }
-    res
-      .status(500)
-      .json({ error: e instanceof Error ? e.message : 'Submit answer failed' });
-  }
-});
+  })
+);
 
-sessionRoutes.post('/:id/next', async (req, res) => {
-  try {
+sessionRoutes.post(
+  '/:id/next',
+  handleAsync(async (req, res) => {
     const result = await nextQuestionUseCase.execute(req.params.id);
     res.json(result);
-  } catch (e) {
-    if (e instanceof Error && e.message === 'Session not found') {
-      res.status(404).json({ error: e.message });
-      return;
-    }
-    res
-      .status(500)
-      .json({ error: e instanceof Error ? e.message : 'Next question failed' });
-  }
-});
+  })
+);

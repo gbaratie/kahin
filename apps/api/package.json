@@ -15,6 +15,7 @@
     "@kahin/qcm-application": "1.0.0",
     "@kahin/qcm-domain": "1.0.0",
     "@kahin/qcm-infrastructure": "1.0.0",
+    "@kahin/shared-utils": "1.0.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "swagger-ui-express": "^5.0.1",

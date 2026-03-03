@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Alert } from '@mui/material';
 import Layout from '@/components/Layout';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import ErrorAlert from '@/components/common/ErrorAlert';
 import { useLaunchSession } from '@/qcm/hooks/useLaunchSession';
 import { SessionHostView } from '@/qcm/components/SessionHostView';
+import { layout } from '@/config/layout';
 
 export default function QcmLaunchPage() {
   const router = useRouter();
@@ -29,7 +32,7 @@ export default function QcmLaunchPage() {
         <Head>
           <title>Lancer une session</title>
         </Head>
-        <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Box sx={{ ...layout.pagePaddingAuto }}>
           <Alert severity="warning">Aucun quiz sélectionné.</Alert>
           <Typography sx={{ mt: 2 }}>
             Créez un QCM puis cliquez sur &quot;Créer et lancer&quot;.
@@ -40,16 +43,7 @@ export default function QcmLaunchPage() {
   }
 
   if (loading && !session) {
-    return (
-      <Layout>
-        <Head>
-          <title>Lancement…</title>
-        </Head>
-        <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Layout>
-    );
+    return <LoadingScreen title="Lancement…" />;
   }
 
   if (error && !session) {
@@ -58,9 +52,7 @@ export default function QcmLaunchPage() {
         <Head>
           <title>Erreur</title>
         </Head>
-        <Box sx={{ p: 4 }}>
-          <Alert severity="error">{error.message}</Alert>
-        </Box>
+        <ErrorAlert message={error.message} />
       </Layout>
     );
   }

@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { Box, Typography, CircularProgress, Alert } from '@mui/material';
 import Layout from '@/components/Layout';
+import LoadingScreen from '@/components/common/LoadingScreen';
+import ErrorAlert from '@/components/common/ErrorAlert';
 import { SessionHostView } from '@/qcm/components/SessionHostView';
 import { useSession } from '@/qcm/hooks/useSession';
 
@@ -17,24 +18,13 @@ export default function QcmSessionPage() {
         <Head>
           <title>Session</title>
         </Head>
-        <Box sx={{ p: 4 }}>
-          <Typography color="text.secondary">Session introuvable.</Typography>
-        </Box>
+        <ErrorAlert message="Session introuvable." />
       </Layout>
     );
   }
 
   if (loading) {
-    return (
-      <Layout>
-        <Head>
-          <title>Session</title>
-        </Head>
-        <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Layout>
-    );
+    return <LoadingScreen title="Session" />;
   }
 
   if (error || !session) {
@@ -43,11 +33,11 @@ export default function QcmSessionPage() {
         <Head>
           <title>Session</title>
         </Head>
-        <Box sx={{ p: 4 }}>
-          <Alert severity="error">
-            {error?.message ?? 'Session introuvable.'}
-          </Alert>
-        </Box>
+        <ErrorAlert
+          message={error?.message ?? 'Session introuvable.'}
+          onRetry={() => window.location.reload()}
+          retryLabel="Recharger"
+        />
       </Layout>
     );
   }

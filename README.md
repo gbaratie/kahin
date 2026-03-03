@@ -17,25 +17,28 @@ kahin/
 ├── packages/
 │   ├── qcm-domain/      # Entités + ports (partagé)
 │   ├── qcm-application/ # Cas d’usage (partagé)
-│   └── qcm-infrastructure/ # Repos in-memory + MockRealtimeTransport
+│   ├── qcm-infrastructure/ # Repos in-memory + MockRealtimeTransport
+│   └── shared-utils/    # Utilitaires partagés (getErrorMessage, toError)
 ├── docs/
-│   └── ARCHITECTURE.md  # Principes SOLID et déploiement
+│   └── ARCHITECTURE.md  # Principes SOLID, déploiement et diagrammes de séquence
 ├── package.json         # Workspaces npm
 └── tsconfig.base.json
 ```
+
+Le front factorise les états de chargement et d’erreur via le hook **`useAsyncCall`** et les composants **LoadingScreen**, **ErrorAlert** et **PageLayout** (`src/components/common/`, `src/config/layout.ts`).
 
 ## Quick Start
 
 ```bash
 npm install
 # Build des packages partagés (nécessaire avant de lancer les apps)
-npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure
+npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w @kahin/shared-utils
 ```
 
 ### Lancer une app
 
-| App   | Commande           | URL                   |
-| ----- | ------------------ | --------------------- |
+| App   | Commande            | URL                   |
+| ----- | ------------------- | --------------------- |
 | Front | `npm run dev:front` | http://localhost:3000 |
 | API   | `npm run dev:api`   | http://localhost:4000 |
 
@@ -51,20 +54,20 @@ Sans `NEXT_PUBLIC_API_URL`, le front utilise un stockage **in-memory** local (se
 
 ## Scripts racine
 
-| Commande           | Description                                                       |
-| ------------------ | ----------------------------------------------------------------- |
-| `npm run build`    | Build tous les packages puis front et api                         |
-| `npm run build:front` | Build packages + app front uniquement                          |
-| `npm run build:api`   | Build packages + app API uniquement                            |
-| `npm run dev:front`   | Dev app front (Next.js, port 3000)                             |
-| `npm run dev:api`     | Dev API (tsx watch, port 4000)                                 |
-| `npm run format`      | Formatage Prettier                                              |
-| `npm run format:check`| Vérification Prettier                                          |
+| Commande               | Description                               |
+| ---------------------- | ----------------------------------------- |
+| `npm run build`        | Build tous les packages puis front et api |
+| `npm run build:front`  | Build packages + app front uniquement     |
+| `npm run build:api`    | Build packages + app API uniquement       |
+| `npm run dev:front`    | Dev app front (Next.js, port 3000)        |
+| `npm run dev:api`      | Dev API (tsx watch, port 4000)            |
+| `npm run format`       | Formatage Prettier                        |
+| `npm run format:check` | Vérification Prettier                     |
 
 ## Déploiement
 
 - **Front** : build → `apps/front/out` (export statique). Déployable sur GitHub Pages, Vercel, etc. Le workflow `.github/workflows/deploy.yml` build le front et déploie `apps/front/out` vers GitHub Pages.
-- **API** : build → `apps/api/dist`, puis `node dist/index.js`. Déployable sur Render (Web Service).
+- **API** : build → `apps/api/dist`, puis `node dist/index.js`. Déployable sur Render (Web Service). Un fichier **`render.yaml`** à la racine définit le service (build : `npm ci && npm run build:api`, start : `npm run start -w api`). Sur Render, configurer les variables d’environnement (ex. `DATABASE_URL` pour Postgres en production, voir `apps/api/README.md`).
 
 **Base path** : si la variable de dépôt `NEXT_PUBLIC_BASE_PATH` n’est pas définie, elle est fixée par défaut à `/<nom-du-repo>` (ex. `/kahin`) pour que les liens et assets fonctionnent sous `https://<user>.github.io/<repo>/`. Variables optionnelles : `NEXT_PUBLIC_BASE_PATH`, `NEXT_PUBLIC_SITE_NAME`, `NEXT_PUBLIC_API_URL`.
 
@@ -74,7 +77,7 @@ Sans `NEXT_PUBLIC_API_URL`, le front utilise un stockage **in-memory** local (se
 - `NEXT_PUBLIC_BASE_PATH` : base path pour les assets et la navigation (ex. `/kahin` sur GitHub Pages). En CI, par défaut = `/<nom-du-repo>` si non défini.
 - `NEXT_PUBLIC_SITE_NAME` : titre du site.
 - `NEXT_PUBLIC_API_URL` : URL de l’API (ex. `http://localhost:4000`). Si défini, le front utilise l’API pour quiz/sessions (nécessaire pour rejoindre une partie en mode déployé).
-- API : `PORT` (défaut 4000), `QUIZ_JSON_PATH` (optionnel, défaut `data/quizzes.json`).
+- API : `PORT` (défaut 4000, fourni par Render en prod), `NODE_ENV`, `QUIZ_JSON_PATH` (optionnel), `DATABASE_URL` (optionnel, pour Postgres en production). Voir `apps/api/README.md` et `render.yaml` pour le déploiement sur Render.
 
 **Persistance des données** : l’API enregistre les **quiz** dans un fichier JSON (`apps/api/data/quizzes.json` par défaut). Les **sessions** et réponses sont en mémoire : elles disparaissent au redémarrage de l’API. Pour une persistance des sessions, il faudrait ajouter un stockage (fichier ou base) côté API.
 
@@ -85,7 +88,7 @@ Sans `NEXT_PUBLIC_API_URL`, le front utilise un stockage **in-memory** local (se
 
 ## Documentation
 
-- [Architecture et SOLID](docs/ARCHITECTURE.md) : structure des packages, principes SOLID, déploiement.
+- [Architecture et SOLID](docs/ARCHITECTURE.md) : structure des packages, principes SOLID, déploiement, et **diagrammes de séquence** des flux métier (créer QCM, lancer session, rejoindre, répondre, question suivante).
 
 ## Licence
 

@@ -14,6 +14,7 @@
     "@kahin/qcm-application": "1.0.0",
     "@kahin/qcm-domain": "1.0.0",
     "@kahin/qcm-infrastructure": "1.0.0",
+    "@kahin/shared-utils": "1.0.0",
     "@mui/icons-material": "^5.14.0",
     "@mui/material": "^5.14.0",
     "next": "^14.2.35",

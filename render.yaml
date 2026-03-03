@@ -1,0 +1,12 @@
+# Configuration Render pour l'API Kahin (monorepo).
+# Déploiement : connecter le repo GitHub et ajouter les variables d'environnement (voir README).
+
+services:
+  - type: web
+    name: kahin-api
+    runtime: node
+    buildCommand: npm ci && npm run build:api
+    startCommand: npm run start -w api
+    envVars:
+      - key: NODE_ENV
+        value: production

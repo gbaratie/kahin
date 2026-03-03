@@ -23,8 +23,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { siteName } from '@/config/site';
+import { layout } from '@/config/layout';
 import { apiListQuizzes, apiDeleteQuiz, isApiMode } from '@/qcm/apiClient';
 import type { QuizSummary } from '@/qcm/apiClient';
+import { getErrorMessage } from '@kahin/shared-utils';
 
 function loadQuizzes(
   setQuizzes: (q: QuizSummary[]) => void,
@@ -37,7 +39,7 @@ function loadQuizzes(
   apiListQuizzes
     .execute()
     .then(setQuizzes)
-    .catch((e) => setError(e instanceof Error ? e.message : 'Erreur'))
+    .catch((e) => setError(getErrorMessage(e)))
     .finally(() => setLoading(false));
 }
 
@@ -46,9 +48,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteConfirmQuiz, setDeleteConfirmQuiz] = useState<QuizSummary | null>(
-    null
-  );
+  const [deleteConfirmQuiz, setDeleteConfirmQuiz] =
+    useState<QuizSummary | null>(null);
 
   useEffect(() => {
     loadQuizzes(setQuizzes, setLoading, setError);
@@ -68,7 +69,7 @@ export default function HomePage() {
       await apiDeleteQuiz.execute(q.id);
       setQuizzes((prev) => prev.filter((item) => item.id !== q.id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur lors de la suppression');
+      setError(getErrorMessage(e));
     } finally {
       setDeletingId(null);
     }
@@ -87,7 +88,7 @@ export default function HomePage() {
           content="Créez et lancez des QCM interactifs, ou rejoignez une session."
         />
       </Head>
-      <Box sx={{ py: 4, px: 2, maxWidth: 480, mx: 'auto' }}>
+      <Box sx={layout.pagePaddingAuto}>
         <Typography variant="h4" gutterBottom>
           {siteName}
         </Typography>
@@ -195,9 +196,7 @@ export default function HomePage() {
           sx: { borderRadius: 2, minWidth: 320 },
         }}
       >
-        <DialogTitle id="delete-dialog-title">
-          Supprimer le QCM
-        </DialogTitle>
+        <DialogTitle id="delete-dialog-title">Supprimer le QCM</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
             {deleteConfirmQuiz && (

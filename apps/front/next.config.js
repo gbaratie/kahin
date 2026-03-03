@@ -8,6 +8,7 @@ const nextConfig = {
     '@kahin/qcm-domain',
     '@kahin/qcm-application',
     '@kahin/qcm-infrastructure',
+    '@kahin/shared-utils',
   ],
 };
 

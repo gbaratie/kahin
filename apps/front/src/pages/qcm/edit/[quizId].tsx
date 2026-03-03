@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { Box, Button, CircularProgress, Alert } from '@mui/material';
+import { Box, Button, Alert } from '@mui/material';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import LoadingScreen from '@/components/common/LoadingScreen';
 import { useUpdateQuiz } from '@/qcm/hooks/useUpdateQuiz';
 import { apiGetQuiz } from '@/qcm/apiClient';
 import QcmForm, {
@@ -11,6 +12,7 @@ import QcmForm, {
   quizToDraft,
   draftToPayload,
 } from '@/qcm/components/QcmForm';
+import { layout } from '@/config/layout';
 
 export default function QcmEditPage() {
   const router = useRouter();
@@ -34,7 +36,9 @@ export default function QcmEditPage() {
         }
         setTitle(quiz.title);
         setQuestions(
-          quiz.questions.length > 0 ? quizToDraft(quiz) : [{ ...initialQuestion }]
+          quiz.questions.length > 0
+            ? quizToDraft(quiz)
+            : [{ ...initialQuestion }]
         );
         setFetchStatus('ready');
       })
@@ -49,16 +53,7 @@ export default function QcmEditPage() {
   };
 
   if (fetchStatus === 'loading') {
-    return (
-      <Layout>
-        <Head>
-          <title>Modifier le QCM</title>
-        </Head>
-        <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      </Layout>
-    );
+    return <LoadingScreen title="Modifier le QCM" />;
   }
 
   if (fetchStatus === 'not_found' || fetchStatus === 'error') {
@@ -67,7 +62,7 @@ export default function QcmEditPage() {
         <Head>
           <title>QCM introuvable</title>
         </Head>
-        <Box sx={{ py: 4, px: 2, maxWidth: 480, mx: 'auto' }}>
+        <Box sx={{ ...layout.pagePaddingAuto }}>
           <Alert severity={fetchStatus === 'not_found' ? 'warning' : 'error'}>
             {fetchStatus === 'not_found'
               ? 'Ce QCM est introuvable ou a été supprimé.'

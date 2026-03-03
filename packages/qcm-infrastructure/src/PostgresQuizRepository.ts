@@ -3,11 +3,17 @@ import type { QuizRepository } from '@kahin/qcm-domain';
 // Types très lâches pour éviter d'avoir besoin de @types/pg
 type PgPool = {
   connect(): Promise<PgClient>;
-  query<T = any>(text: string, params?: unknown[]): Promise<{ rows: T[]; rowCount: number }>;
+  query<T = any>(
+    text: string,
+    params?: unknown[]
+  ): Promise<{ rows: T[]; rowCount: number }>;
 };
 
 type PgClient = {
-  query<T = any>(text: string, params?: unknown[]): Promise<{ rows: T[]; rowCount: number }>;
+  query<T = any>(
+    text: string,
+    params?: unknown[]
+  ): Promise<{ rows: T[]; rowCount: number }>;
   release(): void;
 };
 
@@ -26,9 +32,7 @@ function getPool(): PgPool {
 
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error(
-      'DATABASE_URL must be set to use PostgresQuizRepository.'
-    );
+    throw new Error('DATABASE_URL must be set to use PostgresQuizRepository.');
   }
 
   sharedPool = new Pool({
@@ -64,9 +68,7 @@ export class PostgresQuizRepository implements QuizRepository {
         [quiz.id, quiz.title]
       );
 
-      await client.query('DELETE FROM questions WHERE quiz_id = $1', [
-        quiz.id,
-      ]);
+      await client.query('DELETE FROM questions WHERE quiz_id = $1', [quiz.id]);
 
       for (const question of quiz.questions) {
         await client.query(
@@ -78,10 +80,9 @@ export class PostgresQuizRepository implements QuizRepository {
           [question.id, quiz.id, question.label]
         );
 
-        await client.query(
-          'DELETE FROM choices WHERE question_id = $1',
-          [question.id]
-        );
+        await client.query('DELETE FROM choices WHERE question_id = $1', [
+          question.id,
+        ]);
 
         for (const choice of question.choices) {
           await client.query(
@@ -188,4 +189,3 @@ export class PostgresQuizRepository implements QuizRepository {
     await this.pool.query('DELETE FROM quizzes WHERE id = $1', [id]);
   }
 }
-

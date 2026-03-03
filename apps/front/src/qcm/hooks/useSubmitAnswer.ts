@@ -1,28 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import type { SubmitAnswerInput } from '@kahin/qcm-application';
 import { useQcmDependencies } from '../QcmDependenciesContext';
+import { useAsyncCall } from '@/hooks/useAsyncCall';
 
 export function useSubmitAnswer() {
   const { submitAnswer } = useQcmDependencies();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const execute = useCallback(
-    async (input: SubmitAnswerInput) => {
-      setLoading(true);
-      setError(null);
-      try {
-        await submitAnswer.execute(input);
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        setError(err);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [submitAnswer]
+  const { execute, loading, error } = useAsyncCall(
+    useCallback(
+      (input: SubmitAnswerInput) => submitAnswer.execute(input),
+      [submitAnswer]
+    ),
+    { clearResultOnExecute: false }
   );
-
   return { execute, loading, error };
 }

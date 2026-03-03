@@ -34,7 +34,6 @@ export default function JoinPage() {
     }
   };
 
-
   return (
     <Layout>
       <Head>
@@ -78,7 +77,7 @@ export default function JoinPage() {
                 ? 'Cette session n’existe pas ou le code est incorrect. Vérifiez le code et réessayez.'
                 : error?.message === 'Session is already finished'
                   ? 'Cette session est déjà terminée.'
-                  : error?.message ?? 'Une erreur est survenue.'}
+                  : (error?.message ?? 'Une erreur est survenue.')}
             </Typography>
           </DialogContent>
           <DialogActions>
