@@ -157,16 +157,16 @@ sequenceDiagram
   participant SessionRepository
   participant RealtimeTransport
 
-  Animateur->>Front: Clique "Lancer"
+  Animateur->>Front: Clique Lancer
   Front->>API: POST /api/quiz/:quizId/launch
   API->>LaunchSessionUseCase: execute(quizId)
   LaunchSessionUseCase->>QuizRepository: getById(quizId)
   QuizRepository-->>LaunchSessionUseCase: quiz
   LaunchSessionUseCase->>SessionRepository: save(session)
-  LaunchSessionUseCase->>RealtimeTransport: publish(session_created, ...)
+  LaunchSessionUseCase->>RealtimeTransport: publish(session_created)
   LaunchSessionUseCase-->>API: session
   API-->>Front: 201 + session
-  Front-->>Animateur: Vue animateur (code, contrôles)
+  Front-->>Animateur: Vue animateur (code, controles)
 ```
 
 ### 5.3 Rejoindre une session
@@ -175,23 +175,23 @@ Le participant saisit le code et son nom. Le front envoie POST `/api/session/joi
 
 ```mermaid
 sequenceDiagram
-  participant Participant
+  participant User
   participant Front
   participant API
   participant JoinSessionUseCase
   participant SessionRepository
   participant RealtimeTransport
 
-  Participant->>Front: Code + nom
-  Front->>API: POST /api/session/join { code, participantName }
-  API->>JoinSessionUseCase: execute({ code, participantName })
+  User->>Front: Code et nom
+  Front->>API: POST /api/session/join code participantName
+  API->>JoinSessionUseCase: execute code participantName
   JoinSessionUseCase->>SessionRepository: getByCode(code)
   SessionRepository-->>JoinSessionUseCase: session
-  JoinSessionUseCase->>SessionRepository: save(session avec nouveau participant)
-  JoinSessionUseCase->>RealtimeTransport: publish(participant_joined, ...)
-  JoinSessionUseCase-->>API: { session, participant }
-  API-->>Front: 201 + { session, participant }
-  Front-->>Participant: Redirection vers /session/:id?participantId=...
+  JoinSessionUseCase->>SessionRepository: save(session nouveau participant)
+  JoinSessionUseCase->>RealtimeTransport: publish(participant_joined)
+  JoinSessionUseCase-->>API: session participant
+  API-->>Front: 201 session participant
+  Front-->>User: Redirection vers session
 ```
 
 ### 5.4 Soumettre une réponse
@@ -200,23 +200,23 @@ Le participant choisit une réponse pendant une question. Le front envoie POST `
 
 ```mermaid
 sequenceDiagram
-  participant Participant
+  participant User
   participant Front
   participant API
   participant SubmitAnswerUseCase
   participant SessionRepository
   participant RealtimeTransport
 
-  Participant->>Front: Sélectionne une réponse
-  Front->>API: POST /api/session/:id/answer { participantId, questionId, choiceId }
-  API->>SubmitAnswerUseCase: execute({ sessionId, participantId, questionId, choiceId })
+  User->>Front: Selectionne une reponse
+  Front->>API: POST /api/session/:id/answer participantId questionId choiceId
+  API->>SubmitAnswerUseCase: execute sessionId participantId questionId choiceId
   SubmitAnswerUseCase->>SessionRepository: getById(sessionId)
   SessionRepository-->>SubmitAnswerUseCase: session
   SubmitAnswerUseCase->>SessionRepository: save(session avec answer)
-  SubmitAnswerUseCase->>RealtimeTransport: publish(answer_submitted, ...)
+  SubmitAnswerUseCase->>RealtimeTransport: publish(answer_submitted)
   SubmitAnswerUseCase-->>API: void
   API-->>Front: 204
-  Front-->>Participant: Mise à jour UI
+  Front-->>User: Mise a jour UI
 ```
 
 ### 5.5 Question suivante (animateur)
@@ -232,16 +232,16 @@ sequenceDiagram
   participant SessionRepository
   participant RealtimeTransport
 
-  Animateur->>Front: Clique "Question suivante"
+  Animateur->>Front: Clique Question suivante
   Front->>API: POST /api/session/:id/next
   API->>NextQuestionUseCase: execute(sessionId)
   NextQuestionUseCase->>SessionRepository: getById(sessionId)
   SessionRepository-->>NextQuestionUseCase: session
-  NextQuestionUseCase->>SessionRepository: save(session mis à jour)
-  NextQuestionUseCase->>RealtimeTransport: publish(question_show ou session_finished, ...)
-  NextQuestionUseCase-->>API: { finished, currentQuestionIndex, ... }
-  API-->>Front: 200 + résultat
-  Front-->>Animateur: Mise à jour vue (question ou fin)
+  NextQuestionUseCase->>SessionRepository: save(session mis a jour)
+  NextQuestionUseCase->>RealtimeTransport: publish(question_show ou session_finished)
+  NextQuestionUseCase-->>API: finished currentQuestionIndex
+  API-->>Front: 200 resultat
+  Front-->>Animateur: Mise a jour vue (question ou fin)
 ```
 
 ---
