@@ -238,7 +238,7 @@ sequenceDiagram
   NextQuestionUseCase->>SessionRepository: getById(sessionId)
   SessionRepository-->>NextQuestionUseCase: session
   NextQuestionUseCase->>SessionRepository: save(session mis à jour)
-  NextQuestionUseCase->>RealtimeTransport: publish("question_show" ou "session_finished", ...)
+  NextQuestionUseCase->>RealtimeTransport: publish(question_show ou session_finished, ...)
   NextQuestionUseCase-->>API: { finished, currentQuestionIndex, ... }
   API-->>Front: 200 + résultat
   Front-->>Animateur: Mise à jour vue (question ou fin)
