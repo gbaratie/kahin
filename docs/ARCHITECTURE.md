@@ -163,7 +163,7 @@ sequenceDiagram
   LaunchSessionUseCase->>QuizRepository: getById(quizId)
   QuizRepository-->>LaunchSessionUseCase: quiz
   LaunchSessionUseCase->>SessionRepository: save(session)
-  LaunchSessionUseCase->>RealtimeTransport: publish("session_created", ...)
+  LaunchSessionUseCase->>RealtimeTransport: publish(session_created, ...)
   LaunchSessionUseCase-->>API: session
   API-->>Front: 201 + session
   Front-->>Animateur: Vue animateur (code, contrôles)
@@ -188,7 +188,7 @@ sequenceDiagram
   JoinSessionUseCase->>SessionRepository: getByCode(code)
   SessionRepository-->>JoinSessionUseCase: session
   JoinSessionUseCase->>SessionRepository: save(session avec nouveau participant)
-  JoinSessionUseCase->>RealtimeTransport: publish("participant_joined", ...)
+  JoinSessionUseCase->>RealtimeTransport: publish(participant_joined, ...)
   JoinSessionUseCase-->>API: { session, participant }
   API-->>Front: 201 + { session, participant }
   Front-->>Participant: Redirection vers /session/:id?participantId=...
@@ -213,7 +213,7 @@ sequenceDiagram
   SubmitAnswerUseCase->>SessionRepository: getById(sessionId)
   SessionRepository-->>SubmitAnswerUseCase: session
   SubmitAnswerUseCase->>SessionRepository: save(session avec answer)
-  SubmitAnswerUseCase->>RealtimeTransport: publish("answer_submitted", ...)
+  SubmitAnswerUseCase->>RealtimeTransport: publish(answer_submitted, ...)
   SubmitAnswerUseCase-->>API: void
   API-->>Front: 204
   Front-->>Participant: Mise à jour UI
