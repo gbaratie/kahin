@@ -26,19 +26,26 @@ export class NextQuestionUseCase {
 
     // 1) Session en attente : clic "Lancer la session" → afficher la première question
     if (session.status === 'waiting') {
+      const timestamps: (Date | null)[] = Array.from(
+        { length: quiz.questions.length },
+        (_, i) => (i === 0 ? new Date() : null)
+      );
       const updatedSession = {
         ...session,
         status: 'in_progress' as const,
         currentQuestionIndex: 0,
         showingResult: false,
+        questionShownAtTimestamps: timestamps,
       };
       await this.sessionRepository.save(updatedSession);
       const question = quiz.questions[0];
       if (question) {
+        const shownAt = timestamps[0];
         await this.realtimeTransport.publish('question_show', {
           sessionId,
           questionIndex: 0,
           question,
+          questionShownAt: shownAt instanceof Date ? shownAt.toISOString() : undefined,
         });
       }
       return { finished: false };
@@ -75,18 +82,28 @@ export class NextQuestionUseCase {
       return { finished: true };
     }
 
+    const existingTimestamps = session.questionShownAtTimestamps ?? [];
+    const timestamps = [...existingTimestamps];
+    while (timestamps.length <= nextIndex) {
+      timestamps.push(null);
+    }
+    timestamps[nextIndex] = new Date();
+
     const updatedSession = {
       ...session,
       currentQuestionIndex: nextIndex,
       showingResult: false,
+      questionShownAtTimestamps: timestamps,
     };
     await this.sessionRepository.save(updatedSession);
 
     const question = quiz.questions[nextIndex];
+    const shownAt = timestamps[nextIndex];
     await this.realtimeTransport.publish('question_show', {
       sessionId,
       questionIndex: nextIndex,
       question,
+      questionShownAt: shownAt instanceof Date ? shownAt.toISOString() : undefined,
     });
 
     return { finished: false };

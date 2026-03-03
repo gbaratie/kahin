@@ -15,15 +15,23 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import type { Quiz } from '@kahin/qcm-domain';
 
 export type QuestionDraft = {
   label: string;
   choices: string[];
   correctChoiceIndex?: number;
+  timerSeconds?: number;
 };
 
-export const initialQuestion: QuestionDraft = { label: '', choices: ['', ''] };
+export const initialQuestion: QuestionDraft = {
+  label: '',
+  choices: ['', ''],
+  timerSeconds: 10,
+};
 
 /** Convertit les questions brouillon en payload pour create/update API */
 export function draftToPayload(
@@ -35,6 +43,7 @@ export function draftToPayload(
     label: string;
     choices: { label: string }[];
     correctChoiceIndex?: number;
+    timerSeconds?: number;
   }>;
 } {
   return {
@@ -55,10 +64,15 @@ export function draftToPayload(
                 return idx >= 0 ? idx : undefined;
               })()
             : undefined;
+        const timerSeconds =
+          typeof q.timerSeconds === 'number' && q.timerSeconds >= 1
+            ? Math.min(300, Math.floor(q.timerSeconds))
+            : 10;
         return {
           label: q.label.trim(),
           choices: trimmedChoices,
           correctChoiceIndex: submittedCorrectIndex,
+          timerSeconds,
         };
       }),
   };
@@ -79,6 +93,7 @@ export function quizToDraft(quiz: Quiz): QuestionDraft[] {
         correctChoiceIndex !== undefined && correctChoiceIndex >= 0
           ? correctChoiceIndex
           : undefined,
+      timerSeconds: q.timerSeconds ?? 10,
     };
   });
 }
@@ -163,6 +178,12 @@ export default function QcmForm({
         i === qIndex ? { ...item, correctChoiceIndex: choiceIndex } : item
       )
     );
+  const updateTimerSeconds = (qIndex: number, value: number) =>
+    setQuestions((q) =>
+      q.map((item, i) =>
+        i === qIndex ? { ...item, timerSeconds: value } : item
+      )
+    );
 
   return (
     <Box sx={{ py: 4, px: 2, maxWidth: 640, mx: 'auto' }}>
@@ -188,19 +209,101 @@ export default function QcmForm({
               sx={{ mb: 1 }}
             >
               <Typography variant="subtitle2">Question {qIndex + 1}</Typography>
-              <IconButton
-                size="small"
-                onClick={() => removeQuestion(qIndex)}
-                disabled={questions.length <= 1}
-                aria-label="Supprimer la question"
-                sx={{
-                  color: 'text.secondary',
-                  opacity: 0.7,
-                  '&:hover': { opacity: 1, color: 'text.primary' },
-                }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Tooltip title="Durée en secondes">
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    sx={{
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      bgcolor: 'action.hover',
+                      pl: 0.5,
+                      pr: 0.25,
+                      py: 0.125,
+                    }}
+                  >
+                    <AccessTimeIcon
+                      sx={{ color: 'text.secondary', mr: 0.375, fontSize: 14 }}
+                    />
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={q.timerSeconds ?? 10}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        if (!Number.isNaN(v) && v >= 1)
+                          updateTimerSeconds(qIndex, Math.min(300, v));
+                      }}
+                      inputProps={{
+                        min: 1,
+                        max: 30,
+                        step: 1,
+                        style: { textAlign: 'center', width: 10 },
+                        'aria-label': 'Durée en secondes',
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': { border: 'none' },
+                          backgroundColor: 'transparent',
+                          minHeight: 24,
+                          '& .MuiInput-input': { fontSize: '0.7rem', py: 0.125 },
+                        },
+                        '& input[type=number]': {
+                          MozAppearance: 'textfield',
+                        },
+                        '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button':
+                          { WebkitAppearance: 'none', margin: 0 },
+                      }}
+                      variant="outlined"
+                    />
+                    <Stack direction="column" sx={{ ml: 0 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          updateTimerSeconds(
+                            qIndex,
+                            Math.min(300, (q.timerSeconds ?? 10) + 1)
+                          )
+                        }
+                        disabled={(q.timerSeconds ?? 10) >= 300}
+                        aria-label="Augmenter la durée"
+                        sx={{ py: 0, minWidth: 18, height: 12 }}
+                      >
+                        <KeyboardArrowUpIcon sx={{ fontSize: 12 }} />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          updateTimerSeconds(
+                            qIndex,
+                            Math.max(1, (q.timerSeconds ?? 10) - 1)
+                          )
+                        }
+                        disabled={(q.timerSeconds ?? 10) <= 1}
+                        aria-label="Diminuer la durée"
+                        sx={{ py: 0, minWidth: 18, height: 12 }}
+                      >
+                        <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
+                      </IconButton>
+                    </Stack>
+                  </Stack>
+                </Tooltip>
+                <IconButton
+                  size="small"
+                  onClick={() => removeQuestion(qIndex)}
+                  disabled={questions.length <= 1}
+                  aria-label="Supprimer la question"
+                  sx={{
+                    color: 'text.secondary',
+                    opacity: 0.7,
+                    '&:hover': { opacity: 1, color: 'text.primary' },
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Stack>
             </Stack>
             <TextField
               fullWidth

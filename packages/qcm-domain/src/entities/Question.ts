@@ -5,4 +5,6 @@ export type Question = {
   label: string;
   choices: Choice[];
   correctChoiceId?: string;
+  /** Durée en secondes pour répondre (défaut 10). */
+  timerSeconds?: number;
 };

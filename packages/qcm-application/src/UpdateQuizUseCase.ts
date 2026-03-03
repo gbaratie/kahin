@@ -7,6 +7,7 @@ export type UpdateQuizInput = {
     label: string;
     choices: Array<{ label: string }>;
     correctChoiceIndex?: number;
+    timerSeconds?: number;
   }>;
 };
 
@@ -34,6 +35,7 @@ export class UpdateQuizUseCase {
           q.correctChoiceIndex !== undefined
             ? choices[q.correctChoiceIndex]?.id
             : undefined,
+        timerSeconds: q.timerSeconds ?? 10,
       };
     });
 

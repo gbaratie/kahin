@@ -7,6 +7,7 @@ export type CreateQuizInput = {
     label: string;
     choices: Array<{ label: string }>;
     correctChoiceIndex?: number;
+    timerSeconds?: number;
   }>;
 };
 
@@ -27,6 +28,7 @@ export class CreateQuizUseCase {
           q.correctChoiceIndex !== undefined
             ? choices[q.correctChoiceIndex]?.id
             : undefined,
+        timerSeconds: q.timerSeconds ?? 10,
       };
     });
 

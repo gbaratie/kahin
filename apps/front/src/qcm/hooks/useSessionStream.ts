@@ -7,6 +7,8 @@ export type QuestionShowPayload = {
   sessionId: string;
   questionIndex: number;
   question: Question;
+  /** ISO date string when the question was shown (for timer). */
+  questionShownAt?: string;
 };
 
 export type AnswerSubmittedPayload = {
@@ -46,10 +48,16 @@ export function useSessionStream(sessionId: string | null) {
         const quiz = await apiGetQuiz.execute(session.quizId);
         if (quiz && session.currentQuestionIndex < quiz.questions.length) {
           const question = quiz.questions[session.currentQuestionIndex];
+          const timestamps = (session as { questionShownAtTimestamps?: (string | null)[] })
+            .questionShownAtTimestamps;
+          const raw = timestamps?.[session.currentQuestionIndex];
+          const questionShownAt =
+            typeof raw === 'string' ? raw : undefined;
           setCurrentQuestion({
             sessionId,
             questionIndex: session.currentQuestionIndex,
             question,
+            questionShownAt,
           });
         } else {
           setCurrentQuestion(null);
