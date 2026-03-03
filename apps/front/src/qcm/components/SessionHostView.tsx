@@ -8,6 +8,7 @@ import { useQcmDependencies } from '../QcmDependenciesContext';
 import { isApiMode } from '../apiClient';
 
 const POINTS_PER_QUESTION = 10;
+const PARTICIPANTS_POLL_INTERVAL_MS = 1500;
 
 type RankEntry = { participantId: string; participantName: string; score: number };
 
@@ -68,6 +69,13 @@ export function SessionHostView({
   );
 
   const isWaiting = session?.status === 'waiting';
+
+  // En phase "attente des participants", rafraîchir la session régulièrement pour afficher les nouveaux participants
+  useEffect(() => {
+    if (!sessionId || !isWaiting) return;
+    const interval = setInterval(() => refetch(), PARTICIPANTS_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [sessionId, isWaiting, refetch]);
   const showingResult = Boolean(session?.showingResult);
   const isInProgress = session?.status === 'in_progress';
 
