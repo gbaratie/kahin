@@ -12,6 +12,7 @@ import {
   CircularProgress,
   Alert,
   Checkbox,
+  Tooltip,
 } from '@mui/material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
@@ -40,7 +41,10 @@ function quizToDraft(quiz: Quiz): QuestionDraft[] {
     return {
       label: q.label,
       choices,
-      correctChoiceIndex: correctChoiceIndex >= 0 ? correctChoiceIndex : undefined,
+      correctChoiceIndex:
+        correctChoiceIndex !== undefined && correctChoiceIndex >= 0
+          ? correctChoiceIndex
+          : undefined,
     };
   });
 }
@@ -243,26 +247,27 @@ export default function QcmEditPage() {
                       updateChoice(qIndex, cIndex, e.target.value)
                     }
                   />
-                  <Checkbox
-                    size="small"
-                    icon={<CheckBoxOutlineBlankIcon />}
-                    checkedIcon={<CheckBoxIcon color="success" />}
-                    checked={q.correctChoiceIndex === cIndex}
-                    onChange={() =>
-                      setCorrectChoiceIndex(
-                        qIndex,
-                        q.correctChoiceIndex === cIndex ? undefined : cIndex
-                      )
-                    }
-                    sx={{
-                      color: 'action.disabled',
-                      '&.Mui-checked': { color: 'success.main' },
-                      p: 0.5,
-                      borderRadius: 0,
-                      '& .MuiSvgIcon-root': { borderRadius: 0 },
-                    }}
-                    titleAccess="Bonne réponse"
-                  />
+                  <Tooltip title="Bonne réponse">
+                    <Checkbox
+                      size="small"
+                      icon={<CheckBoxOutlineBlankIcon />}
+                      checkedIcon={<CheckBoxIcon color="success" />}
+                      checked={q.correctChoiceIndex === cIndex}
+                      onChange={() =>
+                        setCorrectChoiceIndex(
+                          qIndex,
+                          q.correctChoiceIndex === cIndex ? undefined : cIndex
+                        )
+                      }
+                      sx={{
+                        color: 'action.disabled',
+                        '&.Mui-checked': { color: 'success.main' },
+                        p: 0.5,
+                        borderRadius: 0,
+                        '& .MuiSvgIcon-root': { borderRadius: 0 },
+                      }}
+                    />
+                  </Tooltip>
                   <IconButton
                     size="small"
                     onClick={() => removeChoice(qIndex, cIndex)}
