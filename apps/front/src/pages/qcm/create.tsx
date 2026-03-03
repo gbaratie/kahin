@@ -40,7 +40,9 @@ export default function QcmCreatePage() {
         onSubmit={handleSave}
         loading={loading}
         submitLabel={loading ? 'Enregistrement…' : 'Enregistrer'}
-        secondarySubmitLabel={loading ? 'Enregistrement…' : 'Enregistrer et lancer'}
+        secondarySubmitLabel={
+          loading ? 'Enregistrement…' : 'Enregistrer et lancer'
+        }
         onSecondarySubmit={handleSaveAndLaunch}
         error={error}
       />

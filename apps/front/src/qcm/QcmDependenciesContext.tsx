@@ -77,7 +77,9 @@ const defaultDeps: QcmDependencies = (() => {
     submitAnswer: useApi ? apiSubmitAnswer : submitAnswerUseCase,
     nextQuestion: useApi ? apiNextQuestion : nextQuestionUseCase,
     getSession: useApi ? apiGetSession : getSessionUseCase,
-    getQuiz: useApi ? apiGetQuiz : { execute: (id: string) => quizRepo.getById(id) },
+    getQuiz: useApi
+      ? apiGetQuiz
+      : { execute: (id: string) => quizRepo.getById(id) },
     realtimeTransport,
   };
 })();

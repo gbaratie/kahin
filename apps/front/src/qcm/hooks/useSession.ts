@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Session } from '@kahin/qcm-domain';
+import { toError } from '@kahin/shared-utils';
 import { useQcmDependencies } from '../QcmDependenciesContext';
 
 export function useSession(sessionId: string | null) {
@@ -19,7 +20,7 @@ export function useSession(sessionId: string | null) {
         return s;
       })
       .catch((e) => {
-        const err = e instanceof Error ? e : new Error(String(e));
+        const err = toError(e);
         setError(err);
         throw err;
       })

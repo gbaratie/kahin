@@ -2,11 +2,14 @@
   "name": "kahin",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w front && npm run build -w api",
-    "build:front": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w front",
-    "build:api": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w api",
+    "build": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w @kahin/shared-utils && npm run build -w front && npm run build -w api",
+    "build:front": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w @kahin/shared-utils && npm run build -w front",
+    "build:api": "npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application && npm run build -w @kahin/qcm-infrastructure && npm run build -w @kahin/shared-utils && npm run build -w api",
     "dev:front": "npm run dev -w front",
     "dev:api": "npm run dev -w apps/api",
     "lint": "npm run lint --workspaces --if-present",

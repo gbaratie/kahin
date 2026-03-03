@@ -38,8 +38,9 @@ export function SessionParticipantView({
   const { session, refetch } = useSession(sessionId);
   const { getQuiz } = useQcmDependencies();
   const { execute: submitAnswer, loading, error } = useSubmitAnswer();
-  const [selectedChoiceId, setSelectedChoiceId] =
-    React.useState<string | null>(null);
+  const [selectedChoiceId, setSelectedChoiceId] = React.useState<string | null>(
+    null
+  );
   const [hasAnsweredCurrentQuestion, setHasAnsweredCurrentQuestion] =
     React.useState(false);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -116,7 +117,8 @@ export function SessionParticipantView({
               Mon classement
             </Typography>
             <Typography variant="h3" color="primary" fontWeight="bold">
-              {myRank > 0 ? formatRank(myRank) : '—'} • {myEntry?.score ?? 0} pts
+              {myRank > 0 ? formatRank(myRank) : '—'} • {myEntry?.score ?? 0}{' '}
+              pts
             </Typography>
           </Box>
           <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
@@ -137,7 +139,10 @@ export function SessionParticipantView({
               ))}
             </Box>
           </Paper>
-          <Typography color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
+          <Typography
+            color="text.secondary"
+            sx={{ display: 'block', textAlign: 'center' }}
+          >
             En attente de la prochaine question…
           </Typography>
         </Box>

@@ -45,10 +45,7 @@ export class NextQuestionUseCase {
     }
 
     // 2) En cours, on affiche la question : clic "Voir les résultats" → passer en phase résultat
-    if (
-      session.status === 'in_progress' &&
-      session.showingResult !== true
-    ) {
+    if (session.status === 'in_progress' && session.showingResult !== true) {
       const updatedSession = {
         ...session,
         showingResult: true,

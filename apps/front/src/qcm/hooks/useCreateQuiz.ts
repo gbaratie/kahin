@@ -1,33 +1,21 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import type { Quiz } from '@kahin/qcm-domain';
 import type { CreateQuizInput } from '@kahin/qcm-application';
 import { useQcmDependencies } from '../QcmDependenciesContext';
+import { useAsyncCall } from '@/hooks/useAsyncCall';
 
 export function useCreateQuiz() {
   const { createQuiz } = useQcmDependencies();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-
-  const execute = useCallback(
-    async (input: CreateQuizInput) => {
-      setLoading(true);
-      setError(null);
-      setQuiz(null);
-      try {
-        const result = await createQuiz.execute(input);
-        setQuiz(result);
-        return result;
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        setError(err);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [createQuiz]
+  const {
+    execute,
+    loading,
+    error,
+    result: quiz,
+  } = useAsyncCall(
+    useCallback(
+      (input: CreateQuizInput) => createQuiz.execute(input),
+      [createQuiz]
+    )
   );
-
-  return { execute, loading, error, quiz };
+  return { execute, loading, error, quiz: quiz as Quiz | null };
 }

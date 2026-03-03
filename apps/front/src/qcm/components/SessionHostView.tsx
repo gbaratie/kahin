@@ -36,7 +36,10 @@ export function SessionHostView({
   // En phase "attente des participants", rafraîchir la session régulièrement pour afficher les nouveaux participants
   useEffect(() => {
     if (!sessionId || !isWaiting) return;
-    const interval = setInterval(() => refetch(), PARTICIPANTS_POLL_INTERVAL_MS);
+    const interval = setInterval(
+      () => refetch(),
+      PARTICIPANTS_POLL_INTERVAL_MS
+    );
     return () => clearInterval(interval);
   }, [sessionId, isWaiting, refetch]);
   const showingResult = Boolean(session?.showingResult);

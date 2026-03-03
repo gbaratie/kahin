@@ -1,32 +1,21 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import type { Quiz } from '@kahin/qcm-domain';
 import type { UpdateQuizInput } from '@kahin/qcm-application';
 import { apiUpdateQuiz } from '../apiClient';
+import { useAsyncCall } from '@/hooks/useAsyncCall';
 
 export function useUpdateQuiz() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-
-  const execute = useCallback(
-    async (quizId: string, input: UpdateQuizInput) => {
-      setLoading(true);
-      setError(null);
-      setQuiz(null);
-      try {
-        const result = await apiUpdateQuiz.execute(quizId, input);
-        setQuiz(result);
-        return result;
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        setError(err);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
+  const {
+    execute,
+    loading,
+    error,
+    result: quiz,
+  } = useAsyncCall(
+    useCallback(
+      (quizId: string, input: UpdateQuizInput) =>
+        apiUpdateQuiz.execute(quizId, input),
+      []
+    )
   );
-
-  return { execute, loading, error, quiz };
+  return { execute, loading, error, quiz: quiz as Quiz | null };
 }

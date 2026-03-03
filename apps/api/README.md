@@ -23,4 +23,3 @@ Avec cette configuration :
 
 - En **production** (`NODE_ENV=production` et `DATABASE_URL` définie), l’API utilise Postgres via `PostgresQuizRepository`.
 - En **local/dev** (ou si `DATABASE_URL` est absente), l’API persiste les quiz dans le fichier JSON `QUIZ_JSON_PATH` / `data/quizzes.json`.
-

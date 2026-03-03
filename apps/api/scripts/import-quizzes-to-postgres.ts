@@ -37,4 +37,3 @@ main().catch((err) => {
   console.error('Erreur lors de l’import des quiz vers Postgres:', err);
   process.exit(1);
 });
-

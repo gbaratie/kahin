@@ -1,5 +1,4 @@
-export const siteName =
-  process.env.NEXT_PUBLIC_SITE_NAME ?? 'Kahin QCM';
+export const siteName = process.env.NEXT_PUBLIC_SITE_NAME ?? 'Kahin QCM';
 
 /** Base path pour GitHub Pages (ex. /kahin). */
 export const basePath =

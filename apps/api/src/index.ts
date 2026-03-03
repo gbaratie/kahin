@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { openApiSpec } from './swagger.js';
+import { errorHandler } from './middleware/errorHandler.js';
 import { quizRoutes } from './routes/quiz.js';
 import { sessionRoutes } from './routes/session.js';
 import { QUIZ_JSON_STORAGE_PATH } from './container.js';
@@ -20,6 +21,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/quiz', quizRoutes);
 app.use('/api/session', sessionRoutes);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`);
