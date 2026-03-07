@@ -1,5 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Typography, Button, Paper, Alert } from '@mui/material';
+import { Box, Typography, Button, Paper, Alert, useTheme } from '@mui/material';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+} from 'recharts';
 import type { Question, Quiz, Session } from '@kahin/qcm-domain';
 import { useNextQuestion } from '../hooks/useNextQuestion';
 import { useSessionStream } from '../hooks/useSessionStream';
@@ -16,6 +26,7 @@ export function SessionHostView({
   sessionId,
   sessionCode,
 }: SessionHostViewProps) {
+  const theme = useTheme();
   const isApi = isApiMode();
   const { session, refetch } = useSession(sessionId);
   const { getQuiz } = useQcmDependencies();
@@ -80,6 +91,15 @@ export function SessionHostView({
     if (!session || !quiz || rankingUpTo <= 0) return [];
     return computeRanking(session, quiz, rankingUpTo);
   }, [session, quiz, rankingUpTo]);
+
+  const chartData = useMemo(
+    () =>
+      ranking.map((entry) => ({
+        name: entry.participantName,
+        score: entry.score,
+      })),
+    [ranking]
+  );
 
   const getRankingTitle = () => {
     if (isFinished) return 'Classement final';
@@ -153,18 +173,59 @@ export function SessionHostView({
               En attente des premières réponses.
             </Typography>
           ) : (
-            <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
-              {ranking.map((entry) => (
-                <Typography
-                  key={entry.participantId}
-                  component="li"
-                  variant="body2"
-                  sx={{ mb: 0.5 }}
+            <Box sx={{ width: '100%', height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={chartData}
+                  margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
                 >
-                  {entry.participantName} — {entry.score} pt
-                  {entry.score !== 1 ? 's' : ''}
-                </Typography>
-              ))}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={theme.palette.divider}
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{ fill: theme.palette.text.secondary }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={140}
+                    tick={{
+                      fill: theme.palette.text.primary,
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [
+                      `${value} pt${value !== 1 ? 's' : ''}`,
+                      'Score',
+                    ]}
+                    labelFormatter={(label) => `Participant : ${label}`}
+                    contentStyle={{
+                      backgroundColor: theme.palette.background.paper,
+                      border: `1px solid ${theme.palette.divider}`,
+                    }}
+                  />
+                  <Bar
+                    dataKey="score"
+                    fill={theme.palette.primary.main}
+                    radius={[0, 4, 4, 0]}
+                  >
+                    <LabelList
+                      dataKey="score"
+                      position="right"
+                      formatter={(value: number) =>
+                        `${value} pt${value !== 1 ? 's' : ''}`
+                      }
+                      fill={theme.palette.text.primary}
+                      style={{ fontWeight: 400 }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </Box>
           )}
         </Paper>
