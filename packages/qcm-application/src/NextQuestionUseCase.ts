@@ -45,7 +45,8 @@ export class NextQuestionUseCase {
           sessionId,
           questionIndex: 0,
           question,
-          questionShownAt: shownAt instanceof Date ? shownAt.toISOString() : undefined,
+          questionShownAt:
+            shownAt instanceof Date ? shownAt.toISOString() : undefined,
         });
       }
       return { finished: false };
@@ -103,7 +104,8 @@ export class NextQuestionUseCase {
       sessionId,
       questionIndex: nextIndex,
       question,
-      questionShownAt: shownAt instanceof Date ? shownAt.toISOString() : undefined,
+      questionShownAt:
+        shownAt instanceof Date ? shownAt.toISOString() : undefined,
     });
 
     return { finished: false };

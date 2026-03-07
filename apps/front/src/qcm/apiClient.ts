@@ -138,9 +138,7 @@ export const apiNextQuestion = {
 };
 
 export const apiAdvanceIfTimeUp = {
-  async execute(
-    sessionId: string
-  ): Promise<{ advanced: boolean }> {
+  async execute(sessionId: string): Promise<{ advanced: boolean }> {
     const { data, error } = await apiFetch<{ advanced: boolean }>(
       `/api/session/${encodeURIComponent(sessionId)}/advance-if-time-up`,
       { method: 'POST' }

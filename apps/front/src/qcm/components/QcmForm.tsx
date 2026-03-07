@@ -247,7 +247,10 @@ export default function QcmForm({
                           '& fieldset': { border: 'none' },
                           backgroundColor: 'transparent',
                           minHeight: 24,
-                          '& .MuiInput-input': { fontSize: '0.7rem', py: 0.125 },
+                          '& .MuiInput-input': {
+                            fontSize: '0.7rem',
+                            py: 0.125,
+                          },
                         },
                         '& input[type=number]': {
                           MozAppearance: 'textfield',

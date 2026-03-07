@@ -4,7 +4,9 @@ import type {
   RealtimeTransport,
 } from '@kahin/qcm-domain';
 
-function getShownAtMs(shownAt: Date | string | null | undefined): number | null {
+function getShownAtMs(
+  shownAt: Date | string | null | undefined
+): number | null {
   if (shownAt == null) return null;
   if (shownAt instanceof Date) return shownAt.getTime();
   if (typeof shownAt === 'string') return new Date(shownAt).getTime();

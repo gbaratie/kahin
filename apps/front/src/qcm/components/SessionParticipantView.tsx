@@ -67,7 +67,9 @@ export function SessionParticipantView({
 
   const rankingUpTo = useMemo(() => {
     if (!session || !quiz) return 0;
-    return session.currentQuestionIndex >= 0 ? session.currentQuestionIndex + 1 : 0;
+    return session.currentQuestionIndex >= 0
+      ? session.currentQuestionIndex + 1
+      : 0;
   }, [session, quiz]);
   const ranking = useMemo(() => {
     if (!session || !quiz || rankingUpTo <= 0) return [];
@@ -162,8 +164,7 @@ export function SessionParticipantView({
             Mon classement
           </Typography>
           <Typography variant="h3" color="primary" fontWeight="bold">
-            {myRank > 0 ? formatRank(myRank) : '—'} • {myEntry?.score ?? 0}{' '}
-            pts
+            {myRank > 0 ? formatRank(myRank) : '—'} • {myEntry?.score ?? 0} pts
           </Typography>
         </Box>
         <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
@@ -189,7 +190,7 @@ export function SessionParticipantView({
           sx={{ display: 'block', textAlign: 'center' }}
         >
           {rankingUpTo === 0
-            ? 'En attente du démarrage par l\'animateur…'
+            ? "En attente du démarrage par l'animateur…"
             : 'En attente de la prochaine question…'}
         </Typography>
       </Box>
@@ -214,7 +215,9 @@ export function SessionParticipantView({
 
   const question = currentQuestion.question;
   const showTimerBar =
-    questionShownAt != null && remainingSeconds != null && !hasAnsweredCurrentQuestion;
+    questionShownAt != null &&
+    remainingSeconds != null &&
+    !hasAnsweredCurrentQuestion;
   const progressValue =
     timerSeconds > 0 && remainingSeconds != null
       ? (remainingSeconds / timerSeconds) * 100
@@ -234,8 +237,13 @@ export function SessionParticipantView({
             color="primary"
             sx={{ height: 8, borderRadius: 1 }}
           />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-            {Math.ceil(remainingSeconds ?? 0)} s restante{Math.ceil(remainingSeconds ?? 0) !== 1 ? 's' : ''}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 0.5, display: 'block' }}
+          >
+            {Math.ceil(remainingSeconds ?? 0)} s restante
+            {Math.ceil(remainingSeconds ?? 0) !== 1 ? 's' : ''}
           </Typography>
         </Box>
       )}

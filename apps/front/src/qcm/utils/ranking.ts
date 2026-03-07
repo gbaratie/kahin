@@ -52,10 +52,7 @@ export function computeRanking(
         let points = POINTS_PER_QUESTION;
         if (shownAtMs != null && answeredAtMs != null) {
           const timeTakenSeconds = (answeredAtMs - shownAtMs) / 1000;
-          points = weightedPoints(
-            Math.max(0, timeTakenSeconds),
-            timerSeconds
-          );
+          points = weightedPoints(Math.max(0, timeTakenSeconds), timerSeconds);
         }
         scoreByParticipant.set(answer.participantId, current + points);
       }
