@@ -185,7 +185,7 @@ export default function QcmForm({
     );
 
   return (
-    <Box sx={{ py: 4, px: 2, maxWidth: 640, mx: 'auto' }}>
+    <Box sx={{ py: 4, px: 2, maxWidth: { xs: 640, md: 960 }, mx: 'auto' }}>
       {pageTitle && (
         <Typography variant="h4" gutterBottom>
           {pageTitle}

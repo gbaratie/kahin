@@ -3,10 +3,7 @@ import {
   Box,
   Typography,
   Button,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  FormControl,
+  Stack,
   Alert,
   Paper,
   LinearProgress,
@@ -142,7 +139,7 @@ export function SessionParticipantView({
 
   if (sessionFinished) {
     return (
-      <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         <Alert severity="info">
           Le QCM est terminé. Merci de votre participation.
         </Alert>
@@ -153,7 +150,7 @@ export function SessionParticipantView({
   // Pas de question affichée : on affiche directement la page scores / classement
   if (!currentQuestion) {
     return (
-      <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         {timeUpForCurrentQuestion && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             Le temps est écoulé
@@ -200,7 +197,7 @@ export function SessionParticipantView({
   // Le participant a déjà répondu à cette question : page d'attente
   if (hasAnsweredCurrentQuestion) {
     return (
-      <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         <Alert severity="success" icon={false}>
           <Typography variant="body1" fontWeight={500}>
             Merci d&apos;avoir répondu à cette question.
@@ -224,7 +221,7 @@ export function SessionParticipantView({
       : 0;
 
   return (
-    <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
       <Typography variant="h6" gutterBottom>
         {question.label}
       </Typography>
@@ -254,24 +251,30 @@ export function SessionParticipantView({
         </Alert>
       )}
 
-      <FormControl component="fieldset" fullWidth sx={{ mb: 2 }}>
-        <RadioGroup
-          value={selectedChoiceId ?? ''}
-          onChange={(_, value) => setSelectedChoiceId(value)}
-        >
-          {question.choices.map((choice) => (
-            <FormControlLabel
-              key={choice.id}
-              value={choice.id}
-              control={<Radio />}
-              label={choice.label}
-            />
-          ))}
-        </RadioGroup>
-      </FormControl>
+      <Stack spacing={1.5} sx={{ mb: 3 }}>
+        {question.choices.map((choice) => (
+          <Button
+            key={choice.id}
+            variant={selectedChoiceId === choice.id ? 'contained' : 'outlined'}
+            size="large"
+            fullWidth
+            onClick={() => setSelectedChoiceId(choice.id)}
+            sx={{
+              justifyContent: 'flex-start',
+              textTransform: 'none',
+              py: 1.5,
+              fontSize: '1rem',
+            }}
+          >
+            {choice.label}
+          </Button>
+        ))}
+      </Stack>
 
       <Button
         variant="contained"
+        size="large"
+        fullWidth
         onClick={handleSubmit}
         disabled={!selectedChoiceId || loading}
       >
