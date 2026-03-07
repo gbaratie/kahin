@@ -7,8 +7,10 @@ import {
   Alert,
   Paper,
   LinearProgress,
+  TextField,
 } from '@mui/material';
-import type { Quiz } from '@kahin/qcm-domain';
+import type { Answer, Question, Quiz } from '@kahin/qcm-domain';
+import type { SubmitAnswerInput } from '@kahin/qcm-application';
 import { useSessionStream } from '../hooks/useSessionStream';
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer';
 import { useSession } from '../hooks/useSession';
@@ -41,6 +43,8 @@ export function SessionParticipantView({
   const [selectedChoiceId, setSelectedChoiceId] = React.useState<string | null>(
     null
   );
+  const [wordInput, setWordInput] = useState('');
+  const [mySubmittedWords, setMySubmittedWords] = useState<string[]>([]);
   const [hasAnsweredCurrentQuestion, setHasAnsweredCurrentQuestion] =
     React.useState(false);
   const [timeUpForCurrentQuestion, setTimeUpForCurrentQuestion] =
@@ -81,18 +85,46 @@ export function SessionParticipantView({
     : 0;
   const top10 = ranking.slice(0, TOP_RANKING_LIMIT);
 
+  const currentQuestionData = currentQuestion?.question;
+  const isWordCloud =
+    (currentQuestionData as Question | undefined)?.type === 'word_cloud';
+
   // Réinitialiser "a répondu" et "temps écoulé" quand une nouvelle question est affichée (pas quand on passe aux résultats)
   const currentQuestionId = currentQuestion?.question.id;
   React.useEffect(() => {
     if (currentQuestionId) {
       setHasAnsweredCurrentQuestion(false);
       setTimeUpForCurrentQuestion(false);
+      setMySubmittedWords([]);
+      setWordInput('');
       advanceCalledRef.current = false;
     }
   }, [currentQuestionId]);
 
+  // Mots déjà soumis pour cette question (depuis la session après refetch)
+  const myWordsFromSession = useMemo(() => {
+    if (!session || !currentQuestionId) return [];
+    const a = session.answers.find(
+      (x) =>
+        x.participantId === participantId &&
+        x.questionId === currentQuestionId &&
+        Array.isArray((x as Answer).words)
+    );
+    return (a as Answer | undefined)?.words ?? [];
+  }, [session, participantId, currentQuestionId]);
+
+  const displayedMyWords = useMemo(() => {
+    const fromSession = new Set(myWordsFromSession);
+    const combined = [...myWordsFromSession];
+    for (const w of mySubmittedWords) {
+      if (!fromSession.has(w)) combined.push(w);
+    }
+    return combined;
+  }, [myWordsFromSession, mySubmittedWords]);
+
   // Timer : calcul du temps restant et appel advance-if-time-up à 0
-  const timerSeconds = currentQuestion?.question.timerSeconds ?? 10;
+  const timerSeconds =
+    currentQuestionData?.timerSeconds ?? (isWordCloud ? 180 : 10);
   const questionShownAt = currentQuestion?.questionShownAt;
   useEffect(() => {
     if (!questionShownAt || hasAnsweredCurrentQuestion) {
@@ -111,7 +143,7 @@ export function SessionParticipantView({
       if (remaining <= 0 && !advanceCalledRef.current) {
         advanceCalledRef.current = true;
         setTimeUpForCurrentQuestion(true);
-        if (isApiMode()) {
+        if (isApiMode() && !isWordCloud) {
           apiAdvanceIfTimeUp.execute(sessionId).catch(() => {});
         }
       }
@@ -119,10 +151,35 @@ export function SessionParticipantView({
     update();
     const t = setInterval(update, TIMER_TICK_MS);
     return () => clearInterval(t);
-  }, [questionShownAt, timerSeconds, hasAnsweredCurrentQuestion, sessionId]);
+  }, [
+    questionShownAt,
+    timerSeconds,
+    hasAnsweredCurrentQuestion,
+    sessionId,
+    isWordCloud,
+  ]);
 
   const handleSubmit = async () => {
-    if (!currentQuestion || !selectedChoiceId) return;
+    if (!currentQuestion) return;
+    if (isWordCloud) {
+      const w = wordInput.trim();
+      if (!w) return;
+      try {
+        await submitAnswer({
+          sessionId,
+          participantId,
+          questionId: currentQuestion.question.id,
+          word: w,
+        } as SubmitAnswerInput);
+        setMySubmittedWords((prev) => [...prev, w]);
+        setWordInput('');
+        refetch();
+      } catch {
+        // L'erreur est déjà affichée par useSubmitAnswer
+      }
+      return;
+    }
+    if (!selectedChoiceId) return;
     try {
       await submitAnswer({
         sessionId,
@@ -194,8 +251,8 @@ export function SessionParticipantView({
     );
   }
 
-  // Le participant a déjà répondu à cette question : page d'attente
-  if (hasAnsweredCurrentQuestion) {
+  // Le participant a déjà répondu à cette question (QCM uniquement) : page d'attente
+  if (!isWordCloud && hasAnsweredCurrentQuestion) {
     return (
       <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         <Alert severity="success" icon={false}>
@@ -210,7 +267,7 @@ export function SessionParticipantView({
     );
   }
 
-  const question = currentQuestion.question;
+  const question = currentQuestion!.question;
   const showTimerBar =
     questionShownAt != null &&
     remainingSeconds != null &&
@@ -223,7 +280,7 @@ export function SessionParticipantView({
   return (
     <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
       <Typography variant="h6" gutterBottom>
-        {question.label}
+        {question?.label ?? ''}
       </Typography>
 
       {showTimerBar && (
@@ -251,35 +308,73 @@ export function SessionParticipantView({
         </Alert>
       )}
 
-      <Stack spacing={1.5} sx={{ mb: 3 }}>
-        {question.choices.map((choice) => (
+      {isWordCloud ? (
+        <>
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <TextField
+              fullWidth
+              size="medium"
+              placeholder="Écrivez un mot…"
+              value={wordInput}
+              onChange={(e) => setWordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void handleSubmit();
+                }
+              }}
+              inputProps={{ 'aria-label': 'Mot à ajouter au nuage' }}
+            />
+            <Button
+              variant="contained"
+              onClick={() => void handleSubmit()}
+              disabled={!wordInput.trim() || loading}
+              sx={{ flexShrink: 0 }}
+            >
+              {loading ? 'Envoi…' : 'Ajouter'}
+            </Button>
+          </Stack>
+          {displayedMyWords.length > 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Mots envoyés : {displayedMyWords.join(', ')}
+            </Typography>
+          )}
+        </>
+      ) : (
+        <>
+          <Stack spacing={1.5} sx={{ mb: 3 }}>
+            {(question?.choices ?? []).map((choice) => (
+              <Button
+                key={choice.id}
+                variant={
+                  selectedChoiceId === choice.id ? 'contained' : 'outlined'
+                }
+                size="large"
+                fullWidth
+                onClick={() => setSelectedChoiceId(choice.id)}
+                sx={{
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  py: 1.5,
+                  fontSize: '1rem',
+                }}
+              >
+                {choice.label}
+              </Button>
+            ))}
+          </Stack>
+
           <Button
-            key={choice.id}
-            variant={selectedChoiceId === choice.id ? 'contained' : 'outlined'}
+            variant="contained"
             size="large"
             fullWidth
-            onClick={() => setSelectedChoiceId(choice.id)}
-            sx={{
-              justifyContent: 'flex-start',
-              textTransform: 'none',
-              py: 1.5,
-              fontSize: '1rem',
-            }}
+            onClick={() => void handleSubmit()}
+            disabled={!selectedChoiceId || loading}
           >
-            {choice.label}
+            {loading ? 'Envoi…' : 'Valider'}
           </Button>
-        ))}
-      </Stack>
-
-      <Button
-        variant="contained"
-        size="large"
-        fullWidth
-        onClick={handleSubmit}
-        disabled={!selectedChoiceId || loading}
-      >
-        {loading ? 'Envoi…' : 'Valider'}
-      </Button>
+        </>
+      )}
     </Box>
   );
 }

@@ -46,6 +46,7 @@ const joinSessionUseCase = new JoinSessionUseCase(
 );
 const submitAnswerUseCase = new SubmitAnswerUseCase(
   sessionRepo,
+  quizRepo,
   realtimeTransport
 );
 const nextQuestionUseCase = new NextQuestionUseCase(

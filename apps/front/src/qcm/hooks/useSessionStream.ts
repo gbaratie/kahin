@@ -15,7 +15,8 @@ export type AnswerSubmittedPayload = {
   sessionId: string;
   participantId: string;
   questionId: string;
-  choiceId: string;
+  choiceId?: string;
+  word?: string;
 };
 
 const POLL_INTERVAL_MS = 1500;

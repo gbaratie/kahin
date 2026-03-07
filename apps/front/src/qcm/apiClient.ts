@@ -68,6 +68,7 @@ export const apiCreateQuiz = {
         title: input.title,
         questions: input.questions.map((q) => ({
           label: q.label,
+          type: q.type,
           choices: (q.choices ?? []).map((c) => ({ label: c.label })),
           correctChoiceIndex: q.correctChoiceIndex,
           timerSeconds: q.timerSeconds,
@@ -90,6 +91,7 @@ export const apiUpdateQuiz = {
           title: input.title,
           questions: input.questions.map((q) => ({
             label: q.label,
+            type: q.type,
             choices: (q.choices ?? []).map((c) => ({ label: c.label })),
             correctChoiceIndex: q.correctChoiceIndex,
             timerSeconds: q.timerSeconds,
@@ -171,15 +173,23 @@ export const apiSubmitAnswer = {
     sessionId: string;
     participantId: string;
     questionId: string;
-    choiceId: string;
+    choiceId?: string;
+    word?: string;
   }): Promise<void> {
+    const body: {
+      participantId: string;
+      questionId: string;
+      choiceId?: string;
+      word?: string;
+    } = {
+      participantId: input.participantId,
+      questionId: input.questionId,
+    };
+    if (input.choiceId != null) body.choiceId = input.choiceId;
+    if (input.word != null) body.word = input.word;
     const { error } = await apiFetch(`/api/session/${input.sessionId}/answer`, {
       method: 'POST',
-      body: JSON.stringify({
-        participantId: input.participantId,
-        questionId: input.questionId,
-        choiceId: input.choiceId,
-      }),
+      body: JSON.stringify(body),
     });
     if (error) throw new Error(error);
   },

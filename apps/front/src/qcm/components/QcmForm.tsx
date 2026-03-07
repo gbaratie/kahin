@@ -9,6 +9,10 @@ import {
   Paper,
   Checkbox,
   Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
@@ -18,9 +22,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import type { Quiz } from '@kahin/qcm-domain';
+import type { Quiz, QuestionType } from '@kahin/qcm-domain';
+
+const DEFAULT_QCM_TIMER = 10;
+const DEFAULT_WORD_CLOUD_TIMER = 180;
 
 export type QuestionDraft = {
+  type: QuestionType;
   label: string;
   choices: string[];
   correctChoiceIndex?: number;
@@ -28,9 +36,10 @@ export type QuestionDraft = {
 };
 
 export const initialQuestion: QuestionDraft = {
+  type: 'qcm',
   label: '',
   choices: ['', ''],
-  timerSeconds: 10,
+  timerSeconds: DEFAULT_QCM_TIMER,
 };
 
 /** Convertit les questions brouillon en payload pour create/update API */
@@ -41,6 +50,7 @@ export function draftToPayload(
   title: string;
   questions: Array<{
     label: string;
+    type: QuestionType;
     choices: { label: string }[];
     correctChoiceIndex?: number;
     timerSeconds?: number;
@@ -51,10 +61,17 @@ export function draftToPayload(
     questions: questions
       .filter((q) => q.label.trim())
       .map((q) => {
-        const trimmedChoices = q.choices
-          .filter((c) => c.trim())
-          .map((c) => ({ label: c.trim() }));
+        const type = q.type ?? 'qcm';
+        const defaultTimer =
+          type === 'word_cloud' ? DEFAULT_WORD_CLOUD_TIMER : DEFAULT_QCM_TIMER;
+        const trimmedChoices =
+          type === 'word_cloud'
+            ? []
+            : q.choices
+                .filter((c) => c.trim())
+                .map((c) => ({ label: c.trim() }));
         const submittedCorrectIndex =
+          type === 'qcm' &&
           q.correctChoiceIndex != null &&
           q.choices[q.correctChoiceIndex]?.trim()
             ? (() => {
@@ -67,9 +84,10 @@ export function draftToPayload(
         const timerSeconds =
           typeof q.timerSeconds === 'number' && q.timerSeconds >= 1
             ? Math.min(300, Math.floor(q.timerSeconds))
-            : 10;
+            : defaultTimer;
         return {
           label: q.label.trim(),
+          type,
           choices: trimmedChoices,
           correctChoiceIndex: submittedCorrectIndex,
           timerSeconds,
@@ -80,20 +98,32 @@ export function draftToPayload(
 
 export function quizToDraft(quiz: Quiz): QuestionDraft[] {
   return quiz.questions.map((q) => {
+    const type: QuestionType =
+      (q as { type?: QuestionType }).type === 'word_cloud' ||
+      (q.choices.length === 0 && q.correctChoiceId == null)
+        ? 'word_cloud'
+        : 'qcm';
+    const defaultTimer =
+      type === 'word_cloud' ? DEFAULT_WORD_CLOUD_TIMER : DEFAULT_QCM_TIMER;
     const choices =
-      q.choices.length > 0 ? q.choices.map((c) => c.label) : ['', ''];
+      type === 'word_cloud'
+        ? []
+        : q.choices.length > 0
+          ? q.choices.map((c) => c.label)
+          : ['', ''];
     const correctChoiceIndex =
-      q.correctChoiceId != null
+      type === 'qcm' && q.correctChoiceId != null
         ? q.choices.findIndex((c) => c.id === q.correctChoiceId)
         : undefined;
     return {
+      type,
       label: q.label,
       choices,
       correctChoiceIndex:
         correctChoiceIndex !== undefined && correctChoiceIndex >= 0
           ? correctChoiceIndex
           : undefined,
-      timerSeconds: q.timerSeconds ?? 10,
+      timerSeconds: q.timerSeconds ?? defaultTimer,
     };
   });
 }
@@ -184,6 +214,31 @@ export default function QcmForm({
       )
     );
 
+  const setQuestionType = (qIndex: number, type: QuestionType) =>
+    setQuestions((q) =>
+      q.map((item, i) => {
+        if (i !== qIndex) return item;
+        if (type === 'word_cloud') {
+          return {
+            ...item,
+            type: 'word_cloud',
+            choices: [],
+            correctChoiceIndex: undefined,
+            timerSeconds: DEFAULT_WORD_CLOUD_TIMER,
+          };
+        }
+        return {
+          ...item,
+          type: 'qcm',
+          choices: item.choices.length > 0 ? item.choices : ['', ''],
+          timerSeconds:
+            item.timerSeconds === DEFAULT_WORD_CLOUD_TIMER
+              ? DEFAULT_QCM_TIMER
+              : (item.timerSeconds ?? DEFAULT_QCM_TIMER),
+        };
+      })
+    );
+
   return (
     <Box sx={{ py: 4, px: 2, maxWidth: { xs: 640, md: 960 }, mx: 'auto' }}>
       {pageTitle && (
@@ -199,176 +254,210 @@ export default function QcmForm({
           onChange={(e) => onTitleChange(e.target.value)}
           sx={{ mb: 3 }}
         />
-        {questions.map((q, qIndex) => (
-          <Paper key={qIndex} sx={{ p: 2, mb: 2 }}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              sx={{ mb: 1 }}
-            >
-              <Typography variant="subtitle2">Question {qIndex + 1}</Typography>
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                <Tooltip title="Durée en secondes">
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    sx={{
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      bgcolor: 'action.hover',
-                      pl: 0.5,
-                      pr: 0.25,
-                      py: 0.125,
-                    }}
-                  >
-                    <AccessTimeIcon
-                      sx={{ color: 'text.secondary', mr: 0.375, fontSize: 14 }}
-                    />
-                    <TextField
-                      type="number"
-                      size="small"
-                      value={q.timerSeconds ?? 10}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10);
-                        if (!Number.isNaN(v) && v >= 1)
-                          updateTimerSeconds(qIndex, Math.min(300, v));
-                      }}
-                      inputProps={{
-                        min: 1,
-                        max: 30,
-                        step: 1,
-                        style: { textAlign: 'center', width: 17 },
-                        'aria-label': 'Durée en secondes',
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '& fieldset': { border: 'none' },
-                          backgroundColor: 'transparent',
-                          minHeight: 24,
-                          '& .MuiInput-input': {
-                            fontSize: '0.7rem',
-                            py: 0.125,
-                          },
-                        },
-                        '& input[type=number]': {
-                          MozAppearance: 'textfield',
-                        },
-                        '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button':
-                          { WebkitAppearance: 'none', margin: 0 },
-                      }}
-                      variant="outlined"
-                    />
-                    <Stack direction="column" sx={{ ml: 0 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          updateTimerSeconds(
-                            qIndex,
-                            Math.min(300, (q.timerSeconds ?? 10) + 1)
-                          )
-                        }
-                        disabled={(q.timerSeconds ?? 10) >= 300}
-                        aria-label="Augmenter la durée"
-                        sx={{ py: 0, minWidth: 18, height: 12 }}
-                      >
-                        <KeyboardArrowUpIcon sx={{ fontSize: 12 }} />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          updateTimerSeconds(
-                            qIndex,
-                            Math.max(1, (q.timerSeconds ?? 10) - 1)
-                          )
-                        }
-                        disabled={(q.timerSeconds ?? 10) <= 1}
-                        aria-label="Diminuer la durée"
-                        sx={{ py: 0, minWidth: 18, height: 12 }}
-                      >
-                        <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
-                      </IconButton>
-                    </Stack>
-                  </Stack>
-                </Tooltip>
-                <IconButton
-                  size="small"
-                  onClick={() => removeQuestion(qIndex)}
-                  disabled={questions.length <= 1}
-                  aria-label="Supprimer la question"
-                  sx={{
-                    color: 'text.secondary',
-                    opacity: 0.7,
-                    '&:hover': { opacity: 1, color: 'text.primary' },
-                  }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Stack>
-            </Stack>
-            <TextField
-              fullWidth
-              label="Énoncé"
-              value={q.label}
-              onChange={(e) => updateQuestion(qIndex, e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            {q.choices.map((choice, cIndex) => (
+        {questions.map((q, qIndex) => {
+          const isWordCloud = q.type === 'word_cloud';
+          const defaultTimer = isWordCloud
+            ? DEFAULT_WORD_CLOUD_TIMER
+            : DEFAULT_QCM_TIMER;
+          return (
+            <Paper key={qIndex} sx={{ p: 2, mb: 2 }}>
               <Stack
-                key={cIndex}
                 direction="row"
                 alignItems="center"
-                spacing={1}
+                justifyContent="space-between"
                 sx={{ mb: 1 }}
               >
-                <TextField
-                  size="small"
-                  fullWidth
-                  label={`Choix ${cIndex + 1}`}
-                  value={choice}
-                  onChange={(e) => updateChoice(qIndex, cIndex, e.target.value)}
-                />
-                <Tooltip title="Bonne réponse">
-                  <Checkbox
+                <Typography variant="subtitle2">
+                  Question {qIndex + 1}
+                </Typography>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <FormControl size="small" sx={{ minWidth: 160 }}>
+                    <InputLabel id={`question-type-${qIndex}`}>Type</InputLabel>
+                    <Select
+                      labelId={`question-type-${qIndex}`}
+                      value={q.type ?? 'qcm'}
+                      label="Type"
+                      onChange={(e) =>
+                        setQuestionType(qIndex, e.target.value as QuestionType)
+                      }
+                    >
+                      <MenuItem value="qcm">QCM</MenuItem>
+                      <MenuItem value="word_cloud">Nuage de mots</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Tooltip title="Durée en secondes">
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        bgcolor: 'action.hover',
+                        pl: 0.5,
+                        pr: 0.25,
+                        py: 0.125,
+                      }}
+                    >
+                      <AccessTimeIcon
+                        sx={{
+                          color: 'text.secondary',
+                          mr: 0.375,
+                          fontSize: 14,
+                        }}
+                      />
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={q.timerSeconds ?? defaultTimer}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!Number.isNaN(v) && v >= 1)
+                            updateTimerSeconds(qIndex, Math.min(300, v));
+                        }}
+                        inputProps={{
+                          min: 1,
+                          max: 180,
+                          step: 1,
+                          style: { textAlign: 'center', width: 30 },
+                          'aria-label': 'Durée en secondes',
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': { border: 'none' },
+                            backgroundColor: 'transparent',
+                            minHeight: 24,
+                            '& .MuiInput-input': {
+                              fontSize: '0.7rem',
+                              py: 0.125,
+                            },
+                          },
+                          '& input[type=number]': {
+                            MozAppearance: 'textfield',
+                          },
+                          '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button':
+                            { WebkitAppearance: 'none', margin: 0 },
+                        }}
+                        variant="outlined"
+                      />
+                      <Stack direction="column" sx={{ ml: 0 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            updateTimerSeconds(
+                              qIndex,
+                              Math.min(
+                                300,
+                                (q.timerSeconds ?? defaultTimer) + 1
+                              )
+                            )
+                          }
+                          disabled={(q.timerSeconds ?? defaultTimer) >= 300}
+                          aria-label="Augmenter la durée"
+                          sx={{ py: 0, minWidth: 18, height: 12 }}
+                        >
+                          <KeyboardArrowUpIcon sx={{ fontSize: 12 }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            updateTimerSeconds(
+                              qIndex,
+                              Math.max(1, (q.timerSeconds ?? defaultTimer) - 1)
+                            )
+                          }
+                          disabled={(q.timerSeconds ?? defaultTimer) <= 1}
+                          aria-label="Diminuer la durée"
+                          sx={{ py: 0, minWidth: 18, height: 12 }}
+                        >
+                          <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
+                        </IconButton>
+                      </Stack>
+                    </Stack>
+                  </Tooltip>
+                  <IconButton
                     size="small"
-                    icon={<CheckBoxOutlineBlankIcon />}
-                    checkedIcon={<CheckBoxIcon color="success" />}
-                    checked={q.correctChoiceIndex === cIndex}
-                    onChange={() =>
-                      setCorrectChoiceIndex(
-                        qIndex,
-                        q.correctChoiceIndex === cIndex ? undefined : cIndex
-                      )
-                    }
+                    onClick={() => removeQuestion(qIndex)}
+                    disabled={questions.length <= 1}
+                    aria-label="Supprimer la question"
                     sx={{
-                      color: 'action.disabled',
-                      '&.Mui-checked': { color: 'success.main' },
-                      p: 0.5,
-                      borderRadius: 0,
-                      '& .MuiSvgIcon-root': { borderRadius: 0 },
+                      color: 'text.secondary',
+                      opacity: 0.7,
+                      '&:hover': { opacity: 1, color: 'text.primary' },
                     }}
-                  />
-                </Tooltip>
-                <IconButton
-                  size="small"
-                  onClick={() => removeChoice(qIndex, cIndex)}
-                  disabled={q.choices.length <= 2}
-                  aria-label="Supprimer le choix"
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
               </Stack>
-            ))}
-            <Button
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => addChoice(qIndex)}
-            >
-              Ajouter un choix
-            </Button>
-          </Paper>
-        ))}
+              <TextField
+                fullWidth
+                label="Énoncé"
+                value={q.label}
+                onChange={(e) => updateQuestion(qIndex, e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              {!isWordCloud &&
+                q.choices.map((choice, cIndex) => (
+                  <Stack
+                    key={cIndex}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1}
+                    sx={{ mb: 1 }}
+                  >
+                    <TextField
+                      size="small"
+                      fullWidth
+                      label={`Choix ${cIndex + 1}`}
+                      value={choice}
+                      onChange={(e) =>
+                        updateChoice(qIndex, cIndex, e.target.value)
+                      }
+                    />
+                    <Tooltip title="Bonne réponse">
+                      <Checkbox
+                        size="small"
+                        icon={<CheckBoxOutlineBlankIcon />}
+                        checkedIcon={<CheckBoxIcon color="success" />}
+                        checked={q.correctChoiceIndex === cIndex}
+                        onChange={() =>
+                          setCorrectChoiceIndex(
+                            qIndex,
+                            q.correctChoiceIndex === cIndex ? undefined : cIndex
+                          )
+                        }
+                        sx={{
+                          color: 'action.disabled',
+                          '&.Mui-checked': { color: 'success.main' },
+                          p: 0.5,
+                          borderRadius: 0,
+                          '& .MuiSvgIcon-root': { borderRadius: 0 },
+                        }}
+                      />
+                    </Tooltip>
+                    <IconButton
+                      size="small"
+                      onClick={() => removeChoice(qIndex, cIndex)}
+                      disabled={q.choices.length <= 2}
+                      aria-label="Supprimer le choix"
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                ))}
+              {!isWordCloud && (
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => addChoice(qIndex)}
+                >
+                  Ajouter un choix
+                </Button>
+              )}
+            </Paper>
+          );
+        })}
         <Stack spacing={2} sx={{ mt: 2 }}>
           <Button
             variant="outlined"
