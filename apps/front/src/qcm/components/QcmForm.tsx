@@ -107,7 +107,6 @@ export type QcmFormProps = {
   onSubmit: (e: React.FormEvent) => void | Promise<void>;
   loading?: boolean;
   submitLabel: string;
-  /** Bouton secondaire (ex. "Enregistrer et Lancer" en création) */
   secondarySubmitLabel?: string;
   onSecondarySubmit?: (e: React.FormEvent) => void | Promise<void>;
   error?: Error | null;
@@ -240,7 +239,7 @@ export default function QcmForm({
                         min: 1,
                         max: 30,
                         step: 1,
-                        style: { textAlign: 'center', width: 10 },
+                        style: { textAlign: 'center', width: 17 },
                         'aria-label': 'Durée en secondes',
                       }}
                       sx={{
