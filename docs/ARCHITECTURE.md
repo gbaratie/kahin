@@ -28,7 +28,7 @@ L’app **front** contient la **couche présentation** (context, hooks, composan
 
 ### **S – Single Responsibility (Responsabilité unique)**
 
-- **Entités** : ne portent que les données et invariants métier (ex. `Session`, `Quiz`).
+- **Entités** : ne portent que les données et invariants métier (ex. `Session`, `Quiz`, `Question` avec type `qcm` ou `word_cloud`, `Answer` avec choiceId ou words).
 - **Use cases** : un cas d’usage = une action métier (ex. `CreateQuizUseCase` ne fait que créer un quiz).
 - **Repositories / Transport** : une seule raison de changer (persistance quiz, persistance session, temps réel).
 - **Middleware d’erreur** : une seule responsabilité — transformer les erreurs en réponses HTTP (code + message).
@@ -196,7 +196,12 @@ sequenceDiagram
 
 ### 5.4 Soumettre une réponse
 
-Le participant choisit une réponse pendant une question. Le front envoie POST `/api/session/:id/answer` avec participantId, questionId, choiceId. L’API met à jour la session (enregistrement de la réponse) et notifie le transport. Réponse 204.
+Le participant répond selon le type de question :
+
+- **QCM** : le front envoie POST `/api/session/:id/answer` avec participantId, questionId, choiceId.
+- **Nuage de mots** : le front envoie POST `/api/session/:id/answer` avec participantId, questionId, word (plusieurs appels possibles par question).
+
+L'API charge le quiz pour vérifier que la question courante est bien celle visée, met à jour la session (enregistrement de la réponse) et notifie le transport. Réponse 204.
 
 ```mermaid
 sequenceDiagram
@@ -205,13 +210,14 @@ sequenceDiagram
   participant API
   participant SubmitAnswerUseCase
   participant SessionRepository
+  participant QuizRepository
   participant RealtimeTransport
 
-  User->>Front: Selectionne une reponse
-  Front->>API: POST /api/session/:id/answer participantId questionId choiceId
-  API->>SubmitAnswerUseCase: execute sessionId participantId questionId choiceId
+  User->>Front: Selectionne reponse ou saisit mot
+  Front->>API: POST /api/session/:id/answer (choiceId ou word)
+  API->>SubmitAnswerUseCase: execute(sessionId, participantId, questionId, choiceId?, word?)
   SubmitAnswerUseCase->>SessionRepository: getById(sessionId)
-  SessionRepository-->>SubmitAnswerUseCase: session
+  SubmitAnswerUseCase->>QuizRepository: getById(quizId)
   SubmitAnswerUseCase->>SessionRepository: save(session avec answer)
   SubmitAnswerUseCase->>RealtimeTransport: publish(answer_submitted)
   SubmitAnswerUseCase-->>API: void

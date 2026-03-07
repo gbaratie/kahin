@@ -1,5 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Box, Typography, Button, Paper, Alert, useTheme } from '@mui/material';
+import html2canvas from 'html2canvas';
+import ReactWordcloud from 'react-wordcloud';
+
+/** Nuage mémorisé pour éviter les re-renders (et le clignotement) quand les props sont inchangées. */
+const MemoizedWordcloud = React.memo(ReactWordcloud);
 import {
   BarChart,
   Bar,
@@ -10,7 +15,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from 'recharts';
-import type { Question, Quiz, Session } from '@kahin/qcm-domain';
+import type { Answer, Question, Quiz, Session } from '@kahin/qcm-domain';
 import { useNextQuestion } from '../hooks/useNextQuestion';
 import { useSessionStream } from '../hooks/useSessionStream';
 import { useSession } from '../hooks/useSession';
@@ -19,6 +24,9 @@ import { isApiMode } from '../apiClient';
 import { computeRanking } from '../utils/ranking';
 
 const PARTICIPANTS_POLL_INTERVAL_MS = 1500;
+/** Polling moins fréquent pendant un nuage de mots pour limiter le clignotement. */
+const WORD_CLOUD_POLL_INTERVAL_MS = 4000;
+const WORD_CLOUD_SIZE: [number, number] = [560, 260];
 
 type SessionHostViewProps = { sessionId: string; sessionCode: string };
 
@@ -38,25 +46,16 @@ export function SessionHostView({
   }, [session?.quizId, getQuiz]);
 
   const { execute: nextQuestion, loading, error, finished } = useNextQuestion();
-  const { currentQuestion, sessionFinished } = useSessionStream(
+  const { currentQuestion, sessionFinished, lastAnswer } = useSessionStream(
     isApi ? null : sessionId
   );
+  const wordCloudRef = useRef<HTMLDivElement>(null);
 
   const isWaiting = session?.status === 'waiting';
-
-  // En phase "attente des participants", rafraîchir la session régulièrement pour afficher les nouveaux participants
-  useEffect(() => {
-    if (!sessionId || !isWaiting) return;
-    const interval = setInterval(
-      () => refetch(),
-      PARTICIPANTS_POLL_INTERVAL_MS
-    );
-    return () => clearInterval(interval);
-  }, [sessionId, isWaiting, refetch]);
   const showingResult = Boolean(session?.showingResult);
   const isInProgress = session?.status === 'in_progress';
 
-  const displayedQuestion: Question | null =
+  const displayedQuestionRaw: Question | null =
     isInProgress && !showingResult
       ? isApi
         ? session &&
@@ -67,6 +66,33 @@ export function SessionHostView({
           : null
         : (currentQuestion?.question ?? null)
       : null;
+  const isDisplayedQuestionWordCloud =
+    (displayedQuestionRaw as Question)?.type === 'word_cloud';
+
+  // En phase "attente des participants", rafraîchir la session régulièrement pour afficher les nouveaux participants
+  useEffect(() => {
+    if (!sessionId || !isWaiting) return;
+    const interval = setInterval(
+      () => refetch(),
+      PARTICIPANTS_POLL_INTERVAL_MS
+    );
+    return () => clearInterval(interval);
+  }, [sessionId, isWaiting, refetch]);
+
+  // Quand une réponse est soumise (ex. mot nuage), rafraîchir la session pour mettre à jour le nuage (mode local)
+  useEffect(() => {
+    if (!sessionId || !lastAnswer || !isDisplayedQuestionWordCloud) return;
+    refetch();
+  }, [sessionId, lastAnswer, isDisplayedQuestionWordCloud, refetch]);
+
+  // En mode API, poller la session pendant une question nuage (intervalle plus long pour limiter le clignotement)
+  useEffect(() => {
+    if (!isApi || !sessionId || !isDisplayedQuestionWordCloud) return;
+    const interval = setInterval(() => refetch(), WORD_CLOUD_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [isApi, sessionId, isDisplayedQuestionWordCloud, refetch]);
+
+  const displayedQuestion = displayedQuestionRaw;
 
   const isFinished = isApi
     ? session?.status === 'finished' || finished
@@ -112,6 +138,86 @@ export function SessionHostView({
     if (isWaiting) return 'Lancer la session';
     if (showingResult) return 'Continuer';
     return 'Voir les résultats';
+  };
+
+  // Agrégation des mots pour la question nuage en cours
+  const wordCloudCounts = useMemo(() => {
+    if (!session || !displayedQuestion?.id || !isDisplayedQuestionWordCloud)
+      return [];
+    const counts = new Map<string, number>();
+    for (const a of session.answers) {
+      if (a.questionId !== displayedQuestion.id) continue;
+      const words = (a as Answer).words;
+      if (!Array.isArray(words)) continue;
+      for (const w of words) {
+        if (typeof w === 'string' && w.trim())
+          counts.set(w.trim(), (counts.get(w.trim()) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([word, count]) => ({ word, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [session, displayedQuestion?.id, isDisplayedQuestionWordCloud]);
+
+  // Signature pour que wordCloudWords ne change que quand les (mot, count) changent vraiment (évite le clignotement au refetch)
+  const wordCloudSignature = wordCloudCounts
+    .map(({ word, count }) => `${word}:${count}`)
+    .join('|');
+
+  const wordCloudWords = useMemo(
+    () =>
+      wordCloudCounts.map(({ word, count }) => ({ text: word, value: count })),
+    [wordCloudSignature]
+  );
+
+  const wordCloudOptions = useMemo(
+    () => ({
+      colors: [theme.palette.primary.main],
+      fontSizes: [14, 48] as [number, number],
+      fontFamily: theme.typography.fontFamily,
+      fontWeight: '600',
+      deterministic: true,
+      randomSeed: 'kahin-nuage',
+      rotations: 1,
+      rotationAngles: [0, 0] as [number, number],
+      padding: 2,
+      transitionDuration: 0,
+    }),
+    [theme.palette.primary.main, theme.typography.fontFamily]
+  );
+
+  const handleDownloadWordCloudImage = async () => {
+    if (!wordCloudRef.current) return;
+    try {
+      const canvas = await html2canvas(wordCloudRef.current, {
+        backgroundColor: theme.palette.background.paper,
+        scale: 2,
+      });
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+      if (!blob) return;
+      const now = new Date();
+      const dateStr =
+        now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0');
+      const rawLabel = displayedQuestion?.label?.trim() ?? '';
+      const safeLabel =
+        rawLabel
+          .replace(/[\s/\\:*?"<>|]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '') || 'nuage-mots';
+      const filename = `${dateStr}${safeLabel}.png`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
   };
 
   return (
@@ -239,19 +345,55 @@ export function SessionHostView({
           <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
             {displayedQuestion.label}
           </Typography>
-          {displayedQuestion.choices?.length > 0 && (
-            <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
-              {displayedQuestion.choices.map((choice) => (
-                <Typography
-                  key={choice.id}
-                  component="li"
-                  variant="body2"
-                  sx={{ mb: 0.5 }}
-                >
-                  {choice.label}
-                </Typography>
-              ))}
-            </Box>
+          {isDisplayedQuestionWordCloud ? (
+            <>
+              <Box
+                ref={wordCloudRef}
+                sx={{
+                  minHeight: 280,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  py: 2,
+                  px: 1,
+                }}
+              >
+                {wordCloudWords.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Aucun mot pour l&apos;instant.
+                  </Typography>
+                ) : (
+                  <MemoizedWordcloud
+                    words={wordCloudWords}
+                    options={wordCloudOptions}
+                    size={WORD_CLOUD_SIZE}
+                  />
+                )}
+              </Box>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => void handleDownloadWordCloudImage()}
+                disabled={wordCloudWords.length === 0}
+              >
+                Télécharger l&apos;image du nuage
+              </Button>
+            </>
+          ) : (
+            displayedQuestion.choices?.length > 0 && (
+              <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+                {displayedQuestion.choices.map((choice) => (
+                  <Typography
+                    key={choice.id}
+                    component="li"
+                    variant="body2"
+                    sx={{ mb: 0.5 }}
+                  >
+                    {choice.label}
+                  </Typography>
+                ))}
+              </Box>
+            )
           )}
         </Paper>
       )}

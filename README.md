@@ -2,7 +2,7 @@
 
 Monorepo pour créer des sondages QCM et faire participer l’audience en temps réel. Deux déploiements :
 
-- **Front** (Next.js) : création de QCM, lancement de session (vue animateur), rejoindre une session (vue participant) — une seule app avec toutes les pages.
+- **Front** (Next.js) : création de QCM (questions QCM ou nuage de mots), lancement de session (vue animateur), rejoindre une session (vue participant) — une seule app avec toutes les pages.
 - **API** (Express) : backend REST pour Render.
 
 Construit avec **Next.js 14**, **React 18**, **TypeScript**, **MUI** et une architecture hexagonale (domaine partagé dans `packages/`).

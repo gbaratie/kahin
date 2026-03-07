@@ -62,6 +62,7 @@ export const joinSessionUseCase = new JoinSessionUseCase(
 export const getSessionUseCase = new GetSessionUseCase(sessionRepo);
 export const submitAnswerUseCase = new SubmitAnswerUseCase(
   sessionRepo,
+  quizRepo,
   realtimeTransport
 );
 export const nextQuestionUseCase = new NextQuestionUseCase(

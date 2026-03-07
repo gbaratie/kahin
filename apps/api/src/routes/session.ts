@@ -37,16 +37,32 @@ sessionRoutes.post(
 sessionRoutes.post(
   '/:id/answer',
   handleAsync(async (req, res) => {
-    const { participantId, questionId, choiceId } = req.body;
-    if (!participantId || !questionId || !choiceId) {
-      throw new Error('participantId, questionId, choiceId required');
+    const { participantId, questionId, choiceId, word } = req.body;
+    if (!participantId || !questionId) {
+      throw new Error('participantId and questionId required');
     }
-    await submitAnswerUseCase.execute({
+    if (choiceId != null && word != null) {
+      throw new Error(
+        'provide either choiceId (QCM) or word (nuage de mots), not both'
+      );
+    }
+    if (choiceId == null && word == null) {
+      throw new Error('choiceId (QCM) or word (nuage de mots) required');
+    }
+    const payload: {
+      sessionId: string;
+      participantId: string;
+      questionId: string;
+      choiceId?: string;
+      word?: string;
+    } = {
       sessionId: req.params.id,
       participantId: String(participantId),
       questionId: String(questionId),
-      choiceId: String(choiceId),
-    });
+    };
+    if (choiceId != null) payload.choiceId = String(choiceId);
+    if (word != null) payload.word = String(word).trim();
+    await submitAnswerUseCase.execute(payload);
     res.status(204).send();
   })
 );

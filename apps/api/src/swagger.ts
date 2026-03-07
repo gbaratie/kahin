@@ -71,15 +71,27 @@ export const openApiSpec = {
                     type: 'array',
                     items: {
                       type: 'object',
-                      required: ['label', 'choices'],
                       properties: {
                         label: { type: 'string' },
+                        type: {
+                          type: 'string',
+                          enum: ['qcm', 'word_cloud'],
+                          description:
+                            'qcm = choix multiples, word_cloud = nuage de mots (pas de choix)',
+                        },
                         choices: {
                           type: 'array',
                           items: {
                             type: 'object',
                             properties: { label: { type: 'string' } },
                           },
+                          description:
+                            'Obligatoire pour type qcm, vide pour word_cloud',
+                        },
+                        correctChoiceIndex: { type: 'number' },
+                        timerSeconds: {
+                          type: 'number',
+                          description: 'Défaut 10 (qcm) ou 180 (word_cloud)',
                         },
                       },
                     },
@@ -199,12 +211,23 @@ export const openApiSpec = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['participantId', 'questionId', 'choiceId'],
+                required: ['participantId', 'questionId'],
                 properties: {
                   participantId: { type: 'string' },
                   questionId: { type: 'string' },
-                  choiceId: { type: 'string' },
+                  choiceId: {
+                    type: 'string',
+                    description:
+                      'Pour une question QCM : id du choix sélectionné',
+                  },
+                  word: {
+                    type: 'string',
+                    description:
+                      'Pour une question nuage de mots : mot à ajouter (plusieurs appels possibles)',
+                  },
                 },
+                description:
+                  'Fournir soit choiceId (QCM) soit word (nuage de mots), selon le type de la question courante',
               },
             },
           },
@@ -213,7 +236,7 @@ export const openApiSpec = {
           '204': { description: 'Réponse enregistrée' },
           '400': {
             description:
-              "Champs manquants ou session n'accepte plus les réponses",
+              "participantId et questionId requis ; choiceId ou word selon le type de question ; session n'accepte plus les réponses",
           },
           '500': { description: 'Erreur serveur' },
         },
