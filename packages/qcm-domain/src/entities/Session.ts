@@ -12,6 +12,8 @@ export type Session = {
   currentQuestionIndex: number;
   /** true = on affiche la page résultat (scores) ; false = on affiche la question (réponses acceptées). */
   showingResult?: boolean;
+  /** Pour chaque index i, date d’affichage de la question i (pour timer et score pondéré). */
+  questionShownAtTimestamps?: (Date | null)[];
   participants: Participant[];
   answers: Answer[];
 };

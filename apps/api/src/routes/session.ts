@@ -4,6 +4,7 @@ import {
   getSessionUseCase,
   submitAnswerUseCase,
   nextQuestionUseCase,
+  advanceIfTimeUpUseCase,
 } from '../container.js';
 import { handleAsync } from '../middleware/handleAsync.js';
 
@@ -55,5 +56,14 @@ sessionRoutes.post(
   handleAsync(async (req, res) => {
     const result = await nextQuestionUseCase.execute(req.params.id);
     res.json(result);
+  })
+);
+
+sessionRoutes.post(
+  '/:id/advance-if-time-up',
+  handleAsync(async (req, res) => {
+    const result = await advanceIfTimeUpUseCase.execute(req.params.id);
+    if (result.advanced) res.json(result);
+    else res.status(204).send();
   })
 );

@@ -8,4 +8,5 @@ export type { JoinSessionInput, JoinSessionResult } from './JoinSessionUseCase';
 export { SubmitAnswerUseCase } from './SubmitAnswerUseCase';
 export type { SubmitAnswerInput } from './SubmitAnswerUseCase';
 export { NextQuestionUseCase } from './NextQuestionUseCase';
+export { AdvanceIfTimeUpUseCase } from './AdvanceIfTimeUpUseCase';
 export { GetSessionUseCase } from './GetSessionUseCase';

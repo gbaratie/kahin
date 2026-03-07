@@ -1,12 +1,29 @@
 import type { Quiz, Session } from '@kahin/qcm-domain';
 
-export const POINTS_PER_QUESTION = 10;
+export const POINTS_PER_QUESTION = 1000;
 
 export type RankEntry = {
   participantId: string;
   participantName: string;
   score: number;
 };
+
+function toMs(value: Date | string | null | undefined): number | null {
+  if (value == null) return null;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'string') return new Date(value).getTime();
+  return null;
+}
+
+/** Score pondéré : plus la réponse est rapide, plus la note est élevée (100 % à t=0, 50 % à t=timerSeconds). */
+function weightedPoints(
+  timeTakenSeconds: number,
+  timerSeconds: number
+): number {
+  if (timerSeconds <= 0) return POINTS_PER_QUESTION;
+  const factor = Math.max(0, 1 - 0.5 * (timeTakenSeconds / timerSeconds));
+  return Math.round(POINTS_PER_QUESTION * factor);
+}
 
 export function computeRanking(
   session: Session,
@@ -18,18 +35,26 @@ export function computeRanking(
   for (const p of session.participants) {
     scoreByParticipant.set(p.id, 0);
   }
+  const timestamps = session.questionShownAtTimestamps ?? [];
   for (let i = 0; i < upToQuestionIndex; i++) {
     const question = quiz.questions[i];
     const correctChoiceId = question.correctChoiceId;
     if (correctChoiceId == null) continue;
+    const timerSeconds = question.timerSeconds ?? 10;
+    const shownAtMs = toMs(timestamps[i] as Date | string | null | undefined);
     for (const answer of session.answers) {
       if (answer.questionId !== question.id) continue;
       if (answer.choiceId === correctChoiceId) {
         const current = scoreByParticipant.get(answer.participantId) ?? 0;
-        scoreByParticipant.set(
-          answer.participantId,
-          current + POINTS_PER_QUESTION
+        const answeredAtMs = toMs(
+          (answer as { answeredAt: Date | string }).answeredAt
         );
+        let points = POINTS_PER_QUESTION;
+        if (shownAtMs != null && answeredAtMs != null) {
+          const timeTakenSeconds = (answeredAtMs - shownAtMs) / 1000;
+          points = weightedPoints(Math.max(0, timeTakenSeconds), timerSeconds);
+        }
+        scoreByParticipant.set(answer.participantId, current + points);
       }
     }
   }

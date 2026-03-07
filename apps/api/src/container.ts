@@ -21,6 +21,7 @@ import {
   GetSessionUseCase,
   SubmitAnswerUseCase,
   NextQuestionUseCase,
+  AdvanceIfTimeUpUseCase,
 } from '@kahin/qcm-application';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -64,6 +65,11 @@ export const submitAnswerUseCase = new SubmitAnswerUseCase(
   realtimeTransport
 );
 export const nextQuestionUseCase = new NextQuestionUseCase(
+  quizRepo,
+  sessionRepo,
+  realtimeTransport
+);
+export const advanceIfTimeUpUseCase = new AdvanceIfTimeUpUseCase(
   quizRepo,
   sessionRepo,
   realtimeTransport

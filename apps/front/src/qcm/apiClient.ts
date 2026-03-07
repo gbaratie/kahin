@@ -70,6 +70,7 @@ export const apiCreateQuiz = {
           label: q.label,
           choices: (q.choices ?? []).map((c) => ({ label: c.label })),
           correctChoiceIndex: q.correctChoiceIndex,
+          timerSeconds: q.timerSeconds,
         })),
       }),
     });
@@ -91,6 +92,7 @@ export const apiUpdateQuiz = {
             label: q.label,
             choices: (q.choices ?? []).map((c) => ({ label: c.label })),
             correctChoiceIndex: q.correctChoiceIndex,
+            timerSeconds: q.timerSeconds,
           })),
         }),
       }
@@ -132,6 +134,17 @@ export const apiNextQuestion = {
     if (error) throw new Error(error);
     if (!data) throw new Error('Next question failed');
     return data;
+  },
+};
+
+export const apiAdvanceIfTimeUp = {
+  async execute(sessionId: string): Promise<{ advanced: boolean }> {
+    const { data, error } = await apiFetch<{ advanced: boolean }>(
+      `/api/session/${encodeURIComponent(sessionId)}/advance-if-time-up`,
+      { method: 'POST' }
+    );
+    if (error) throw new Error(error);
+    return data ?? { advanced: false };
   },
 };
 

@@ -4,6 +4,7 @@ type RawQuestion = {
   label?: string;
   choices?: Array<{ label?: string }>;
   correctChoiceIndex?: number;
+  timerSeconds?: number;
 };
 
 type RawBody = {
@@ -26,6 +27,10 @@ export function validateQuizBody(body: RawBody): CreateQuizInput {
       correctChoiceIndex:
         typeof q?.correctChoiceIndex === 'number'
           ? q.correctChoiceIndex
+          : undefined,
+      timerSeconds:
+        typeof q?.timerSeconds === 'number' && q.timerSeconds >= 1
+          ? Math.min(300, Math.floor(q.timerSeconds))
           : undefined,
     })),
   };

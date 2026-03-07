@@ -33,6 +33,10 @@ export class LaunchSessionUseCase {
       code: generateSessionCode(),
       status: 'waiting',
       currentQuestionIndex: -1,
+      questionShownAtTimestamps: Array.from(
+        { length: quiz.questions.length },
+        () => null
+      ),
       participants: [],
       answers: [],
     };

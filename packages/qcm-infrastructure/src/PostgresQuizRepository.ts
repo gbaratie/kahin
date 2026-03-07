@@ -71,13 +71,14 @@ export class PostgresQuizRepository implements QuizRepository {
       await client.query('DELETE FROM questions WHERE quiz_id = $1', [quiz.id]);
 
       for (const question of quiz.questions) {
+        const timerSeconds = question.timerSeconds ?? 10;
         await client.query(
           `
-          INSERT INTO questions (id, quiz_id, label)
-          VALUES ($1, $2, $3)
-          ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label
+          INSERT INTO questions (id, quiz_id, label, timer_seconds)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, timer_seconds = EXCLUDED.timer_seconds
           `,
-          [question.id, quiz.id, question.label]
+          [question.id, quiz.id, question.label, timerSeconds]
         );
 
         await client.query('DELETE FROM choices WHERE question_id = $1', [
@@ -120,12 +121,14 @@ export class PostgresQuizRepository implements QuizRepository {
       const questionsResult = await client.query<{
         id: string;
         label: string;
+        timer_seconds: number | null;
         choice_id: string | null;
         choice_label: string | null;
       }>(
         `
         SELECT q.id,
                q.label,
+               q.timer_seconds,
                c.id   AS choice_id,
                c.label AS choice_label
         FROM questions q
@@ -141,6 +144,7 @@ export class PostgresQuizRepository implements QuizRepository {
         {
           id: string;
           label: string;
+          timerSeconds?: number;
           choices: { id: string; label: string }[];
         }
       >();
@@ -151,6 +155,8 @@ export class PostgresQuizRepository implements QuizRepository {
           question = {
             id: row.id,
             label: row.label,
+            timerSeconds:
+              row.timer_seconds != null ? row.timer_seconds : undefined,
             choices: [],
           };
           questionsMap.set(row.id, question);
