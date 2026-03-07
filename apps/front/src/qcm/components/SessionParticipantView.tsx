@@ -139,7 +139,7 @@ export function SessionParticipantView({
 
   if (sessionFinished) {
     return (
-      <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         <Alert severity="info">
           Le QCM est terminé. Merci de votre participation.
         </Alert>
@@ -150,7 +150,7 @@ export function SessionParticipantView({
   // Pas de question affichée : on affiche directement la page scores / classement
   if (!currentQuestion) {
     return (
-      <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         {timeUpForCurrentQuestion && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             Le temps est écoulé
@@ -197,7 +197,7 @@ export function SessionParticipantView({
   // Le participant a déjà répondu à cette question : page d'attente
   if (hasAnsweredCurrentQuestion) {
     return (
-      <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         <Alert severity="success" icon={false}>
           <Typography variant="body1" fontWeight={500}>
             Merci d&apos;avoir répondu à cette question.
@@ -221,7 +221,7 @@ export function SessionParticipantView({
       : 0;
 
   return (
-    <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
       <Typography variant="h6" gutterBottom>
         {question.label}
       </Typography>

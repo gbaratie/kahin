@@ -95,7 +95,7 @@ export function SessionHostView({
   };
 
   return (
-    <Box sx={{ p: 2, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
       <Typography variant="h5" gutterBottom>
         {isWaiting ? 'En attente des participants' : 'Session en cours'}
       </Typography>

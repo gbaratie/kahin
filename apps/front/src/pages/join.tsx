@@ -39,7 +39,7 @@ export default function JoinPage() {
       <Head>
         <title>Rejoindre une session</title>
       </Head>
-      <Box sx={{ py: 4, px: 2, maxWidth: 400, mx: 'auto' }}>
+      <Box sx={{ py: 4, px: 2, maxWidth: { xs: 400, md: 560 }, mx: 'auto' }}>
         <Typography variant="h4" gutterBottom>
           Rejoindre une session
         </Typography>

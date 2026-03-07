@@ -71,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
           direction="row"
           alignItems="center"
           justifyContent="space-between"
-          sx={{ maxWidth: 960, mx: 'auto' }}
+          sx={{ maxWidth: { xs: '100%', md: 960, lg: 1200 }, mx: 'auto' }}
         >
           <Stack direction="row" alignItems="center" spacing={2}>
             <Typography
