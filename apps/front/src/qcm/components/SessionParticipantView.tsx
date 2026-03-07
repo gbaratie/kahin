@@ -3,10 +3,7 @@ import {
   Box,
   Typography,
   Button,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  FormControl,
+  Stack,
   Alert,
   Paper,
   LinearProgress,
@@ -254,24 +251,30 @@ export function SessionParticipantView({
         </Alert>
       )}
 
-      <FormControl component="fieldset" fullWidth sx={{ mb: 2 }}>
-        <RadioGroup
-          value={selectedChoiceId ?? ''}
-          onChange={(_, value) => setSelectedChoiceId(value)}
-        >
-          {question.choices.map((choice) => (
-            <FormControlLabel
-              key={choice.id}
-              value={choice.id}
-              control={<Radio />}
-              label={choice.label}
-            />
-          ))}
-        </RadioGroup>
-      </FormControl>
+      <Stack spacing={1.5} sx={{ mb: 3 }}>
+        {question.choices.map((choice) => (
+          <Button
+            key={choice.id}
+            variant={selectedChoiceId === choice.id ? 'contained' : 'outlined'}
+            size="large"
+            fullWidth
+            onClick={() => setSelectedChoiceId(choice.id)}
+            sx={{
+              justifyContent: 'flex-start',
+              textTransform: 'none',
+              py: 1.5,
+              fontSize: '1rem',
+            }}
+          >
+            {choice.label}
+          </Button>
+        ))}
+      </Stack>
 
       <Button
         variant="contained"
+        size="large"
+        fullWidth
         onClick={handleSubmit}
         disabled={!selectedChoiceId || loading}
       >
