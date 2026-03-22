@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useMemo,
+  useRef,
+} from 'react';
 import { Box, Typography, Button, Paper, Alert, useTheme } from '@mui/material';
 import html2canvas from 'html2canvas';
 import ReactWordcloud from 'react-wordcloud';
@@ -26,7 +32,9 @@ import { computeRanking } from '../utils/ranking';
 const PARTICIPANTS_POLL_INTERVAL_MS = 1500;
 /** Polling moins fréquent pendant un nuage de mots pour limiter le clignotement. */
 const WORD_CLOUD_POLL_INTERVAL_MS = 4000;
-const WORD_CLOUD_SIZE: [number, number] = [560, 260];
+const WORD_CLOUD_WIDTH_MAX = 560;
+const WORD_CLOUD_HEIGHT_BASE = 260;
+const WORD_CLOUD_WIDTH_MIN = 240;
 
 type SessionHostViewProps = { sessionId: string; sessionCode: string };
 
@@ -50,6 +58,10 @@ export function SessionHostView({
     isApi ? null : sessionId
   );
   const wordCloudRef = useRef<HTMLDivElement>(null);
+  const wordCloudMeasureRef = useRef<HTMLDivElement>(null);
+  const [wordCloudSize, setWordCloudSize] = useState<
+    [number, number]
+  >([WORD_CLOUD_WIDTH_MAX, WORD_CLOUD_HEIGHT_BASE]);
 
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
@@ -91,6 +103,36 @@ export function SessionHostView({
     const interval = setInterval(() => refetch(), WORD_CLOUD_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [isApi, sessionId, isDisplayedQuestionWordCloud, refetch]);
+
+  useLayoutEffect(() => {
+    if (!isDisplayedQuestionWordCloud) return;
+    const el = wordCloudMeasureRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const apply = (widthPx: number) => {
+      const width = Math.floor(
+        Math.max(
+          WORD_CLOUD_WIDTH_MIN,
+          Math.min(WORD_CLOUD_WIDTH_MAX, widthPx)
+        )
+      );
+      const height = Math.max(
+        200,
+        Math.round((width / WORD_CLOUD_WIDTH_MAX) * WORD_CLOUD_HEIGHT_BASE)
+      );
+      setWordCloudSize((prev) =>
+        prev[0] === width && prev[1] === height ? prev : [width, height]
+      );
+    };
+
+    apply(el.getBoundingClientRect().width);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w != null && w > 0) apply(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isDisplayedQuestionWordCloud]);
 
   const displayedQuestion = displayedQuestionRaw;
 
@@ -167,24 +209,31 @@ export function SessionHostView({
   const wordCloudWords = useMemo(
     () =>
       wordCloudCounts.map(({ word, count }) => ({ text: word, value: count })),
+    // wordCloudSignature résume wordCloudCounts (évite recalculs à chaque refetch identique)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dépendance intentionnelle via signature
     [wordCloudSignature]
   );
 
-  const wordCloudOptions = useMemo(
-    () => ({
+  const wordCloudLayoutWidth = wordCloudSize[0];
+  const wordCloudOptions = useMemo(() => {
+    const narrow = wordCloudLayoutWidth < 400;
+    return {
       colors: [theme.palette.primary.main],
-      fontSizes: [14, 48] as [number, number],
+      fontSizes: (narrow ? [12, 36] : [14, 48]) as [number, number],
       fontFamily: theme.typography.fontFamily,
       fontWeight: '600',
       deterministic: true,
       randomSeed: 'kahin-nuage',
       rotations: 1,
       rotationAngles: [0, 0] as [number, number],
-      padding: 2,
+      padding: narrow ? 1 : 2,
       transitionDuration: 0,
-    }),
-    [theme.palette.primary.main, theme.typography.fontFamily]
-  );
+    };
+  }, [
+    theme.palette.primary.main,
+    theme.typography.fontFamily,
+    wordCloudLayoutWidth,
+  ]);
 
   const handleDownloadWordCloudImage = async () => {
     if (!wordCloudRef.current) return;
@@ -348,27 +397,33 @@ export function SessionHostView({
           {isDisplayedQuestionWordCloud ? (
             <>
               <Box
-                ref={wordCloudRef}
-                sx={{
-                  minHeight: 280,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  py: 2,
-                  px: 1,
-                }}
+                ref={wordCloudMeasureRef}
+                sx={{ width: '100%', minWidth: 0 }}
               >
-                {wordCloudWords.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Aucun mot pour l&apos;instant.
-                  </Typography>
-                ) : (
-                  <MemoizedWordcloud
-                    words={wordCloudWords}
-                    options={wordCloudOptions}
-                    size={WORD_CLOUD_SIZE}
-                  />
-                )}
+                <Box
+                  ref={wordCloudRef}
+                  sx={{
+                    minHeight: { xs: 220, sm: 280 },
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 2,
+                    px: 0,
+                    maxWidth: '100%',
+                  }}
+                >
+                  {wordCloudWords.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      Aucun mot pour l&apos;instant.
+                    </Typography>
+                  ) : (
+                    <MemoizedWordcloud
+                      words={wordCloudWords}
+                      options={wordCloudOptions}
+                      size={wordCloudSize}
+                    />
+                  )}
+                </Box>
               </Box>
               <Button
                 variant="outlined"
