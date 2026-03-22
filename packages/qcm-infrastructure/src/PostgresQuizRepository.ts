@@ -103,6 +103,16 @@ export class PostgresQuizRepository implements QuizRepository {
             [choice.id, question.id, choice.label]
           );
         }
+
+        const correctId =
+          question.correctChoiceId != null &&
+          question.choices.some((c) => c.id === question.correctChoiceId)
+            ? question.correctChoiceId
+            : null;
+        await client.query(
+          `UPDATE questions SET correct_choice_id = $1 WHERE id = $2`,
+          [correctId, question.id]
+        );
       }
 
       await client.query('COMMIT');
@@ -131,6 +141,7 @@ export class PostgresQuizRepository implements QuizRepository {
         label: string;
         timer_seconds: number | null;
         question_type: string | null;
+        correct_choice_id: string | null;
         choice_id: string | null;
         choice_label: string | null;
       }>(
@@ -139,6 +150,7 @@ export class PostgresQuizRepository implements QuizRepository {
                q.label,
                q.timer_seconds,
                q.question_type,
+               q.correct_choice_id,
                c.id   AS choice_id,
                c.label AS choice_label
         FROM questions q
@@ -156,6 +168,7 @@ export class PostgresQuizRepository implements QuizRepository {
           label: string;
           type: QuestionType;
           timerSeconds?: number;
+          correctChoiceId?: string;
           choices: { id: string; label: string }[];
         }
       >();
@@ -169,6 +182,10 @@ export class PostgresQuizRepository implements QuizRepository {
             type: parseQuestionType(row.question_type),
             timerSeconds:
               row.timer_seconds != null ? row.timer_seconds : undefined,
+            correctChoiceId:
+              row.correct_choice_id != null
+                ? row.correct_choice_id
+                : undefined,
             choices: [],
           };
           questionsMap.set(row.id, question);

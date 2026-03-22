@@ -25,3 +25,7 @@ ALTER TABLE questions ADD COLUMN IF NOT EXISTS timer_seconds INTEGER DEFAULT 10;
 -- Migration: type de question (qcm / word_cloud) pour le nuage de mots en prod
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS question_type TEXT NOT NULL DEFAULT 'qcm';
 
+-- Bonne réponse QCM (remplie après insertion des lignes choices)
+ALTER TABLE questions
+  ADD COLUMN IF NOT EXISTS correct_choice_id TEXT REFERENCES choices(id) ON DELETE SET NULL;
+
