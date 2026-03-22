@@ -32,8 +32,12 @@ import { useNextQuestion } from '../hooks/useNextQuestion';
 import { useSessionStream } from '../hooks/useSessionStream';
 import { useSession } from '../hooks/useSession';
 import { useQcmDependencies } from '../QcmDependenciesContext';
-import { isApiMode } from '../apiClient';
-import { computeRanking } from '../utils/ranking';
+import { apiDownloadSessionResultsCsv, isApiMode } from '../apiClient';
+import {
+  buildResultsCsvFilename,
+  buildSessionResultsCsv,
+  computeRanking,
+} from '@kahin/qcm-application';
 
 const PARTICIPANTS_POLL_INTERVAL_MS = 1500;
 /** Polling moins fréquent pendant un nuage de mots pour limiter le clignotement. */
@@ -69,6 +73,8 @@ export function SessionHostView({
     WORD_CLOUD_WIDTH_MAX,
     WORD_CLOUD_HEIGHT_BASE,
   ]);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvError, setCsvError] = useState<string | null>(null);
 
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
@@ -146,6 +152,38 @@ export function SessionHostView({
 
   const handleNextQuestion = () => {
     nextQuestion(sessionId).then(() => refetch());
+  };
+
+  const handleDownloadResultsCsv = () => {
+    setCsvError(null);
+    if (isApi) {
+      setCsvLoading(true);
+      void apiDownloadSessionResultsCsv
+        .execute(sessionId)
+        .catch((e: unknown) =>
+          setCsvError(e instanceof Error ? e.message : String(e))
+        )
+        .finally(() => setCsvLoading(false));
+      return;
+    }
+    if (!session || !quiz) {
+      setCsvError('Session ou quiz indisponible');
+      return;
+    }
+    try {
+      const csv = buildSessionResultsCsv(session, quiz);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = buildResultsCsvFilename(quiz);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    } catch (e: unknown) {
+      setCsvError(e instanceof Error ? e.message : String(e));
+    }
   };
 
   const showRanking =
@@ -466,7 +504,32 @@ export function SessionHostView({
           {getButtonLabel()}
         </Button>
       ) : (
-        <Alert severity="success">Le QCM est terminé.</Alert>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            alignItems: 'flex-start',
+            width: '100%',
+          }}
+        >
+          <Alert severity="success">Le QCM est terminé.</Alert>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleDownloadResultsCsv}
+            disabled={csvLoading || !session || !quiz}
+          >
+            {csvLoading
+              ? 'Téléchargement…'
+              : 'Télécharger le CSV des résultats'}
+          </Button>
+          {csvError ? (
+            <Alert severity="error" sx={{ width: '100%' }}>
+              {csvError}
+            </Alert>
+          ) : null}
+        </Box>
       )}
     </Box>
   );

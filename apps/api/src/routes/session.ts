@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import {
+  buildResultsCsvFilename,
+  buildSessionResultsCsv,
+} from '@kahin/qcm-application';
+import {
   joinSessionUseCase,
   getSessionUseCase,
   submitAnswerUseCase,
@@ -22,6 +26,28 @@ sessionRoutes.get(
     const quiz = await getQuizById(session.quizId);
     if (!quiz) throw new Error('Quiz not found');
     res.json(redactQuizForParticipant(session, quiz));
+  })
+);
+
+sessionRoutes.get(
+  '/:id/results.csv',
+  requireAdminAuth,
+  handleAsync(async (req, res) => {
+    const session = await getSessionUseCase.execute(req.params.id);
+    if (!session) throw new Error('Session not found');
+    if (session.status !== 'finished') {
+      throw new Error('Session is not finished');
+    }
+    const quiz = await getQuizById(session.quizId);
+    if (!quiz) throw new Error('Quiz not found');
+    const csv = buildSessionResultsCsv(session, quiz);
+    const filename = buildResultsCsvFilename(quiz);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`
+    );
+    res.send(csv);
   })
 );
 

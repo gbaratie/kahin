@@ -261,5 +261,44 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/session/{id}/results.csv': {
+      get: {
+        summary:
+          'Exporter les résultats en CSV (animateur, Bearer JWT ; session terminée uniquement)',
+        tags: ['Session'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Fichier CSV (classement et détail des réponses)',
+            content: {
+              'text/csv': {
+                schema: { type: 'string', format: 'binary' },
+              },
+            },
+          },
+          '400': { description: 'Session non terminée' },
+          '401': { description: 'Non authentifié' },
+          '404': { description: 'Session ou quiz non trouvé' },
+          '500': { description: 'Erreur serveur' },
+        },
+      },
+    },
+  },
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+    },
   },
 };

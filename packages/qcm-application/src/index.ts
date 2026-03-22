@@ -10,3 +10,14 @@ export type { SubmitAnswerInput } from './SubmitAnswerUseCase';
 export { NextQuestionUseCase } from './NextQuestionUseCase';
 export { AdvanceIfTimeUpUseCase } from './AdvanceIfTimeUpUseCase';
 export { GetSessionUseCase } from './GetSessionUseCase';
+export {
+  computeRanking,
+  pointsForQcmAnswer,
+  POINTS_PER_QUESTION,
+} from './ranking';
+export type { RankEntry } from './ranking';
+export {
+  buildResultsCsvFilename,
+  buildSessionResultsCsv,
+  escapeCsvField,
+} from './sessionResultsCsv';

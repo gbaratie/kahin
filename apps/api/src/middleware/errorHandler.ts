@@ -11,7 +11,8 @@ function getStatusForError(e: unknown): number {
   if (message === 'Session not found') return 404;
   if (
     message === 'Session is already finished' ||
-    message === 'Session is not accepting answers'
+    message === 'Session is not accepting answers' ||
+    message === 'Session is not finished'
   )
     return 400;
   return 500;
