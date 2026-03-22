@@ -75,6 +75,21 @@ async function apiFetch<T>(
 
 export type QuizSummary = { id: string; title: string };
 
+type QuizWriteInput = CreateQuizInput | UpdateQuizInput;
+
+function quizInputToApiBody(input: QuizWriteInput) {
+  return {
+    title: input.title,
+    questions: input.questions.map((q) => ({
+      label: q.label,
+      type: q.type,
+      choices: (q.choices ?? []).map((c) => ({ label: c.label })),
+      correctChoiceIndex: q.correctChoiceIndex,
+      timerSeconds: q.timerSeconds,
+    })),
+  };
+}
+
 export const apiAuthLogin = {
   async execute(
     username: string,
@@ -142,16 +157,7 @@ export const apiCreateQuiz = {
     const { data, error } = await apiFetch<Quiz>('/api/quiz', {
       method: 'POST',
       requireAdminAuth: true,
-      body: JSON.stringify({
-        title: input.title,
-        questions: input.questions.map((q) => ({
-          label: q.label,
-          type: q.type,
-          choices: (q.choices ?? []).map((c) => ({ label: c.label })),
-          correctChoiceIndex: q.correctChoiceIndex,
-          timerSeconds: q.timerSeconds,
-        })),
-      }),
+      body: JSON.stringify(quizInputToApiBody(input)),
     });
     if (error) throw new Error(error);
     if (!data) throw new Error('Create quiz failed');
@@ -166,16 +172,7 @@ export const apiUpdateQuiz = {
       {
         method: 'PUT',
         requireAdminAuth: true,
-        body: JSON.stringify({
-          title: input.title,
-          questions: input.questions.map((q) => ({
-            label: q.label,
-            type: q.type,
-            choices: (q.choices ?? []).map((c) => ({ label: c.label })),
-            correctChoiceIndex: q.correctChoiceIndex,
-            timerSeconds: q.timerSeconds,
-          })),
-        }),
+        body: JSON.stringify(quizInputToApiBody(input)),
       }
     );
     if (error) throw new Error(error);
@@ -271,6 +268,53 @@ export const apiSubmitAnswer = {
       body: JSON.stringify(body),
     });
     if (error) throw new Error(error);
+  },
+};
+
+function parseContentDispositionFilename(
+  header: string | null,
+  fallback: string
+): string {
+  if (!header) return fallback;
+  const quoted = /filename="([^"]+)"/i.exec(header);
+  if (quoted) return quoted[1];
+  const unquoted = /filename=([^;\s]+)/i.exec(header);
+  if (unquoted) return unquoted[1].replace(/["']/g, '');
+  return fallback;
+}
+
+export const apiDownloadSessionResultsCsv = {
+  async execute(sessionId: string): Promise<void> {
+    const base = getApiUrl();
+    if (!base) throw new Error('NEXT_PUBLIC_API_URL non configuré');
+    const headers: Record<string, string> = {};
+    const t = getAdminToken();
+    if (t) headers.Authorization = `Bearer ${t}`;
+    const url = `${base}/api/session/${encodeURIComponent(sessionId)}/results.csv`;
+    const res = await fetch(url, { headers });
+    if (res.status === 401) {
+      clearAdminToken();
+      onAdminUnauthorized?.();
+      throw new Error('Non autorisé');
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = (body as { error?: string }).error;
+      throw new Error(typeof msg === 'string' ? msg : res.statusText);
+    }
+    const cd = res.headers.get('Content-Disposition');
+    const fallback = `qcm-export-${sessionId}.csv`;
+    const filename = parseContentDispositionFilename(cd, fallback);
+    const text = await res.text();
+    const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objUrl);
   },
 };
 

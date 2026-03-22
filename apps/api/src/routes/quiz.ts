@@ -2,10 +2,10 @@ import { Router } from 'express';
 import {
   createQuizUseCase,
   updateQuizUseCase,
-  deleteQuiz,
-  getQuizById,
+  deleteQuizUseCase,
+  getQuizUseCase,
   launchSessionUseCase,
-  listQuizzes,
+  listQuizzesUseCase,
 } from '../container.js';
 import { handleAsync } from '../middleware/handleAsync.js';
 import { validateQuizBody } from '../validation/quizBody.js';
@@ -18,7 +18,7 @@ quizRoutes.use(requireAdminAuth);
 quizRoutes.get(
   '/',
   handleAsync(async (_req, res) => {
-    const quizzes = await listQuizzes();
+    const quizzes = await listQuizzesUseCase.execute();
     res.json(quizzes);
   })
 );
@@ -26,8 +26,7 @@ quizRoutes.get(
 quizRoutes.get(
   '/:quizId',
   handleAsync(async (req, res) => {
-    const quiz = await getQuizById(req.params.quizId);
-    if (!quiz) throw new Error('Quiz not found');
+    const quiz = await getQuizUseCase.execute(req.params.quizId);
     res.json(quiz);
   })
 );
@@ -64,9 +63,7 @@ quizRoutes.delete(
   '/:quizId',
   handleAsync(async (req, res) => {
     const { quizId } = req.params;
-    const quiz = await getQuizById(quizId);
-    if (!quiz) throw new Error('Quiz not found');
-    await deleteQuiz(quizId);
+    await deleteQuizUseCase.execute(quizId);
     res.status(204).send();
   })
 );

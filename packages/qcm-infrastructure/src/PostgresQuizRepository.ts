@@ -183,9 +183,7 @@ export class PostgresQuizRepository implements QuizRepository {
             timerSeconds:
               row.timer_seconds != null ? row.timer_seconds : undefined,
             correctChoiceId:
-              row.correct_choice_id != null
-                ? row.correct_choice_id
-                : undefined,
+              row.correct_choice_id != null ? row.correct_choice_id : undefined,
             choices: [],
           };
           questionsMap.set(row.id, question);

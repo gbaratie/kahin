@@ -1,3 +1,6 @@
+export { GetQuizUseCase } from './GetQuizUseCase';
+export { ListQuizzesUseCase } from './ListQuizzesUseCase';
+export { DeleteQuizUseCase } from './DeleteQuizUseCase';
 export { CreateQuizUseCase } from './CreateQuizUseCase';
 export type { CreateQuizInput } from './CreateQuizUseCase';
 export { UpdateQuizUseCase } from './UpdateQuizUseCase';
@@ -10,3 +13,14 @@ export type { SubmitAnswerInput } from './SubmitAnswerUseCase';
 export { NextQuestionUseCase } from './NextQuestionUseCase';
 export { AdvanceIfTimeUpUseCase } from './AdvanceIfTimeUpUseCase';
 export { GetSessionUseCase } from './GetSessionUseCase';
+export {
+  computeRanking,
+  pointsForQcmAnswer,
+  POINTS_PER_QUESTION,
+} from './ranking';
+export type { RankEntry } from './ranking';
+export {
+  buildResultsCsvFilename,
+  buildSessionResultsCsv,
+  escapeCsvField,
+} from './sessionResultsCsv';

@@ -1,4 +1,4 @@
-import type { Quiz, Session } from '@kahin/qcm-domain';
+import type { Question, Quiz, Session } from '@kahin/qcm-domain';
 
 export const POINTS_PER_QUESTION = 1000;
 
@@ -46,9 +46,7 @@ export function computeRanking(
       if (answer.questionId !== question.id) continue;
       if (answer.choiceId === correctChoiceId) {
         const current = scoreByParticipant.get(answer.participantId) ?? 0;
-        const answeredAtMs = toMs(
-          (answer as { answeredAt: Date | string }).answeredAt
-        );
+        const answeredAtMs = toMs(answer.answeredAt);
         let points = POINTS_PER_QUESTION;
         if (shownAtMs != null && answeredAtMs != null) {
           const timeTakenSeconds = (answeredAtMs - shownAtMs) / 1000;
@@ -69,4 +67,28 @@ export function computeRanking(
   });
   entries.sort((a, b) => b.score - a.score);
   return entries;
+}
+
+/** Points attribués pour une réponse QCM (0 si faux ou pas de bonne réponse définie). */
+export function pointsForQcmAnswer(
+  session: Session,
+  questionIndex: number,
+  question: Question,
+  choiceId: string | undefined,
+  answeredAt: Date | string | undefined
+): number {
+  if (!choiceId || question.correctChoiceId == null) return 0;
+  if (choiceId !== question.correctChoiceId) return 0;
+  const timerSeconds = question.timerSeconds ?? 10;
+  const timestamps = session.questionShownAtTimestamps ?? [];
+  const shownAtMs = toMs(
+    timestamps[questionIndex] as Date | string | null | undefined
+  );
+  const answeredAtMs = toMs(answeredAt);
+  let points = POINTS_PER_QUESTION;
+  if (shownAtMs != null && answeredAtMs != null) {
+    const timeTakenSeconds = (answeredAtMs - shownAtMs) / 1000;
+    points = weightedPoints(Math.max(0, timeTakenSeconds), timerSeconds);
+  }
+  return points;
 }

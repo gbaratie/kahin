@@ -20,7 +20,7 @@ import { useSessionStream } from '../hooks/useSessionStream';
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer';
 import { useSession } from '../hooks/useSession';
 import { useQcmDependencies } from '../QcmDependenciesContext';
-import { computeRanking } from '../utils/ranking';
+import { computeRanking } from '@kahin/qcm-application';
 import {
   isApiMode,
   apiAdvanceIfTimeUp,
