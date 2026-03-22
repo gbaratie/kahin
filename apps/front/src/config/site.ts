@@ -14,8 +14,19 @@ export interface NavItem {
   href: string;
 }
 
-export const navItems: NavItem[] = [
+export const navItemsParticipant: NavItem[] = [
   { label: 'Accueil', href: '/' },
-  { label: 'Créer un QCM', href: '/qcm/create' },
   { label: 'Rejoindre', href: '/join' },
+];
+
+export const navItemCreateQuiz: NavItem = {
+  label: 'Créer un QCM',
+  href: '/qcm/create',
+};
+
+/** Navigation complète (animateur connecté ou mode bypass sans API). */
+export const navItems: NavItem[] = [
+  navItemsParticipant[0],
+  navItemCreateQuiz,
+  navItemsParticipant[1],
 ];

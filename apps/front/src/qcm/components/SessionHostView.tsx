@@ -65,9 +65,10 @@ export function SessionHostView({
   );
   const wordCloudRef = useRef<HTMLDivElement>(null);
   const wordCloudMeasureRef = useRef<HTMLDivElement>(null);
-  const [wordCloudSize, setWordCloudSize] = useState<
-    [number, number]
-  >([WORD_CLOUD_WIDTH_MAX, WORD_CLOUD_HEIGHT_BASE]);
+  const [wordCloudSize, setWordCloudSize] = useState<[number, number]>([
+    WORD_CLOUD_WIDTH_MAX,
+    WORD_CLOUD_HEIGHT_BASE,
+  ]);
 
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
@@ -117,10 +118,7 @@ export function SessionHostView({
 
     const apply = (widthPx: number) => {
       const width = Math.floor(
-        Math.max(
-          WORD_CLOUD_WIDTH_MIN,
-          Math.min(WORD_CLOUD_WIDTH_MAX, widthPx)
-        )
+        Math.max(WORD_CLOUD_WIDTH_MIN, Math.min(WORD_CLOUD_WIDTH_MAX, widthPx))
       );
       const height = Math.max(
         200,

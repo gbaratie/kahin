@@ -3,13 +3,14 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { Box, Typography, Alert } from '@mui/material';
 import Layout from '@/components/Layout';
+import AdminRouteGuard from '@/components/AdminRouteGuard';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import { useLaunchSession } from '@/qcm/hooks/useLaunchSession';
 import { SessionHostView } from '@/qcm/components/SessionHostView';
 import { layout } from '@/config/layout';
 
-export default function QcmLaunchPage() {
+function QcmLaunchPageContent() {
   const router = useRouter();
   const quizId =
     typeof router.query.quizId === 'string' ? router.query.quizId : null;
@@ -66,5 +67,13 @@ export default function QcmLaunchPage() {
       </Head>
       <SessionHostView sessionId={session.id} sessionCode={session.code} />
     </Layout>
+  );
+}
+
+export default function QcmLaunchPage() {
+  return (
+    <AdminRouteGuard>
+      <QcmLaunchPageContent />
+    </AdminRouteGuard>
   );
 }

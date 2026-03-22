@@ -9,8 +9,11 @@ import {
 } from '../container.js';
 import { handleAsync } from '../middleware/handleAsync.js';
 import { validateQuizBody } from '../validation/quizBody.js';
+import { requireAdminAuth } from '../middleware/requireAdminAuth.js';
 
 export const quizRoutes = Router();
+
+quizRoutes.use(requireAdminAuth);
 
 quizRoutes.get(
   '/',

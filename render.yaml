@@ -1,5 +1,6 @@
 # Configuration Render pour l'API Kahin (monorepo).
 # Déploiement : connecter le repo GitHub et ajouter les variables d'environnement (voir README).
+# Requis pour l'interface animateur : ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_AUTH_SECRET (UI Render, ne pas commiter).
 
 services:
   - type: web

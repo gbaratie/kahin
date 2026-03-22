@@ -21,7 +21,11 @@ import { useSubmitAnswer } from '../hooks/useSubmitAnswer';
 import { useSession } from '../hooks/useSession';
 import { useQcmDependencies } from '../QcmDependenciesContext';
 import { computeRanking } from '../utils/ranking';
-import { isApiMode, apiAdvanceIfTimeUp } from '../apiClient';
+import {
+  isApiMode,
+  apiAdvanceIfTimeUp,
+  apiGetSessionQuizForParticipant,
+} from '../apiClient';
 
 const SESSION_POLL_WHEN_WAITING_MS = 1500;
 const TOP_RANKING_LIMIT = 10;
@@ -68,8 +72,12 @@ export function SessionParticipantView({
   // Charger le quiz dès qu'il n'y a pas de question affichée (pour afficher la page scores/classement)
   useEffect(() => {
     if (!session?.quizId || currentQuestion) return;
-    getQuiz.execute(session.quizId).then(setQuiz);
-  }, [session?.quizId, currentQuestion, getQuiz]);
+    if (isApiMode()) {
+      apiGetSessionQuizForParticipant.execute(sessionId).then(setQuiz);
+    } else {
+      getQuiz.execute(session.quizId).then(setQuiz);
+    }
+  }, [session?.quizId, currentQuestion, getQuiz, sessionId]);
 
   const rankingUpTo = useMemo(() => {
     if (!session || !quiz) return 0;

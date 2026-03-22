@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import theme from '@/config/theme';
 import { QcmDependenciesProvider } from '@/qcm/QcmDependenciesContext';
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
@@ -13,7 +14,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <QcmDependenciesProvider>
-          <Component {...pageProps} />
+          <AdminAuthProvider>
+            <Component {...pageProps} />
+          </AdminAuthProvider>
         </QcmDependenciesProvider>
       </ThemeProvider>
     </>

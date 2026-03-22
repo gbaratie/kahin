@@ -2,12 +2,13 @@ import React from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
+import AdminRouteGuard from '@/components/AdminRouteGuard';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import { SessionHostView } from '@/qcm/components/SessionHostView';
 import { useSession } from '@/qcm/hooks/useSession';
 
-export default function QcmSessionPage() {
+function QcmSessionPageContent() {
   const router = useRouter();
   const sessionId =
     typeof router.query.id === 'string' ? router.query.id : null;
@@ -50,5 +51,13 @@ export default function QcmSessionPage() {
       </Head>
       <SessionHostView sessionId={session.id} sessionCode={session.code} />
     </Layout>
+  );
+}
+
+export default function QcmSessionPage() {
+  return (
+    <AdminRouteGuard>
+      <QcmSessionPageContent />
+    </AdminRouteGuard>
   );
 }

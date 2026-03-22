@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
+import AdminRouteGuard from '@/components/AdminRouteGuard';
 import { useCreateQuiz } from '@/qcm/hooks/useCreateQuiz';
 import QcmForm, {
   initialQuestion,
   draftToPayload,
 } from '@/qcm/components/QcmForm';
 
-export default function QcmCreatePage() {
+function QcmCreatePageContent() {
   const router = useRouter();
   const { execute: createQuiz, loading, error } = useCreateQuiz();
   const [title, setTitle] = useState('');
@@ -47,5 +48,13 @@ export default function QcmCreatePage() {
         error={error}
       />
     </Layout>
+  );
+}
+
+export default function QcmCreatePage() {
+  return (
+    <AdminRouteGuard>
+      <QcmCreatePageContent />
+    </AdminRouteGuard>
   );
 }
