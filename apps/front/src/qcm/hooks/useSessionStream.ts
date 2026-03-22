@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { Question } from '@kahin/qcm-domain';
 import { useQcmDependencies } from '../QcmDependenciesContext';
-import { isApiMode, apiGetSession, apiGetQuiz } from '../apiClient';
+import {
+  isApiMode,
+  apiGetSession,
+  apiGetSessionQuizForParticipant,
+} from '../apiClient';
 
 export type QuestionShowPayload = {
   sessionId: string;
@@ -46,7 +50,7 @@ export function useSessionStream(sessionId: string | null) {
         session.quizId &&
         session.showingResult !== true
       ) {
-        const quiz = await apiGetQuiz.execute(session.quizId);
+        const quiz = await apiGetSessionQuizForParticipant.execute(sessionId);
         if (quiz && session.currentQuestionIndex < quiz.questions.length) {
           const question = quiz.questions[session.currentQuestionIndex];
           const timestamps = (

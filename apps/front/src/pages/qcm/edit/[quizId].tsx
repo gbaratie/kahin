@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { Box, Button, Alert } from '@mui/material';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import AdminRouteGuard from '@/components/AdminRouteGuard';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import { useUpdateQuiz } from '@/qcm/hooks/useUpdateQuiz';
 import { apiGetQuiz } from '@/qcm/apiClient';
@@ -14,7 +15,7 @@ import QcmForm, {
 } from '@/qcm/components/QcmForm';
 import { layout } from '@/config/layout';
 
-export default function QcmEditPage() {
+function QcmEditPageContent() {
   const router = useRouter();
   const { quizId } = router.query;
   const { execute: updateQuiz, loading, error } = useUpdateQuiz();
@@ -97,5 +98,13 @@ export default function QcmEditPage() {
         }}
       />
     </Layout>
+  );
+}
+
+export default function QcmEditPage() {
+  return (
+    <AdminRouteGuard>
+      <QcmEditPageContent />
+    </AdminRouteGuard>
   );
 }

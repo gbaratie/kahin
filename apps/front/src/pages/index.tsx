@@ -22,11 +22,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import JoinSessionForm from '@/components/join/JoinSessionForm';
+import LoadingScreen from '@/components/common/LoadingScreen';
 import { siteName } from '@/config/site';
 import { layout } from '@/config/layout';
 import { apiListQuizzes, apiDeleteQuiz, isApiMode } from '@/qcm/apiClient';
 import type { QuizSummary } from '@/qcm/apiClient';
 import { getErrorMessage } from '@kahin/shared-utils';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 function loadQuizzes(
   setQuizzes: (q: QuizSummary[]) => void,
@@ -44,6 +47,7 @@ function loadQuizzes(
 }
 
 export default function HomePage() {
+  const { isAdmin, authResolved } = useAdminAuth();
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,8 +56,9 @@ export default function HomePage() {
     useState<QuizSummary | null>(null);
 
   useEffect(() => {
+    if (!isAdmin) return;
     loadQuizzes(setQuizzes, setLoading, setError);
-  }, []);
+  }, [isAdmin]);
 
   const handleDeleteClick = (q: QuizSummary) => {
     setDeleteConfirmQuiz(q);
@@ -78,6 +83,35 @@ export default function HomePage() {
   const handleDeleteCancel = () => {
     setDeleteConfirmQuiz(null);
   };
+
+  if (isApiMode() && !authResolved) {
+    return (
+      <Layout>
+        <Head>
+          <title>{siteName}</title>
+        </Head>
+        <LoadingScreen title={siteName} />
+      </Layout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Layout>
+        <Head>
+          <title>{siteName}</title>
+          <meta
+            name="description"
+            content="Rejoignez une session QCM avec le code communiqué par l'animateur."
+          />
+        </Head>
+        <JoinSessionForm
+          title={siteName}
+          description="Saisissez le code de session et votre nom pour participer. L’animateur se connecte via l’icône en haut à droite."
+        />
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

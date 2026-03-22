@@ -5,10 +5,25 @@ import {
   submitAnswerUseCase,
   nextQuestionUseCase,
   advanceIfTimeUpUseCase,
+  getQuizById,
 } from '../container.js';
 import { handleAsync } from '../middleware/handleAsync.js';
+import { requireAdminAuth } from '../middleware/requireAdminAuth.js';
+import { redactQuizForParticipant } from '../session/participantQuizView.js';
 
 export const sessionRoutes = Router();
+
+/** Quiz pour les participants (sans bonnes réponses encore secrètes). */
+sessionRoutes.get(
+  '/:id/quiz',
+  handleAsync(async (req, res) => {
+    const session = await getSessionUseCase.execute(req.params.id);
+    if (!session) throw new Error('Session not found');
+    const quiz = await getQuizById(session.quizId);
+    if (!quiz) throw new Error('Quiz not found');
+    res.json(redactQuizForParticipant(session, quiz));
+  })
+);
 
 sessionRoutes.get(
   '/:id',
@@ -69,6 +84,7 @@ sessionRoutes.post(
 
 sessionRoutes.post(
   '/:id/next',
+  requireAdminAuth,
   handleAsync(async (req, res) => {
     const result = await nextQuestionUseCase.execute(req.params.id);
     res.json(result);

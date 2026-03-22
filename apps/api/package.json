@@ -12,6 +12,7 @@
     "db:import-quizzes": "tsx scripts/import-quizzes-to-postgres.ts"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
     "@kahin/qcm-application": "1.0.0",
     "@kahin/qcm-domain": "1.0.0",
     "@kahin/qcm-infrastructure": "1.0.0",

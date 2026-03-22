@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   IconButton,
   Link as MuiLink,
   Stack,
@@ -10,12 +11,17 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  Divider,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import LockOutlined from '@mui/icons-material/LockOutlined';
+import Logout from '@mui/icons-material/Logout';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { siteName, navItems } from '@/config/site';
 import ApiStatus from '@/components/ApiStatus';
+import AdminLoginDialog from '@/components/AdminLoginDialog';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 type LayoutProps = { children: React.ReactNode };
 
@@ -23,6 +29,12 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = router.pathname;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAdmin, openLoginDialog, logout, showAdminLoginUi } = useAdminAuth();
+
+  /** Participants : pas d’onglets (accueil = déjà « rejoindre »). */
+  const visibleNavItems = useMemo(() => (isAdmin ? navItems : []), [isAdmin]);
+
+  const hasNavLinks = visibleNavItems.length > 0;
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -31,7 +43,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navLinks = (
     <>
-      {navItems.map((item) => (
+      {visibleNavItems.map((item) => (
         <MuiLink
           key={item.href}
           component={Link}
@@ -85,28 +97,52 @@ export default function Layout({ children }: LayoutProps) {
             <ApiStatus />
           </Stack>
 
-          {/* Desktop : boutons de navigation horizontaux */}
-          <Stack
-            direction="row"
-            spacing={3}
-            sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}
-          >
-            {navLinks}
-          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {hasNavLinks && (
+              <Stack
+                direction="row"
+                spacing={3}
+                sx={{
+                  display: { xs: 'none', md: 'flex' },
+                  alignItems: 'center',
+                }}
+              >
+                {navLinks}
+              </Stack>
+            )}
 
-          {/* Mobile : bouton burger */}
-          <IconButton
-            color="inherit"
-            aria-label="Ouvrir le menu"
-            onClick={() => setMobileMenuOpen(true)}
-            sx={{ display: { xs: 'inline-flex', md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
+            {showAdminLoginUi && (
+              <IconButton
+                color="inherit"
+                aria-label={
+                  isAdmin ? 'Déconnexion animateur' : 'Connexion animateur'
+                }
+                onClick={() => (isAdmin ? logout() : openLoginDialog())}
+                size="small"
+                sx={{ color: 'text.secondary' }}
+              >
+                {isAdmin ? (
+                  <Logout fontSize="small" />
+                ) : (
+                  <LockOutlined fontSize="small" />
+                )}
+              </IconButton>
+            )}
+
+            {hasNavLinks && (
+              <IconButton
+                color="inherit"
+                aria-label="Ouvrir le menu"
+                onClick={() => setMobileMenuOpen(true)}
+                sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+          </Stack>
         </Stack>
       </Box>
 
-      {/* Drawer menu mobile */}
       <Drawer
         anchor="right"
         open={mobileMenuOpen}
@@ -116,29 +152,69 @@ export default function Layout({ children }: LayoutProps) {
         }}
       >
         <Box sx={{ py: 2, px: 2 }}>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ px: 2 }}>
-            Menu
-          </Typography>
-          <List disablePadding>
-            {navItems.map((item) => (
-              <ListItem key={item.href} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  selected={isActive(item.href)}
-                >
-                  <ListItemText primary={item.label} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
+          {hasNavLinks && (
+            <>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                sx={{ px: 2 }}
+              >
+                Menu
+              </Typography>
+              <List disablePadding>
+                {visibleNavItems.map((item) => (
+                  <ListItem key={item.href} disablePadding>
+                    <ListItemButton
+                      component={Link}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      selected={isActive(item.href)}
+                    >
+                      <ListItemText primary={item.label} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+          {showAdminLoginUi && hasNavLinks && (
+            <>
+              <Divider sx={{ my: 1 }} />
+              <Box sx={{ px: 2 }}>
+                {isAdmin ? (
+                  <Button
+                    fullWidth
+                    startIcon={<Logout />}
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    Déconnexion animateur
+                  </Button>
+                ) : (
+                  <Button
+                    fullWidth
+                    startIcon={<LockOutlined />}
+                    onClick={() => {
+                      openLoginDialog();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    Connexion animateur
+                  </Button>
+                )}
+              </Box>
+            </>
+          )}
         </Box>
       </Drawer>
 
       <Box component="main" sx={{ flex: 1 }}>
         {children}
       </Box>
+
+      <AdminLoginDialog />
     </Box>
   );
 }

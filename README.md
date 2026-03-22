@@ -48,9 +48,10 @@ npm run build -w @kahin/qcm-domain && npm run build -w @kahin/qcm-application &&
 2. Dans `apps/front/.env` (ou `.env.local`), définir :  
    `NEXT_PUBLIC_API_URL=http://localhost:4000`
 3. **Redémarrer** le serveur dev front après toute modification des variables d’environnement (les variables `NEXT_PUBLIC_*` sont prises au démarrage).
-4. Démarrer le front. Depuis l’accueil : créer un QCM et lancer une session, ou rejoindre avec le code depuis la même interface.
+4. Configurer l’**authentification animateur** sur l’API (obligatoire si le front pointe vers l’API) : voir [Connexion animateur](#connexion-animateur-admin) ci-dessous.
+5. Démarrer le front. L’**accueil** affiche par défaut uniquement le formulaire **Rejoindre une session** ; l’animateur ouvre la **connexion** via l’icône de cadenas en haut à droite, puis peut créer et lancer des QCM.
 
-Sans `NEXT_PUBLIC_API_URL`, le front utilise un stockage **in-memory** local (sessions créées invisibles pour d’autres onglets). En haut de l’interface, un indicateur affiche **Mode local** ou **API … — OK** / **Injoignable** pour vérifier la connexion au back.
+Sans `NEXT_PUBLIC_API_URL`, le front utilise un stockage **in-memory** local (sessions créées invisibles pour d’autres onglets). En haut de l’interface, un indicateur affiche **Mode local** ou **API … — OK** / **Injoignable** pour vérifier la connexion au back. Dans ce mode, l’accès aux pages animateur est **fermé** sauf si vous définissez `NEXT_PUBLIC_BYPASS_ADMIN_AUTH=true` (réservé au développement, non sécurisé).
 
 ## Scripts racine
 
@@ -77,7 +78,24 @@ Sans `NEXT_PUBLIC_API_URL`, le front utilise un stockage **in-memory** local (se
 - `NEXT_PUBLIC_BASE_PATH` : base path pour les assets et la navigation (ex. `/kahin` sur GitHub Pages). En CI, par défaut = `/<nom-du-repo>` si non défini.
 - `NEXT_PUBLIC_SITE_NAME` : titre du site.
 - `NEXT_PUBLIC_API_URL` : URL de l’API (ex. `http://localhost:4000`). Si défini, le front utilise l’API pour quiz/sessions (nécessaire pour rejoindre une partie en mode déployé).
+- `NEXT_PUBLIC_BYPASS_ADMIN_AUTH` : si `true`, débloque l’UI animateur **sans** API (développement uniquement ; ne remplace pas une vraie authentification).
 - API : `PORT` (défaut 4000, fourni par Render en prod), `NODE_ENV`, `QUIZ_JSON_PATH` (optionnel), `DATABASE_URL` (optionnel, pour Postgres en production). Voir `apps/api/README.md` et `render.yaml` pour le déploiement sur Render.
+
+### Connexion animateur (admin)
+
+Dès que le front utilise l’API (`NEXT_PUBLIC_API_URL`), les routes **quiz** (liste, CRUD, lancement) et les actions **question suivante / avancer si temps écoulé** exigent un jeton obtenu par `POST /api/auth/login`.
+
+Sur l’**API**, définir :
+
+| Variable            | Rôle                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `ADMIN_USERNAME`    | Identifiant animateur                                                                    |
+| `ADMIN_PASSWORD`    | Mot de passe (choisir une valeur forte en production)                                    |
+| `ADMIN_AUTH_SECRET` | Secret pour signer les jetons (chaîne longue aléatoire, ex. 32+ octets en hex ou base64) |
+
+Sans ces variables, la connexion et les opérations animateur renvoient une erreur de configuration (`503`). Les participants utilisent **sans** jeton : `POST /api/session/join`, `GET /api/session/:id`, `GET /api/session/:id/quiz` (quiz sans réponses encore secrètes), `POST /api/session/:id/answer` et `POST /api/session/:id/advance-if-time-up` (le serveur vérifie que le temps est écoulé).
+
+Sur **Render**, ajouter manuellement ces trois variables dans l’environnement du service API (elles ne sont pas dans `render.yaml` pour éviter de commiter des secrets).
 
 **Persistance des données** : l’API enregistre les **quiz** dans un fichier JSON (`apps/api/data/quizzes.json` par défaut). Les **sessions** et réponses sont en mémoire : elles disparaissent au redémarrage de l’API. Pour une persistance des sessions, il faudrait ajouter un stockage (fichier ou base) côté API.
 
