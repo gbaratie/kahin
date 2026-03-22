@@ -1,4 +1,4 @@
-import type { Answer } from '@kahin/qcm-domain';
+import { isWordCloudQuestion, type Answer } from '@kahin/qcm-domain';
 import type {
   SessionRepository,
   RealtimeTransport,
@@ -39,7 +39,7 @@ export class SubmitAnswerUseCase {
       throw new Error('Question not found or not current');
     }
 
-    const isWordCloud = currentQuestion.type === 'word_cloud';
+    const isWordCloud = isWordCloudQuestion(currentQuestion);
 
     if (isWordCloud) {
       if (typeof input.word !== 'string' || !input.word.trim()) {

@@ -21,7 +21,13 @@ import {
   ResponsiveContainer,
   LabelList,
 } from 'recharts';
-import type { Answer, Question, Quiz, Session } from '@kahin/qcm-domain';
+import {
+  isWordCloudQuestion,
+  type Answer,
+  type Question,
+  type Quiz,
+  type Session,
+} from '@kahin/qcm-domain';
 import { useNextQuestion } from '../hooks/useNextQuestion';
 import { useSessionStream } from '../hooks/useSessionStream';
 import { useSession } from '../hooks/useSession';
@@ -79,7 +85,7 @@ export function SessionHostView({
         : (currentQuestion?.question ?? null)
       : null;
   const isDisplayedQuestionWordCloud =
-    (displayedQuestionRaw as Question)?.type === 'word_cloud';
+    isWordCloudQuestion(displayedQuestionRaw);
 
   // En phase "attente des participants", rafraîchir la session régulièrement pour afficher les nouveaux participants
   useEffect(() => {

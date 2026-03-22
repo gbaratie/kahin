@@ -9,7 +9,12 @@ import {
   LinearProgress,
   TextField,
 } from '@mui/material';
-import type { Answer, Question, Quiz } from '@kahin/qcm-domain';
+import {
+  isWordCloudQuestion,
+  type Answer,
+  type Question,
+  type Quiz,
+} from '@kahin/qcm-domain';
 import type { SubmitAnswerInput } from '@kahin/qcm-application';
 import { useSessionStream } from '../hooks/useSessionStream';
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer';
@@ -86,8 +91,9 @@ export function SessionParticipantView({
   const top10 = ranking.slice(0, TOP_RANKING_LIMIT);
 
   const currentQuestionData = currentQuestion?.question;
-  const isWordCloud =
-    (currentQuestionData as Question | undefined)?.type === 'word_cloud';
+  const isWordCloud = isWordCloudQuestion(
+    currentQuestionData as Question | undefined
+  );
 
   // Réinitialiser "a répondu" et "temps écoulé" quand une nouvelle question est affichée (pas quand on passe aux résultats)
   const currentQuestionId = currentQuestion?.question.id;
