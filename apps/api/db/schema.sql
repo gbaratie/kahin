@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS questions (
   id TEXT PRIMARY KEY,
   quiz_id TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
   label TEXT NOT NULL,
-  timer_seconds INTEGER DEFAULT 10
+  timer_seconds INTEGER DEFAULT 10,
+  question_type TEXT NOT NULL DEFAULT 'qcm'
 );
 
 CREATE TABLE IF NOT EXISTS choices (
@@ -20,4 +21,7 @@ CREATE TABLE IF NOT EXISTS choices (
 
 -- Migration: ajouter timer_seconds aux tables existantes (Postgres 9.5+)
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS timer_seconds INTEGER DEFAULT 10;
+
+-- Migration: type de question (qcm / word_cloud) pour le nuage de mots en prod
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS question_type TEXT NOT NULL DEFAULT 'qcm';
 

@@ -1,5 +1,9 @@
-import type { Quiz } from '@kahin/qcm-domain';
+import type { Quiz, QuestionType } from '@kahin/qcm-domain';
 import type { QuizRepository } from '@kahin/qcm-domain';
+
+function parseQuestionType(raw: string | null | undefined): QuestionType {
+  return raw === 'word_cloud' ? 'word_cloud' : 'qcm';
+}
 // Types très lâches pour éviter d'avoir besoin de @types/pg
 type PgPool = {
   connect(): Promise<PgClient>;
@@ -72,13 +76,17 @@ export class PostgresQuizRepository implements QuizRepository {
 
       for (const question of quiz.questions) {
         const timerSeconds = question.timerSeconds ?? 10;
+        const questionType = parseQuestionType(question.type);
         await client.query(
           `
-          INSERT INTO questions (id, quiz_id, label, timer_seconds)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, timer_seconds = EXCLUDED.timer_seconds
+          INSERT INTO questions (id, quiz_id, label, timer_seconds, question_type)
+          VALUES ($1, $2, $3, $4, $5)
+          ON CONFLICT (id) DO UPDATE SET
+            label = EXCLUDED.label,
+            timer_seconds = EXCLUDED.timer_seconds,
+            question_type = EXCLUDED.question_type
           `,
-          [question.id, quiz.id, question.label, timerSeconds]
+          [question.id, quiz.id, question.label, timerSeconds, questionType]
         );
 
         await client.query('DELETE FROM choices WHERE question_id = $1', [
@@ -122,6 +130,7 @@ export class PostgresQuizRepository implements QuizRepository {
         id: string;
         label: string;
         timer_seconds: number | null;
+        question_type: string | null;
         choice_id: string | null;
         choice_label: string | null;
       }>(
@@ -129,6 +138,7 @@ export class PostgresQuizRepository implements QuizRepository {
         SELECT q.id,
                q.label,
                q.timer_seconds,
+               q.question_type,
                c.id   AS choice_id,
                c.label AS choice_label
         FROM questions q
@@ -144,6 +154,7 @@ export class PostgresQuizRepository implements QuizRepository {
         {
           id: string;
           label: string;
+          type: QuestionType;
           timerSeconds?: number;
           choices: { id: string; label: string }[];
         }
@@ -155,6 +166,7 @@ export class PostgresQuizRepository implements QuizRepository {
           question = {
             id: row.id,
             label: row.label,
+            type: parseQuestionType(row.question_type),
             timerSeconds:
               row.timer_seconds != null ? row.timer_seconds : undefined,
             choices: [],
