@@ -1,0 +1,98 @@
+import React from 'react';
+import { Box, Paper, Typography, useTheme } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+} from 'recharts';
+
+type SessionHostRankingChartProps = {
+  title: string;
+  chartData: Array<{ name: string; score: number }>;
+};
+
+export function SessionHostRankingChart({
+  title,
+  chartData,
+}: SessionHostRankingChartProps) {
+  const theme = useTheme();
+  return (
+    <Paper sx={{ p: 2, mb: 2 }}>
+      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+        {title}
+      </Typography>
+      {chartData.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          En attente des premières réponses.
+        </Typography>
+      ) : (
+        <SessionHostBarChartBody theme={theme} chartData={chartData} />
+      )}
+    </Paper>
+  );
+}
+
+function SessionHostBarChartBody({
+  theme,
+  chartData,
+}: {
+  theme: Theme;
+  chartData: Array<{ name: string; score: number }>;
+}) {
+  return (
+    <Box sx={{ width: '100%', height: 320 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          layout="vertical"
+          data={chartData}
+          margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+          <XAxis type="number" tick={{ fill: theme.palette.text.secondary }} />
+          <YAxis
+            type="category"
+            dataKey="name"
+            width={140}
+            tick={{
+              fill: theme.palette.text.primary,
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          />
+          <Tooltip
+            formatter={(value: number) => [
+              `${value} pt${value !== 1 ? 's' : ''}`,
+              'Score',
+            ]}
+            labelFormatter={(label) => `Participant : ${label}`}
+            contentStyle={{
+              backgroundColor: theme.palette.background.paper,
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          />
+          <Bar
+            dataKey="score"
+            fill={theme.palette.primary.main}
+            radius={[0, 4, 4, 0]}
+          >
+            <LabelList
+              dataKey="score"
+              position="right"
+              formatter={(value: number) =>
+                `${value} pt${value !== 1 ? 's' : ''}`
+              }
+              fill={theme.palette.text.primary}
+              style={{ fontWeight: 400 }}
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+}

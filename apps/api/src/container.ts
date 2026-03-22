@@ -22,6 +22,9 @@ import {
   SubmitAnswerUseCase,
   NextQuestionUseCase,
   AdvanceIfTimeUpUseCase,
+  GetQuizUseCase,
+  ListQuizzesUseCase,
+  DeleteQuizUseCase,
 } from '@kahin/qcm-application';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -47,9 +50,9 @@ const realtimeTransport = new MockRealtimeTransport();
 
 export const createQuizUseCase = new CreateQuizUseCase(quizRepo);
 export const updateQuizUseCase = new UpdateQuizUseCase(quizRepo);
-export const getQuizById = (id: string) => quizRepo.getById(id);
-export const listQuizzes = () => quizRepo.list();
-export const deleteQuiz = (id: string) => quizRepo.delete(id);
+export const getQuizUseCase = new GetQuizUseCase(quizRepo);
+export const listQuizzesUseCase = new ListQuizzesUseCase(quizRepo);
+export const deleteQuizUseCase = new DeleteQuizUseCase(quizRepo);
 export const launchSessionUseCase = new LaunchSessionUseCase(
   quizRepo,
   sessionRepo,

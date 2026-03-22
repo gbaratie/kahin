@@ -75,6 +75,21 @@ async function apiFetch<T>(
 
 export type QuizSummary = { id: string; title: string };
 
+type QuizWriteInput = CreateQuizInput | UpdateQuizInput;
+
+function quizInputToApiBody(input: QuizWriteInput) {
+  return {
+    title: input.title,
+    questions: input.questions.map((q) => ({
+      label: q.label,
+      type: q.type,
+      choices: (q.choices ?? []).map((c) => ({ label: c.label })),
+      correctChoiceIndex: q.correctChoiceIndex,
+      timerSeconds: q.timerSeconds,
+    })),
+  };
+}
+
 export const apiAuthLogin = {
   async execute(
     username: string,
@@ -142,16 +157,7 @@ export const apiCreateQuiz = {
     const { data, error } = await apiFetch<Quiz>('/api/quiz', {
       method: 'POST',
       requireAdminAuth: true,
-      body: JSON.stringify({
-        title: input.title,
-        questions: input.questions.map((q) => ({
-          label: q.label,
-          type: q.type,
-          choices: (q.choices ?? []).map((c) => ({ label: c.label })),
-          correctChoiceIndex: q.correctChoiceIndex,
-          timerSeconds: q.timerSeconds,
-        })),
-      }),
+      body: JSON.stringify(quizInputToApiBody(input)),
     });
     if (error) throw new Error(error);
     if (!data) throw new Error('Create quiz failed');
@@ -166,16 +172,7 @@ export const apiUpdateQuiz = {
       {
         method: 'PUT',
         requireAdminAuth: true,
-        body: JSON.stringify({
-          title: input.title,
-          questions: input.questions.map((q) => ({
-            label: q.label,
-            type: q.type,
-            choices: (q.choices ?? []).map((c) => ({ label: c.label })),
-            correctChoiceIndex: q.correctChoiceIndex,
-            timerSeconds: q.timerSeconds,
-          })),
-        }),
+        body: JSON.stringify(quizInputToApiBody(input)),
       }
     );
     if (error) throw new Error(error);

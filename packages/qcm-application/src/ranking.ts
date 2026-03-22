@@ -81,7 +81,9 @@ export function pointsForQcmAnswer(
   if (choiceId !== question.correctChoiceId) return 0;
   const timerSeconds = question.timerSeconds ?? 10;
   const timestamps = session.questionShownAtTimestamps ?? [];
-  const shownAtMs = toMs(timestamps[questionIndex] as Date | string | null | undefined);
+  const shownAtMs = toMs(
+    timestamps[questionIndex] as Date | string | null | undefined
+  );
   const answeredAtMs = toMs(answeredAt);
   let points = POINTS_PER_QUESTION;
   if (shownAtMs != null && answeredAtMs != null) {

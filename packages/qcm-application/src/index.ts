@@ -1,3 +1,6 @@
+export { GetQuizUseCase } from './GetQuizUseCase';
+export { ListQuizzesUseCase } from './ListQuizzesUseCase';
+export { DeleteQuizUseCase } from './DeleteQuizUseCase';
 export { CreateQuizUseCase } from './CreateQuizUseCase';
 export type { CreateQuizInput } from './CreateQuizUseCase';
 export { UpdateQuizUseCase } from './UpdateQuizUseCase';

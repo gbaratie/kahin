@@ -1,4 +1,8 @@
-import { isWordCloudQuestion, type Quiz, type Session } from '@kahin/qcm-domain';
+import {
+  isWordCloudQuestion,
+  type Quiz,
+  type Session,
+} from '@kahin/qcm-domain';
 import { computeRanking, pointsForQcmAnswer } from './ranking';
 
 /** Séparateur point-virgule pour Excel (locale FR). */
@@ -29,7 +33,10 @@ function slugifyForFilename(title: string): string {
 }
 
 /** Nom de fichier : `qcm-{titre}-{YYYY-MM-DD}.csv` (caractères sûrs pour le disque). */
-export function buildResultsCsvFilename(quiz: Quiz, exportedAt: Date = new Date()): string {
+export function buildResultsCsvFilename(
+  quiz: Quiz,
+  exportedAt: Date = new Date()
+): string {
   const y = exportedAt.getFullYear();
   const m = String(exportedAt.getMonth() + 1).padStart(2, '0');
   const d = String(exportedAt.getDate()).padStart(2, '0');

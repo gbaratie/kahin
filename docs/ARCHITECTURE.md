@@ -18,7 +18,7 @@ kahin/
 
 L’app **front** contient la **couche présentation** (context, hooks, composants) pour l’admin (création, lancement, vue animateur) et le participant (rejoindre, répondre). Elle dépend des packages `@kahin/qcm-domain`, `@kahin/qcm-application`, `@kahin/qcm-infrastructure`, `@kahin/shared-utils`. L’architecture reste **hexagonale** (ports & adapters) au niveau des packages.
 
-**Côté API** : `apps/api/src` contient `routes/`, `middleware/` (gestion d’erreur centralisée, wrapper `handleAsync`), `validation/` (ex. body quiz pour POST/PUT).
+**Côté API** : `apps/api/src` contient `routes/`, `middleware/` (gestion d’erreur centralisée, wrapper `handleAsync`), `validation/` (body quiz pour POST/PUT, join et réponses session).
 
 **Côté front** : `apps/front/src` contient `components/common/` (LoadingScreen, ErrorAlert, PageLayout), `hooks/useAsyncCall.ts`, `config/layout.ts` pour les constantes de mise en page.
 
@@ -90,8 +90,8 @@ kahin/
 │       ├── src/
 │       │   ├── routes/        # quiz, session
 │       │   ├── middleware/    # errorHandler, handleAsync
-│       │   ├── validation/    # quizBody
-│       │   └── container.js
+│       │   ├── validation/    # quizBody, sessionBody
+│       │   └── container.ts
 │       ├── package.json
 │       └── ...
 │
