@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Paper, Typography } from '@mui/material';
+import { Alert, Box, Button, Paper, Typography, useTheme } from '@mui/material';
+import dynamic from 'next/dynamic';
 import {
   isWordCloudQuestion,
   type Answer,
@@ -19,6 +20,16 @@ import { apiDownloadSessionResultsCsv, isApiMode } from '../apiClient';
 import { useSessionHostPolling } from '../hooks/useSessionHostPolling';
 import { SessionHostRankingChart } from './SessionHostRankingChart';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
+import { withBasePath } from '@/config/site';
+
+const QRCodeSVG = dynamic(
+  () =>
+    import('qrcode.react').then((m) => {
+      // qrcode.react expose QRCodeSVG et QRCodeCanvas.
+      return m.QRCodeSVG;
+    }),
+  { ssr: false }
+);
 
 type SessionHostViewProps = { sessionId: string; sessionCode: string };
 
@@ -27,14 +38,27 @@ export function SessionHostView({
   sessionCode,
 }: SessionHostViewProps) {
   const isApi = isApiMode();
+  const theme = useTheme();
+  const qrFrameBg = theme.palette.background.paper;
   const { session, refetch } = useSession(sessionId);
   const { getQuiz } = useQcmDependencies();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [joinUrlForQr, setJoinUrlForQr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session?.quizId) return;
     getQuiz.execute(session.quizId).then(setQuiz);
   }, [session?.quizId, getQuiz]);
+
+  // Construire une URL absolue (origin + basePath) pour que le QR marche partout.
+  useEffect(() => {
+    if (!sessionCode) return;
+    if (typeof window === 'undefined') return;
+    const url = `${window.location.origin}${withBasePath(
+      `/join?code=${encodeURIComponent(sessionCode)}`
+    )}`;
+    setJoinUrlForQr(url);
+  }, [sessionCode]);
 
   const { execute: nextQuestion, loading, error, finished } = useNextQuestion();
   const { currentQuestion, sessionFinished, lastAnswer } = useSessionStream(
@@ -186,41 +210,93 @@ export function SessionHostView({
         {isWaiting ? 'En attente des participants' : 'Session en cours'}
       </Typography>
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Code à donner aux participants
-        </Typography>
-        <Typography
-          variant="h4"
-          sx={{ letterSpacing: 2, fontFamily: 'monospace' }}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'flex-start', md: 'center' },
+            justifyContent: 'space-between',
+            gap: 2,
+          }}
         >
-          {sessionCode}
-        </Typography>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Utilisez ce code pour rejoindre la session
+            </Typography>
+            <Typography
+              variant="h4"
+              sx={{ letterSpacing: 2, fontFamily: 'monospace' }}
+            >
+              {sessionCode}
+            </Typography>
+          </Box>
+
+          {isWaiting && (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: { xs: 'center', md: 'flex-end' },
+                minWidth: { md: 220 },
+              }}
+            >
+              {joinUrlForQr ? (
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    backgroundColor: qrFrameBg,
+                    borderColor: theme.palette.divider,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <QRCodeSVG
+                      value={joinUrlForQr}
+                      size={160}
+                      includeMargin={false}
+                      bgColor={qrFrameBg}
+                      fgColor={theme.palette.text.primary}
+                      title="Code QR pour rejoindre la session"
+                    />
+                  </Box>
+                </Paper>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Chargement du QR Code…
+                </Typography>
+              )}
+            </Box>
+          )}
+        </Box>
       </Paper>
 
       {isWaiting && (
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Participants connectés
-          </Typography>
-          {session?.participants.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              Aucun participant pour l&apos;instant.
+        <>
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Participants connectés
             </Typography>
-          ) : (
-            <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
-              {session?.participants.map((p) => (
-                <Typography
-                  key={p.id}
-                  component="li"
-                  variant="body2"
-                  sx={{ mb: 0.5 }}
-                >
-                  {p.name}
-                </Typography>
-              ))}
-            </Box>
-          )}
-        </Paper>
+            {session?.participants.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                Aucun participant pour l&apos;instant.
+              </Typography>
+            ) : (
+              <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+                {session?.participants.map((p) => (
+                  <Typography
+                    key={p.id}
+                    component="li"
+                    variant="body2"
+                    sx={{ mb: 0.5 }}
+                  >
+                    {p.name}
+                  </Typography>
+                ))}
+              </Box>
+            )}
+          </Paper>
+        </>
       )}
 
       {error && (
