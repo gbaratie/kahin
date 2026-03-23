@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Paper, Typography } from '@mui/material';
+import { Alert, Box, Button, Paper, Typography, useTheme } from '@mui/material';
 import dynamic from 'next/dynamic';
 import {
   isWordCloudQuestion,
@@ -38,6 +38,8 @@ export function SessionHostView({
   sessionCode,
 }: SessionHostViewProps) {
   const isApi = isApiMode();
+  const theme = useTheme();
+  const qrFrameBg = theme.palette.background.paper;
   const { session, refetch } = useSession(sessionId);
   const { getQuiz } = useQcmDependencies();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -219,7 +221,7 @@ export function SessionHostView({
         >
           <Box sx={{ flex: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              Code à donner aux participants
+              Utilisez ce code pour rejoindre la session
             </Typography>
             <Typography
               variant="h4"
@@ -238,21 +240,27 @@ export function SessionHostView({
                 minWidth: { md: 220 },
               }}
             >
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                gutterBottom
-              >
-                Scanner le QR Code pour rejoindre
-              </Typography>
               {joinUrlForQr ? (
-                <Box sx={{ py: 0.5 }}>
-                  <QRCodeSVG
-                    value={joinUrlForQr}
-                    size={160}
-                    includeMargin={false}
-                  />
-                </Box>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    backgroundColor: qrFrameBg,
+                    borderColor: theme.palette.divider,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <QRCodeSVG
+                      value={joinUrlForQr}
+                      size={160}
+                      includeMargin={false}
+                      bgColor={qrFrameBg}
+                      fgColor={theme.palette.text.primary}
+                      title="Code QR pour rejoindre la session"
+                    />
+                  </Box>
+                </Paper>
               ) : (
                 <Typography variant="body2" color="text.secondary">
                   Chargement du QR Code…
