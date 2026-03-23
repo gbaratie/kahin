@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
   Box,
@@ -28,6 +28,15 @@ export default function JoinSessionForm({
   const { execute: joinSession, loading, error, clearError } = useJoinSession();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+
+  // Pré-remplir le code de session si l'URL contient `?code=...` (ex: scan QR).
+  useEffect(() => {
+    const q = router.query.code;
+    if (typeof q !== 'string') return;
+    const trimmed = q.trim();
+    if (!trimmed) return;
+    setCode(trimmed.toUpperCase());
+  }, [router.query.code]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

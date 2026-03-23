@@ -19,6 +19,7 @@
     "@mui/material": "^5.14.0",
     "html2canvas": "^1.4.1",
     "next": "^14.2.35",
+    "qrcode.react": "^4.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-wordcloud": "^1.2.7",
