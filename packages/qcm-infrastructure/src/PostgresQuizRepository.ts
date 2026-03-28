@@ -41,7 +41,7 @@ function getPool(): PgPool {
 
   sharedPool = new Pool({
     connectionString,
-    // Support for environments like Render/Heroku that require SSL
+    // Bases managées (Neon, Supabase, Render Postgres, Heroku, etc.) : TLS requis
     ssl:
       process.env.PGSSLMODE === 'disable'
         ? false
@@ -74,33 +74,45 @@ export class PostgresQuizRepository implements QuizRepository {
 
       await client.query('DELETE FROM questions WHERE quiz_id = $1', [quiz.id]);
 
-      for (const question of quiz.questions) {
+      for (let questionIndex = 0; questionIndex < quiz.questions.length; questionIndex++) {
+        const question = quiz.questions[questionIndex];
         const timerSeconds = question.timerSeconds ?? 10;
         const questionType = parseQuestionType(question.type);
         await client.query(
           `
-          INSERT INTO questions (id, quiz_id, label, timer_seconds, question_type)
-          VALUES ($1, $2, $3, $4, $5)
+          INSERT INTO questions (id, quiz_id, label, timer_seconds, question_type, sort_order)
+          VALUES ($1, $2, $3, $4, $5, $6)
           ON CONFLICT (id) DO UPDATE SET
             label = EXCLUDED.label,
             timer_seconds = EXCLUDED.timer_seconds,
-            question_type = EXCLUDED.question_type
+            question_type = EXCLUDED.question_type,
+            sort_order = EXCLUDED.sort_order
           `,
-          [question.id, quiz.id, question.label, timerSeconds, questionType]
+          [
+            question.id,
+            quiz.id,
+            question.label,
+            timerSeconds,
+            questionType,
+            questionIndex,
+          ]
         );
 
         await client.query('DELETE FROM choices WHERE question_id = $1', [
           question.id,
         ]);
 
-        for (const choice of question.choices) {
+        for (let choiceIndex = 0; choiceIndex < question.choices.length; choiceIndex++) {
+          const choice = question.choices[choiceIndex];
           await client.query(
             `
-            INSERT INTO choices (id, question_id, label)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label
+            INSERT INTO choices (id, question_id, label, sort_order)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (id) DO UPDATE SET
+              label = EXCLUDED.label,
+              sort_order = EXCLUDED.sort_order
             `,
-            [choice.id, question.id, choice.label]
+            [choice.id, question.id, choice.label, choiceIndex]
           );
         }
 
@@ -156,7 +168,7 @@ export class PostgresQuizRepository implements QuizRepository {
         FROM questions q
         LEFT JOIN choices c ON c.question_id = q.id
         WHERE q.quiz_id = $1
-        ORDER BY q.id, c.id
+        ORDER BY q.sort_order ASC, q.id ASC, c.sort_order ASC NULLS LAST, c.id ASC
         `,
         [id]
       );
