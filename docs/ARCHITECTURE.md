@@ -8,7 +8,7 @@ Le code est organisé en **monorepo** avec des packages partagés et deux applic
 kahin/
 ├── apps/
 │   ├── front/           # Next.js — accueil, créer QCM, lancer session, rejoindre, participer
-│   └── api/             # Express — REST API (Render)
+│   └── api/             # Express — REST API (ex. Render) ; quiz prod → Postgres Neon
 └── packages/
     ├── qcm-domain/      # Entités + ports (cœur métier, aucune dépendance externe)
     ├── qcm-application/ # Cas d’usage (dépend de qcm-domain)
@@ -66,7 +66,7 @@ L’app **front** contient la **couche présentation** (context, hooks, composan
 ## 3. Déploiement : un front + un back
 
 - **Front** (Next.js) : une seule app avec toutes les pages (accueil, créer QCM, lancer session, rejoindre, participer). Déployable sur GitHub Pages.
-- **Backend** (Render) : API REST, persistance quiz en JSON ou Postgres, sessions en mémoire.
+- **Backend** (ex. **Render**) : API REST. Persistance des quiz : fichier JSON en dev, **Postgres** (typiquement **Neon**) en prod via `DATABASE_URL`. Sessions en mémoire.
 
 ---
 
@@ -86,7 +86,7 @@ kahin/
 │   │   ├── package.json
 │   │   └── next.config.js
 │   │
-│   └── api/                   # Backend (Node/Express) → Render
+│   └── api/                   # Backend (Node/Express), souvent sur Render ; BDD quiz prod → Neon
 │       ├── src/
 │       │   ├── routes/        # quiz, session
 │       │   ├── middleware/    # errorHandler, handleAsync
@@ -110,7 +110,7 @@ kahin/
 | Besoin                       | Réponse                                                                                                                                 |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Déployer le **front**        | Une seule app Next.js (export statique) déployable sur GitHub Pages, avec toutes les pages (admin + participant).                       |
-| Backend sur **Render**       | `apps/api` est une app Node déployable seule (REST).                                                                                    |
+| Backend (ex. **Render**)     | `apps/api` est une app Node déployable seule (REST). Postgres des quiz : **Neon**, configuré par `DATABASE_URL`.                        |
 | Réutiliser la logique métier | `qcm-domain` et `qcm-application` sont des packages utilisés par l’API et par le front (typage, validation, use cases en mode “local”). |
 | Éviter la duplication        | Entités, ports, cas d’usage et utilitaires (shared-utils) vivent dans des packages à la racine.                                         |
 
@@ -255,5 +255,5 @@ sequenceDiagram
 ## 6. Résumé
 
 - La structure **`apps/front/src/qcm/`** et **`apps/api/src/`** (routes, middleware, validation) respecte les **principes SOLID** et une architecture hexagonale.
-- **Un front unifié** (`apps/front`) et **une API** (`apps/api`) avec les **packages partagés** (`qcm-domain`, `qcm-application`, `qcm-infrastructure`, `shared-utils`) permettent une seule base de code, un déploiement front sur GitHub Pages et l’API sur Render.
+- **Un front unifié** (`apps/front`) et **une API** (`apps/api`) avec les **packages partagés** (`qcm-domain`, `qcm-application`, `qcm-infrastructure`, `shared-utils`) permettent une seule base de code, un déploiement front sur GitHub Pages, l’API sur un hébergeur Node (ex. **Render**) et la base quiz sur **Neon** (Postgres).
 - Les **diagrammes de séquence** ci-dessus décrivent les flux métier principaux (création QCM, lancement session, rejoindre, répondre, question suivante).

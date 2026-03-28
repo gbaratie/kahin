@@ -1,6 +1,7 @@
 # Configuration Render pour l'API Kahin (monorepo).
-# Déploiement : connecter le repo GitHub et ajouter les variables d'environnement (voir README).
-# Requis pour l'interface animateur : ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_AUTH_SECRET (UI Render, ne pas commiter).
+# Déploiement : connecter le repo GitHub et ajouter les variables d'environnement dans l'UI Render (ne pas commiter les secrets).
+# Requis animateur : ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_AUTH_SECRET.
+# Postgres prod : définir DATABASE_URL avec l'URI du projet Neon (voir docs/neon.md et apps/api/README.md).
 
 services:
   - type: web
