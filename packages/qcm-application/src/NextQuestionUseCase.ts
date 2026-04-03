@@ -30,8 +30,9 @@ export class NextQuestionUseCase {
         { length: quiz.questions.length },
         (_, i) => (i === 0 ? new Date() : null)
       );
+      const { showingCumulativeRanking: _c0, ...sessionBase } = session;
       const updatedSession = {
-        ...session,
+        ...sessionBase,
         status: 'in_progress' as const,
         currentQuestionIndex: 0,
         showingResult: false,
@@ -52,11 +53,12 @@ export class NextQuestionUseCase {
       return { finished: false };
     }
 
-    // 2) En cours, on affiche la question : clic "Voir les résultats" → passer en phase résultat
+    // 2) En cours, question affichée : clic "Voir les résultats" → résultat de la question seul
     if (session.status === 'in_progress' && session.showingResult !== true) {
       const updatedSession = {
         ...session,
         showingResult: true,
+        showingCumulativeRanking: false,
       };
       await this.sessionRepository.save(updatedSession);
       await this.realtimeTransport.publish('question_result', {
@@ -66,7 +68,25 @@ export class NextQuestionUseCase {
       return { finished: false };
     }
 
-    // 3) En cours, on affiche le résultat : clic "Continuer" → question suivante (ou terminer)
+    // 3) Résultat question affiché : clic "Continuer" → classement cumulé
+    if (
+      session.status === 'in_progress' &&
+      session.showingResult === true &&
+      session.showingCumulativeRanking === false
+    ) {
+      const updatedSession = {
+        ...session,
+        showingCumulativeRanking: true,
+      };
+      await this.sessionRepository.save(updatedSession);
+      await this.realtimeTransport.publish('cumulative_ranking_show', {
+        sessionId,
+        questionIndex: session.currentQuestionIndex,
+      });
+      return { finished: false };
+    }
+
+    // 4) Classement cumulé : clic "Continuer" → question suivante (ou terminer)
     const nextIndex = session.currentQuestionIndex + 1;
 
     if (nextIndex >= quiz.questions.length) {
@@ -75,6 +95,7 @@ export class NextQuestionUseCase {
         status: 'finished' as const,
         currentQuestionIndex: quiz.questions.length - 1,
         showingResult: true,
+        showingCumulativeRanking: true,
       };
       await this.sessionRepository.save(updatedSession);
       await this.realtimeTransport.publish('session_finished', {
@@ -90,8 +111,9 @@ export class NextQuestionUseCase {
     }
     timestamps[nextIndex] = new Date();
 
+    const { showingCumulativeRanking: _c1, ...sessionBase } = session;
     const updatedSession = {
-      ...session,
+      ...sessionBase,
       currentQuestionIndex: nextIndex,
       showingResult: false,
       questionShownAtTimestamps: timestamps,

@@ -17,6 +17,7 @@ import {
   SubmitAnswerUseCase,
   NextQuestionUseCase,
   GetSessionUseCase,
+  AdvanceIfTimeUpUseCase,
 } from '@kahin/qcm-application';
 import type { Quiz, Session } from '@kahin/qcm-domain';
 import {
@@ -27,6 +28,7 @@ import {
   apiNextQuestion,
   apiJoinSession,
   apiSubmitAnswer,
+  apiAdvanceIfTimeUp,
   isApiMode,
 } from './apiClient';
 
@@ -54,6 +56,11 @@ const nextQuestionUseCase = new NextQuestionUseCase(
   sessionRepo,
   realtimeTransport
 );
+const advanceIfTimeUpUseCase = new AdvanceIfTimeUpUseCase(
+  quizRepo,
+  sessionRepo,
+  realtimeTransport
+);
 const getSessionUseCase = new GetSessionUseCase(sessionRepo);
 
 export type QcmDependencies = {
@@ -63,6 +70,9 @@ export type QcmDependencies = {
   submitAnswer: { execute(input: SubmitAnswerInput): Promise<void> };
   nextQuestion: {
     execute(sessionId: string): Promise<{ finished: boolean }>;
+  };
+  advanceIfTimeUp: {
+    execute(sessionId: string): Promise<{ advanced: boolean }>;
   };
   getSession: { execute(sessionId: string): Promise<Session | null> };
   getQuiz: { execute(quizId: string): Promise<Quiz | null> };
@@ -77,6 +87,7 @@ const defaultDeps: QcmDependencies = (() => {
     joinSession: useApi ? apiJoinSession : joinSessionUseCase,
     submitAnswer: useApi ? apiSubmitAnswer : submitAnswerUseCase,
     nextQuestion: useApi ? apiNextQuestion : nextQuestionUseCase,
+    advanceIfTimeUp: useApi ? apiAdvanceIfTimeUp : advanceIfTimeUpUseCase,
     getSession: useApi ? apiGetSession : getSessionUseCase,
     getQuiz: useApi
       ? apiGetQuiz

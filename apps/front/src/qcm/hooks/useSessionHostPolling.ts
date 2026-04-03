@@ -1,28 +1,24 @@
 import { useEffect } from 'react';
-import {
-  PARTICIPANTS_POLL_INTERVAL_MS,
-  WORD_CLOUD_POLL_INTERVAL_MS,
-} from '../sessionHostConstants';
+import { PARTICIPANTS_POLL_INTERVAL_MS } from '../sessionHostConstants';
 
 type Params = {
   sessionId: string;
   isWaiting: boolean;
   refetch: () => void;
   lastAnswer: unknown;
-  isDisplayedQuestionWordCloud: boolean;
-  isApi: boolean;
+  /** Question affichée, réponses ouvertes (QCM ou nuage de mots). */
+  showLiveQuestion: boolean;
 };
 
 /**
- * Rafraîchissements périodiques de la session (participants, nuage de mots, mode local).
+ * Rafraîchissements périodiques de la session (participants, réponses pendant une question, mode local).
  */
 export function useSessionHostPolling({
   sessionId,
   isWaiting,
   refetch,
   lastAnswer,
-  isDisplayedQuestionWordCloud,
-  isApi,
+  showLiveQuestion,
 }: Params): void {
   useEffect(() => {
     if (!sessionId || !isWaiting) return;
@@ -33,14 +29,18 @@ export function useSessionHostPolling({
     return () => clearInterval(interval);
   }, [sessionId, isWaiting, refetch]);
 
+  /** Réponses des participants (compteur animateur) + API sans événement temps réel. */
   useEffect(() => {
-    if (!sessionId || !lastAnswer || !isDisplayedQuestionWordCloud) return;
-    refetch();
-  }, [sessionId, lastAnswer, isDisplayedQuestionWordCloud, refetch]);
+    if (!sessionId || !showLiveQuestion) return;
+    const interval = setInterval(
+      () => refetch(),
+      PARTICIPANTS_POLL_INTERVAL_MS
+    );
+    return () => clearInterval(interval);
+  }, [sessionId, showLiveQuestion, refetch]);
 
   useEffect(() => {
-    if (!isApi || !sessionId || !isDisplayedQuestionWordCloud) return;
-    const interval = setInterval(() => refetch(), WORD_CLOUD_POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [isApi, sessionId, isDisplayedQuestionWordCloud, refetch]);
+    if (!sessionId || !lastAnswer || !showLiveQuestion) return;
+    refetch();
+  }, [sessionId, lastAnswer, showLiveQuestion, refetch]);
 }

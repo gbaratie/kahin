@@ -17,11 +17,12 @@ kahin/
 ├── packages/
 │   ├── qcm-domain/      # Entités + ports (partagé)
 │   ├── qcm-application/ # Cas d’usage (partagé)
-│   ├── qcm-infrastructure/ # Repos in-memory + MockRealtimeTransport
+│   ├── qcm-infrastructure/ # Adapters : PostgresQuizRepository, JsonFileQuizRepository, InMemoryQuizRepository, InMemorySessionRepository, MockRealtimeTransport
 │   └── shared-utils/    # Utilitaires partagés (getErrorMessage, toError)
 ├── docs/
 │   ├── ARCHITECTURE.md  # Principes SOLID, déploiement et diagrammes de séquence
-│   └── neon.md          # Postgres managé (Neon) : schéma, URI, Render
+│   ├── neon.md          # Postgres managé (Neon) : schéma, URI, Render
+│   └── render-config.md # Détails de configuration Render (optionnel)
 ├── package.json         # Workspaces npm
 └── tsconfig.base.json
 ```
@@ -107,8 +108,9 @@ Sur **Render**, ajouter manuellement ces trois variables dans l’environnement 
 
 ## Documentation
 
-- [Architecture et SOLID](docs/ARCHITECTURE.md) : structure des packages, principes SOLID, déploiement, et **diagrammes de séquence** des flux métier (créer QCM, lancer session, rejoindre, répondre, question suivante).
+- [Architecture et SOLID](docs/ARCHITECTURE.md) : structure des packages, principes SOLID, déploiement, et **diagrammes de séquence** des flux métier (créer QCM, lancer session, rejoindre, répondre, question suivante, résultat par question).
 - [Postgres sur Neon](docs/neon.md) : schéma SQL, URI de connexion, variables sur Render, import depuis JSON.
+- [Configuration Render](docs/render-config.md) : complément pratique pour l’API hébergée sur Render.
 
 ## Licence
 

@@ -240,7 +240,16 @@ export default function QcmForm({
     );
 
   return (
-    <Box sx={{ py: 4, px: 2, maxWidth: { xs: 640, md: 960 }, mx: 'auto' }}>
+    <Box
+      sx={{
+        py: 4,
+        px: { xs: 1.5, sm: 2 },
+        maxWidth: { xs: '100%', sm: 640, md: 960 },
+        mx: 'auto',
+        width: '100%',
+        boxSizing: 'border-box',
+      }}
+    >
       {pageTitle && (
         <Typography variant="h4" gutterBottom>
           {pageTitle}
@@ -260,18 +269,51 @@ export default function QcmForm({
             ? DEFAULT_WORD_CLOUD_TIMER
             : DEFAULT_QCM_TIMER;
           return (
-            <Paper key={qIndex} sx={{ p: 2, mb: 2 }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ mb: 1 }}
-              >
-                <Typography variant="subtitle2">
-                  Question {qIndex + 1}
-                </Typography>
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <FormControl size="small" sx={{ minWidth: 160 }}>
+            <Paper
+              key={qIndex}
+              sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, overflow: 'hidden' }}
+            >
+              <Stack spacing={1.25} sx={{ mb: 1 }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ minWidth: 0 }}
+                >
+                  <Typography variant="subtitle2" sx={{ minWidth: 0, pr: 1 }}>
+                    Question {qIndex + 1}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => removeQuestion(qIndex)}
+                    disabled={questions.length <= 1}
+                    aria-label="Supprimer la question"
+                    sx={{
+                      flexShrink: 0,
+                      color: 'text.secondary',
+                      opacity: 0.7,
+                      '&:hover': { opacity: 1, color: 'text.primary' },
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={0.5}
+                  flexWrap="wrap"
+                  useFlexGap
+                  sx={{ minWidth: 0 }}
+                >
+                  <FormControl
+                    size="small"
+                    sx={{
+                      minWidth: { xs: 140, sm: 160 },
+                      flex: { xs: '1 1 140px', sm: '0 0 auto' },
+                      maxWidth: '100%',
+                    }}
+                  >
                     <InputLabel id={`question-type-${qIndex}`}>Type</InputLabel>
                     <Select
                       labelId={`question-type-${qIndex}`}
@@ -290,6 +332,7 @@ export default function QcmForm({
                       direction="row"
                       alignItems="center"
                       sx={{
+                        flexShrink: 0,
                         border: 1,
                         borderColor: 'divider',
                         borderRadius: 1,
@@ -375,19 +418,6 @@ export default function QcmForm({
                       </Stack>
                     </Stack>
                   </Tooltip>
-                  <IconButton
-                    size="small"
-                    onClick={() => removeQuestion(qIndex)}
-                    disabled={questions.length <= 1}
-                    aria-label="Supprimer la question"
-                    sx={{
-                      color: 'text.secondary',
-                      opacity: 0.7,
-                      '&:hover': { opacity: 1, color: 'text.primary' },
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
                 </Stack>
               </Stack>
               <TextField
@@ -402,48 +432,61 @@ export default function QcmForm({
                   <Stack
                     key={cIndex}
                     direction="row"
-                    alignItems="center"
-                    spacing={1}
-                    sx={{ mb: 1 }}
+                    alignItems="flex-start"
+                    spacing={0.75}
+                    sx={{ mb: 1, minWidth: 0 }}
                   >
                     <TextField
                       size="small"
-                      fullWidth
                       label={`Choix ${cIndex + 1}`}
                       value={choice}
                       onChange={(e) =>
                         updateChoice(qIndex, cIndex, e.target.value)
                       }
+                      sx={{
+                        flex: '1 1 0%',
+                        minWidth: 0,
+                        '& .MuiOutlinedInput-root': { alignItems: 'center' },
+                      }}
                     />
-                    <Tooltip title="Bonne réponse">
-                      <Checkbox
-                        size="small"
-                        icon={<CheckBoxOutlineBlankIcon />}
-                        checkedIcon={<CheckBoxIcon color="success" />}
-                        checked={q.correctChoiceIndex === cIndex}
-                        onChange={() =>
-                          setCorrectChoiceIndex(
-                            qIndex,
-                            q.correctChoiceIndex === cIndex ? undefined : cIndex
-                          )
-                        }
-                        sx={{
-                          color: 'action.disabled',
-                          '&.Mui-checked': { color: 'success.main' },
-                          p: 0.5,
-                          borderRadius: 0,
-                          '& .MuiSvgIcon-root': { borderRadius: 0 },
-                        }}
-                      />
-                    </Tooltip>
-                    <IconButton
-                      size="small"
-                      onClick={() => removeChoice(qIndex, cIndex)}
-                      disabled={q.choices.length <= 2}
-                      aria-label="Supprimer le choix"
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      sx={{ flexShrink: 0, pt: 0.5 }}
                     >
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
+                      <Tooltip title="Bonne réponse">
+                        <Checkbox
+                          size="small"
+                          icon={<CheckBoxOutlineBlankIcon />}
+                          checkedIcon={<CheckBoxIcon color="success" />}
+                          checked={q.correctChoiceIndex === cIndex}
+                          onChange={() =>
+                            setCorrectChoiceIndex(
+                              qIndex,
+                              q.correctChoiceIndex === cIndex
+                                ? undefined
+                                : cIndex
+                            )
+                          }
+                          sx={{
+                            color: 'action.disabled',
+                            '&.Mui-checked': { color: 'success.main' },
+                            p: 0.5,
+                            borderRadius: 0,
+                            '& .MuiSvgIcon-root': { borderRadius: 0 },
+                          }}
+                        />
+                      </Tooltip>
+                      <IconButton
+                        size="small"
+                        onClick={() => removeChoice(qIndex, cIndex)}
+                        disabled={q.choices.length <= 2}
+                        aria-label="Supprimer le choix"
+                        sx={{ flexShrink: 0 }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
                   </Stack>
                 ))}
               {!isWordCloud && (

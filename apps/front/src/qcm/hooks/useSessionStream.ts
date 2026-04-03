@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Question } from '@kahin/qcm-domain';
+import type { Question, Session } from '@kahin/qcm-domain';
 import { useQcmDependencies } from '../QcmDependenciesContext';
 import {
   isApiMode,
@@ -33,6 +33,7 @@ export function useSessionStream(sessionId: string | null) {
     null
   );
   const [sessionFinished, setSessionFinished] = useState(false);
+  const [sessionSnapshot, setSessionSnapshot] = useState<Session | null>(null);
 
   // Mode API : polling session + quiz pour currentQuestion et sessionFinished
   useEffect(() => {
@@ -41,6 +42,7 @@ export function useSessionStream(sessionId: string | null) {
     const poll = async () => {
       const session = await apiGetSession.execute(sessionId);
       if (!session) return;
+      setSessionSnapshot(session);
       if (session.status === 'finished') {
         setSessionFinished(true);
         return;
@@ -115,14 +117,23 @@ export function useSessionStream(sessionId: string | null) {
       }
     );
 
+    const unsubCumulative = realtimeTransport.subscribe(
+      'cumulative_ranking_show',
+      (payload: unknown) => {
+        const p = payload as { sessionId: string };
+        if (p.sessionId === sessionId) setCurrentQuestion(null);
+      }
+    );
+
     return () => {
       unsubQuestion();
       unsubAnswer();
       unsubFinished();
       unsubResult();
+      unsubCumulative();
       realtimeTransport.leaveChannel?.(sessionId);
     };
   }, [sessionId, realtimeTransport]);
 
-  return { currentQuestion, lastAnswer, sessionFinished };
+  return { currentQuestion, lastAnswer, sessionFinished, sessionSnapshot };
 }
