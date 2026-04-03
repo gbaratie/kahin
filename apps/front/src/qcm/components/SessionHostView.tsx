@@ -1,5 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Paper, Typography, useTheme } from '@mui/material';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  LinearProgress,
+  Paper,
+  Typography,
+  useTheme,
+} from '@mui/material';
 import dynamic from 'next/dynamic';
 import {
   isWordCloudQuestion,
@@ -23,6 +31,8 @@ import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
 import { withBasePath } from '@/config/site';
 
+const HOST_TIMER_TICK_MS = 100;
+
 const QRCodeSVG = dynamic(
   () =>
     import('qrcode.react').then((m) => {
@@ -42,7 +52,7 @@ export function SessionHostView({
   const theme = useTheme();
   const qrFrameBg = theme.palette.background.paper;
   const { session, refetch } = useSession(sessionId);
-  const { getQuiz } = useQcmDependencies();
+  const { getQuiz, advanceIfTimeUp } = useQcmDependencies();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [joinUrlForQr, setJoinUrlForQr] = useState<string | null>(null);
 
@@ -101,16 +111,103 @@ export function SessionHostView({
   const isDisplayedQuestionWordCloud =
     isWordCloudQuestion(displayedQuestionRaw);
 
+  const showLiveQuestion =
+    isInProgress &&
+    !showingResult &&
+    Boolean(displayedQuestionRaw && session);
+
   useSessionHostPolling({
     sessionId,
     isWaiting,
     refetch,
     lastAnswer,
-    isDisplayedQuestionWordCloud,
-    isApi,
+    showLiveQuestion,
   });
 
   const displayedQuestion = displayedQuestionRaw;
+
+  const questionShownAtMs = useMemo(() => {
+    if (!session || session.currentQuestionIndex < 0) return null;
+    const raw =
+      session.questionShownAtTimestamps?.[session.currentQuestionIndex];
+    if (raw == null) return null;
+    if (raw instanceof Date) return raw.getTime();
+    if (typeof raw === 'string') {
+      const t = new Date(raw).getTime();
+      return Number.isNaN(t) ? null : t;
+    }
+    return null;
+  }, [session]);
+
+  const respondentsCount = useMemo(() => {
+    if (!session || !displayedQuestion?.id) return 0;
+    const qid = displayedQuestion.id;
+    const ids = new Set<string>();
+    for (const a of session.answers) {
+      if (a.questionId !== qid) continue;
+      if (isDisplayedQuestionWordCloud) {
+        const w = (a as Answer).words;
+        if (Array.isArray(w) && w.length > 0) ids.add(a.participantId);
+      } else if (typeof a.choiceId === 'string' && a.choiceId) {
+        ids.add(a.participantId);
+      }
+    }
+    return ids.size;
+  }, [session, displayedQuestion?.id, isDisplayedQuestionWordCloud]);
+
+  const totalConnected = session?.participants.length ?? 0;
+
+  const timerSecondsForHost =
+    displayedQuestion?.timerSeconds ??
+    (isDisplayedQuestionWordCloud ? 180 : 10);
+
+  const [hostRemainingSeconds, setHostRemainingSeconds] = useState<
+    number | null
+  >(null);
+  const hostTimerFiredRef = useRef(false);
+
+  useEffect(() => {
+    hostTimerFiredRef.current = false;
+  }, [session?.currentQuestionIndex, displayedQuestion?.id]);
+
+  useEffect(() => {
+    if (!showLiveQuestion || !sessionId) {
+      setHostRemainingSeconds(null);
+      return;
+    }
+    if (questionShownAtMs == null) {
+      setHostRemainingSeconds(null);
+      return;
+    }
+    const tick = () => {
+      const elapsed = (Date.now() - questionShownAtMs) / 1000;
+      const remaining = Math.max(0, timerSecondsForHost - elapsed);
+      setHostRemainingSeconds(remaining);
+      if (remaining <= 0 && !hostTimerFiredRef.current) {
+        hostTimerFiredRef.current = true;
+        void advanceIfTimeUp.execute(sessionId).then(() => refetch());
+      }
+    };
+    tick();
+    const id = setInterval(tick, HOST_TIMER_TICK_MS);
+    return () => clearInterval(id);
+  }, [
+    showLiveQuestion,
+    sessionId,
+    questionShownAtMs,
+    timerSecondsForHost,
+    advanceIfTimeUp,
+    refetch,
+  ]);
+
+  const hostTimerDisplaySeconds =
+    questionShownAtMs == null
+      ? null
+      : hostRemainingSeconds ??
+        Math.max(
+          0,
+          timerSecondsForHost - (Date.now() - questionShownAtMs) / 1000
+        );
 
   const isFinished = isApi
     ? session?.status === 'finished' || finished
@@ -324,6 +421,46 @@ export function SessionHostView({
         <Alert severity="error" sx={{ mb: 2 }}>
           {error.message}
         </Alert>
+      )}
+
+      {showLiveQuestion && (
+        <Paper sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            Participants
+          </Typography>
+          <Typography variant="body1" sx={{ fontWeight: 600, mb: 2 }}>
+            Réponses : {respondentsCount} / {totalConnected}
+          </Typography>
+          {questionShownAtMs != null && hostTimerDisplaySeconds != null ? (
+            <>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Temps restant
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={
+                  timerSecondsForHost > 0
+                    ? (hostTimerDisplaySeconds / timerSecondsForHost) * 100
+                    : 0
+                }
+                color="primary"
+                sx={{ height: 8, borderRadius: 1 }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5, display: 'block' }}
+              >
+                {Math.ceil(hostTimerDisplaySeconds)} s restante
+                {Math.ceil(hostTimerDisplaySeconds) !== 1 ? 's' : ''}
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Temps restant : indisponible (horodatage non chargé).
+            </Typography>
+          )}
+        </Paper>
       )}
 
       {showRanking && (
