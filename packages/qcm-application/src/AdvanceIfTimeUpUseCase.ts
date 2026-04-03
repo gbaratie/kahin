@@ -49,6 +49,7 @@ export class AdvanceIfTimeUpUseCase {
     const updatedSession = {
       ...session,
       showingResult: true,
+      showingCumulativeRanking: false,
     };
     await this.sessionRepository.save(updatedSession);
 

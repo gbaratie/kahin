@@ -17,12 +17,15 @@ type SessionHostDisplayedQuestionProps = {
   displayedQuestion: Question;
   isWordCloud: boolean;
   wordCloudWords: WordItem[];
+  /** Titre de la carte (défaut : question en direct). */
+  cardTitle?: string;
 };
 
 export function SessionHostDisplayedQuestion({
   displayedQuestion,
   isWordCloud,
   wordCloudWords,
+  cardTitle = 'Question affichée',
 }: SessionHostDisplayedQuestionProps) {
   const theme = useTheme();
   const wordCloudRef = useRef<HTMLDivElement>(null);
@@ -117,7 +120,7 @@ export function SessionHostDisplayedQuestion({
   return (
     <Paper sx={{ p: 2, mb: 2 }}>
       <Typography variant="subtitle2" color="text.secondary">
-        Question affichée
+        {cardTitle}
       </Typography>
       <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
         {displayedQuestion.label}

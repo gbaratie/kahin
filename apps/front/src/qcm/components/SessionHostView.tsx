@@ -20,6 +20,7 @@ import { apiDownloadSessionResultsCsv, isApiMode } from '../apiClient';
 import { useSessionHostPolling } from '../hooks/useSessionHostPolling';
 import { SessionHostRankingChart } from './SessionHostRankingChart';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
+import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
 import { withBasePath } from '@/config/site';
 
 const QRCodeSVG = dynamic(
@@ -70,18 +71,33 @@ export function SessionHostView({
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
   const isInProgress = session?.status === 'in_progress';
+  const showPerQuestionFeedback = Boolean(
+    isInProgress &&
+      session?.showingResult &&
+      session.showingCumulativeRanking === false
+  );
 
-  const displayedQuestionRaw: Question | null =
-    isInProgress && !showingResult
-      ? isApi
-        ? session &&
+  const displayedQuestionRaw: Question | null = (() => {
+    if (!isInProgress) return null;
+    if (showPerQuestionFeedback && session && quiz) {
+      const idx = session.currentQuestionIndex;
+      if (idx >= 0 && idx < quiz.questions.length)
+        return quiz.questions[idx];
+      return null;
+    }
+    if (!showingResult) {
+      if (isApi) {
+        return session &&
           quiz &&
           session.currentQuestionIndex >= 0 &&
           session.currentQuestionIndex < quiz.questions.length
           ? quiz.questions[session.currentQuestionIndex]
-          : null
-        : (currentQuestion?.question ?? null)
-      : null;
+          : null;
+      }
+      return currentQuestion?.question ?? null;
+    }
+    return null;
+  })();
   const isDisplayedQuestionWordCloud =
     isWordCloudQuestion(displayedQuestionRaw);
 
@@ -136,10 +152,15 @@ export function SessionHostView({
     }
   };
 
+  const showCumulativeRanking =
+    session &&
+    (isFinished ||
+      (showingResult && session.showingCumulativeRanking !== false));
+
   const showRanking =
     session &&
     quiz &&
-    (showingResult || isFinished) &&
+    showCumulativeRanking &&
     session.currentQuestionIndex >= 0;
   const rankingUpTo = useMemo(() => {
     if (!session || !quiz) return 0;
@@ -312,13 +333,34 @@ export function SessionHostView({
         />
       )}
 
-      {displayedQuestion && (
+      {displayedQuestion && !showPerQuestionFeedback && (
         <SessionHostDisplayedQuestion
           displayedQuestion={displayedQuestion}
           isWordCloud={isDisplayedQuestionWordCloud}
           wordCloudWords={wordCloudWords}
         />
       )}
+
+      {displayedQuestion &&
+        showPerQuestionFeedback &&
+        isDisplayedQuestionWordCloud && (
+          <SessionHostDisplayedQuestion
+            displayedQuestion={displayedQuestion}
+            isWordCloud
+            wordCloudWords={wordCloudWords}
+            cardTitle="Résultat de la question"
+          />
+        )}
+
+      {displayedQuestion &&
+        showPerQuestionFeedback &&
+        !isDisplayedQuestionWordCloud &&
+        session && (
+          <SessionHostQuestionFeedback
+            session={session}
+            question={displayedQuestion}
+          />
+        )}
 
       {!isFinished ? (
         <Button

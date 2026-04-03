@@ -20,6 +20,10 @@ export {
 } from './ranking';
 export type { RankEntry } from './ranking';
 export {
+  computeChoiceCounts,
+} from './choiceCounts';
+export type { ChoiceCountEntry } from './choiceCounts';
+export {
   buildResultsCsvFilename,
   buildSessionResultsCsv,
   escapeCsvField,

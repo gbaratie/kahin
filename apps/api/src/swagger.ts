@@ -159,7 +159,10 @@ export const openApiSpec = {
           },
         ],
         responses: {
-          '200': { description: 'Détails de la session' },
+          '200': {
+            description:
+              'Détails de la session (JSON incluant status, currentQuestionIndex, showingResult, showingCumulativeRanking, participants, answers, etc.)',
+          },
           '404': { description: 'Session non trouvée' },
           '500': { description: 'Erreur serveur' },
         },

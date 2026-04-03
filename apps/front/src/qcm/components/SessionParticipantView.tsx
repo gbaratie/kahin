@@ -26,6 +26,8 @@ import {
   apiAdvanceIfTimeUp,
   apiGetSessionQuizForParticipant,
 } from '../apiClient';
+import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
+import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
 
 const SESSION_POLL_WHEN_WAITING_MS = 1500;
 const TOP_RANKING_LIMIT = 10;
@@ -45,8 +47,15 @@ export function SessionParticipantView({
   sessionId,
   participantId,
 }: SessionParticipantViewProps) {
-  const { currentQuestion, sessionFinished } = useSessionStream(sessionId);
+  const { currentQuestion, sessionFinished, sessionSnapshot } =
+    useSessionStream(sessionId);
   const { session, refetch } = useSession(sessionId);
+  const effectiveSession = isApiMode() ? sessionSnapshot ?? session : session;
+
+  const showQuestionFeedbackOnly =
+    effectiveSession?.status === 'in_progress' &&
+    Boolean(effectiveSession.showingResult) &&
+    effectiveSession.showingCumulativeRanking === false;
   const { getQuiz } = useQcmDependencies();
   const { execute: submitAnswer, loading, error } = useSubmitAnswer();
   const [selectedChoiceId, setSelectedChoiceId] = React.useState<string | null>(
@@ -71,24 +80,25 @@ export function SessionParticipantView({
 
   // Charger le quiz dès qu'il n'y a pas de question affichée (pour afficher la page scores/classement)
   useEffect(() => {
-    if (!session?.quizId || currentQuestion) return;
+    const sid = isApiMode() ? sessionSnapshot?.quizId ?? session?.quizId : session?.quizId;
+    if (!sid || currentQuestion) return;
     if (isApiMode()) {
       apiGetSessionQuizForParticipant.execute(sessionId).then(setQuiz);
     } else {
-      getQuiz.execute(session.quizId).then(setQuiz);
+      getQuiz.execute(sid).then(setQuiz);
     }
-  }, [session?.quizId, currentQuestion, getQuiz, sessionId]);
+  }, [session?.quizId, sessionSnapshot?.quizId, currentQuestion, getQuiz, sessionId]);
 
   const rankingUpTo = useMemo(() => {
-    if (!session || !quiz) return 0;
-    return session.currentQuestionIndex >= 0
-      ? session.currentQuestionIndex + 1
+    if (!effectiveSession || !quiz) return 0;
+    return effectiveSession.currentQuestionIndex >= 0
+      ? effectiveSession.currentQuestionIndex + 1
       : 0;
-  }, [session, quiz]);
+  }, [effectiveSession, quiz]);
   const ranking = useMemo(() => {
-    if (!session || !quiz || rankingUpTo <= 0) return [];
-    return computeRanking(session, quiz, rankingUpTo);
-  }, [session, quiz, rankingUpTo]);
+    if (!effectiveSession || !quiz || rankingUpTo <= 0) return [];
+    return computeRanking(effectiveSession, quiz, rankingUpTo);
+  }, [effectiveSession, quiz, rankingUpTo]);
   const myEntry = useMemo(
     () => ranking.find((e) => e.participantId === participantId),
     [ranking, participantId]
@@ -97,6 +107,59 @@ export function SessionParticipantView({
     ? ranking.findIndex((e) => e.participantId === participantId) + 1
     : 0;
   const top10 = ranking.slice(0, TOP_RANKING_LIMIT);
+
+  const feedbackQuestionForResults = useMemo(() => {
+    if (!quiz || !effectiveSession || !showQuestionFeedbackOnly) return null;
+    const idx = effectiveSession.currentQuestionIndex;
+    if (idx < 0 || idx >= quiz.questions.length) return null;
+    return quiz.questions[idx];
+  }, [quiz, effectiveSession, showQuestionFeedbackOnly]);
+
+  /** Résultat personnel (QCM uniquement) sur l’écran « Résultat de la question ». */
+  const myFeedbackQcmOutcome = useMemo(():
+    | 'correct'
+    | 'incorrect'
+    | 'no_answer'
+    | null => {
+    if (!effectiveSession || !feedbackQuestionForResults) return null;
+    if (isWordCloudQuestion(feedbackQuestionForResults)) return null;
+    const correctId = feedbackQuestionForResults.correctChoiceId;
+    if (!correctId) return null;
+    const mine = effectiveSession.answers.filter(
+      (a) =>
+        a.participantId === participantId &&
+        a.questionId === feedbackQuestionForResults.id &&
+        typeof a.choiceId === 'string' &&
+        a.choiceId
+    );
+    if (mine.length === 0) return 'no_answer';
+    const last = mine[mine.length - 1] as Answer & { choiceId: string };
+    return last.choiceId === correctId ? 'correct' : 'incorrect';
+  }, [effectiveSession, feedbackQuestionForResults, participantId]);
+
+  const participantFeedbackWordCloudWords = useMemo(() => {
+    if (
+      !effectiveSession ||
+      !feedbackQuestionForResults ||
+      !isWordCloudQuestion(feedbackQuestionForResults)
+    ) {
+      return [];
+    }
+    const qid = feedbackQuestionForResults.id;
+    const counts = new Map<string, number>();
+    for (const a of effectiveSession.answers) {
+      if (a.questionId !== qid) continue;
+      const words = (a as Answer).words;
+      if (!Array.isArray(words)) continue;
+      for (const w of words) {
+        if (typeof w === 'string' && w.trim())
+          counts.set(w.trim(), (counts.get(w.trim()) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([word, count]) => ({ text: word, value: count }))
+      .sort((a, b) => b.value - a.value);
+  }, [effectiveSession, feedbackQuestionForResults]);
 
   const currentQuestionData = currentQuestion?.question;
   const isWordCloud = isWordCloudQuestion(
@@ -117,15 +180,15 @@ export function SessionParticipantView({
 
   // Mots déjà soumis pour cette question (depuis la session après refetch)
   const myWordsFromSession = useMemo(() => {
-    if (!session || !currentQuestionId) return [];
-    const a = session.answers.find(
+    if (!effectiveSession || !currentQuestionId) return [];
+    const a = effectiveSession.answers.find(
       (x) =>
         x.participantId === participantId &&
         x.questionId === currentQuestionId &&
         Array.isArray((x as Answer).words)
     );
     return (a as Answer | undefined)?.words ?? [];
-  }, [session, participantId, currentQuestionId]);
+  }, [effectiveSession, participantId, currentQuestionId]);
 
   const displayedMyWords = useMemo(() => {
     const fromSession = new Set(myWordsFromSession);
@@ -218,8 +281,69 @@ export function SessionParticipantView({
     );
   }
 
-  // Pas de question affichée : on affiche directement la page scores / classement
+  // Pas de question affichée : résultat à la question puis classement cumulé
   if (!currentQuestion) {
+    if (showQuestionFeedbackOnly && effectiveSession) {
+      if (!feedbackQuestionForResults) {
+        return (
+          <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
+            <Typography color="text.secondary">
+              Chargement du résultat…
+            </Typography>
+          </Box>
+        );
+      }
+      return (
+        <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
+          {timeUpForCurrentQuestion && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Le temps est écoulé
+            </Alert>
+          )}
+          {myFeedbackQcmOutcome === 'correct' && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              <Typography variant="body1" fontWeight={600}>
+                Bonne réponse !
+              </Typography>
+            </Alert>
+          )}
+          {myFeedbackQcmOutcome === 'incorrect' && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="body1" fontWeight={600}>
+                Mauvaise réponse.
+              </Typography>
+            </Alert>
+          )}
+          {myFeedbackQcmOutcome === 'no_answer' && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body1" fontWeight={500}>
+                Vous n&apos;avez pas répondu à cette question.
+              </Typography>
+            </Alert>
+          )}
+          {isWordCloudQuestion(feedbackQuestionForResults) ? (
+            <SessionHostDisplayedQuestion
+              displayedQuestion={feedbackQuestionForResults}
+              isWordCloud
+              wordCloudWords={participantFeedbackWordCloudWords}
+              cardTitle="Résultat de la question"
+            />
+          ) : (
+            <SessionHostQuestionFeedback
+              session={effectiveSession}
+              question={feedbackQuestionForResults}
+            />
+          )}
+          <Typography
+            color="text.secondary"
+            sx={{ display: 'block', textAlign: 'center', mt: 2 }}
+          >
+            En attente du classement…
+          </Typography>
+        </Box>
+      );
+    }
+
     return (
       <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
         {timeUpForCurrentQuestion && (
