@@ -14,6 +14,46 @@ import {
   LabelList,
   Cell,
 } from 'recharts';
+import type { TooltipProps } from 'recharts';
+
+function QuestionFeedbackTooltip({
+  active,
+  payload,
+}: TooltipProps<number, string>) {
+  const theme = useTheme();
+  if (!active || !payload?.length) return null;
+  const row = payload[0];
+  const value = row.value ?? 0;
+  const barColor = row.color ?? theme.palette.primary.main;
+  const data = row.payload as {
+    fullLabel?: string;
+    name: string;
+  };
+  const fullLabel = data.fullLabel ?? data.name;
+
+  return (
+    <Box
+      sx={{
+        px: 1.5,
+        py: 1,
+        borderRadius: 1,
+        border: `1px solid ${theme.palette.divider}`,
+        bgcolor: alpha(theme.palette.background.paper, 0.98),
+        boxShadow: theme.shadows[8],
+      }}
+    >
+      <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+        {fullLabel}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ color: barColor, fontWeight: 600, mt: 0.25 }}
+      >
+        {value} réponse{value !== 1 ? 's' : ''}
+      </Typography>
+    </Box>
+  );
+}
 
 type SessionHostQuestionFeedbackProps = {
   session: Session;
@@ -36,6 +76,9 @@ export function SessionHostQuestionFeedback({
       isCorrect: r.choiceId === question.correctChoiceId,
     }));
   }, [session, question]);
+
+  const maxCount = Math.max(0, ...chartData.map((r) => r.count));
+  const xAxisMax = maxCount <= 0 ? 1 : Math.ceil(maxCount * 1.18);
 
   return (
     <Paper sx={{ p: 2, mb: 2 }}>
@@ -96,7 +139,11 @@ export function SessionHostQuestionFeedback({
             <BarChart
               layout="vertical"
               data={chartData}
-              margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+              margin={{ top: 8, right: 48, left: 8, bottom: 8 }}
+              style={{
+                backgroundColor: theme.palette.background.paper,
+                borderRadius: theme.shape.borderRadius,
+              }}
             >
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -104,6 +151,7 @@ export function SessionHostQuestionFeedback({
               />
               <XAxis
                 type="number"
+                domain={[0, xAxisMax]}
                 allowDecimals={false}
                 tick={{ fill: theme.palette.text.secondary }}
               />
@@ -117,22 +165,7 @@ export function SessionHostQuestionFeedback({
                   fontWeight: 600,
                 }}
               />
-              <Tooltip
-                formatter={(value: number) => [
-                  `${value} réponse${value !== 1 ? 's' : ''}`,
-                  'Réponses',
-                ]}
-                labelFormatter={(_, payload) => {
-                  const p = payload?.[0]?.payload as
-                    | { fullLabel?: string }
-                    | undefined;
-                  return p?.fullLabel ?? '';
-                }}
-                contentStyle={{
-                  backgroundColor: theme.palette.background.paper,
-                  border: `1px solid ${theme.palette.divider}`,
-                }}
-              />
+              <Tooltip content={<QuestionFeedbackTooltip />} cursor={false} />
               <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                 <LabelList
                   dataKey="count"

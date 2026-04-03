@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Paper, Typography, useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import {
   BarChart,
@@ -45,16 +46,28 @@ function SessionHostBarChartBody({
   theme: Theme;
   chartData: Array<{ name: string; score: number }>;
 }) {
+  const maxScore = Math.max(0, ...chartData.map((d) => d.score));
+  /** Laisse de la place à droite des barres pour les libellés (évite le débordement du meilleur score). */
+  const xAxisMax = maxScore <= 0 ? 1 : Math.ceil(maxScore * 1.18);
+
   return (
     <Box sx={{ width: '100%', height: 320 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           layout="vertical"
           data={chartData}
-          margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+          margin={{ top: 8, right: 48, left: 8, bottom: 8 }}
+          style={{
+            backgroundColor: theme.palette.background.paper,
+            borderRadius: theme.shape.borderRadius,
+          }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-          <XAxis type="number" tick={{ fill: theme.palette.text.secondary }} />
+          <XAxis
+            type="number"
+            domain={[0, xAxisMax]}
+            tick={{ fill: theme.palette.text.secondary }}
+          />
           <YAxis
             type="category"
             dataKey="name"
@@ -72,9 +85,21 @@ function SessionHostBarChartBody({
             ]}
             labelFormatter={(label) => `Participant : ${label}`}
             contentStyle={{
-              backgroundColor: theme.palette.background.paper,
+              backgroundColor: alpha(theme.palette.background.paper, 0.98),
               border: `1px solid ${theme.palette.divider}`,
+              borderRadius: theme.shape.borderRadius,
+              boxShadow: theme.shadows[8],
             }}
+            labelStyle={{
+              color: theme.palette.text.primary,
+              fontWeight: 600,
+              marginBottom: 4,
+            }}
+            itemStyle={{
+              color: theme.palette.primary.main,
+              fontWeight: 600,
+            }}
+            cursor={false}
           />
           <Bar
             dataKey="score"
