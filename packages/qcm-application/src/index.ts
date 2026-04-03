@@ -19,9 +19,7 @@ export {
   POINTS_PER_QUESTION,
 } from './ranking';
 export type { RankEntry } from './ranking';
-export {
-  computeChoiceCounts,
-} from './choiceCounts';
+export { computeChoiceCounts } from './choiceCounts';
 export type { ChoiceCountEntry } from './choiceCounts';
 export {
   buildResultsCsvFilename,

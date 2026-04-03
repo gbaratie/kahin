@@ -12,9 +12,11 @@ kahin/
 └── packages/
     ├── qcm-domain/      # Entités + ports (cœur métier, aucune dépendance externe)
     ├── qcm-application/ # Cas d’usage (dépend de qcm-domain)
-    ├── qcm-infrastructure/ # Repositories in-memory + MockRealtimeTransport (dépend de qcm-domain)
+    ├── qcm-infrastructure/ # Adapters : PostgresQuizRepository (prod API), JsonFileQuizRepository, InMemoryQuizRepository, InMemorySessionRepository, MockRealtimeTransport (dépend de qcm-domain)
     └── shared-utils/    # Utilitaires partagés (ex. getErrorMessage, toError) — utilisé par front et api
 ```
+
+Le branchement des **repositories quiz** côté API se fait dans `apps/api/src/container.ts` : en production avec `DATABASE_URL`, `PostgresQuizRepository` ; sinon persistance fichier JSON (`JsonFileQuizRepository`) ou équivalent selon la configuration. Le front en mode local peut utiliser les implémentations in-memory.
 
 L’app **front** contient la **couche présentation** (context, hooks, composants) pour l’admin (création, lancement, vue animateur) et le participant (rejoindre, répondre). Elle dépend des packages `@kahin/qcm-domain`, `@kahin/qcm-application`, `@kahin/qcm-infrastructure`, `@kahin/shared-utils`. L’architecture reste **hexagonale** (ports & adapters) au niveau des packages.
 
@@ -98,7 +100,7 @@ kahin/
 ├── packages/
 │   ├── qcm-domain/
 │   ├── qcm-application/
-│   ├── qcm-infrastructure/
+│   ├── qcm-infrastructure/    # Postgres, JSON, in-memory quiz ; session in-memory ; mock transport
 │   └── shared-utils/          # errorUtils (getErrorMessage, toError)
 │
 ├── package.json               # Workspace root (npm workspaces)
@@ -250,10 +252,42 @@ sequenceDiagram
   Front-->>Animateur: Mise a jour vue (question ou fin)
 ```
 
+### 5.6 Résultat par question puis classement cumulé
+
+Après la période de réponse (ou un clic animateur sur « question suivante »), la session peut passer par deux **sous-phases** pendant que `status` reste `in_progress` :
+
+1. **Feedback question** (`showingResult: true`, `showingCumulativeRanking: false`) : les réponses sont figées ; l’UI peut afficher la bonne réponse et la répartition des choix (animateur et participants).
+2. **Classement cumulé** (`showingCumulativeRanking: true`) : affichage du classement sur les questions déjà jouées (comportement historique si `showingCumulativeRanking` est absent alors que `showingResult` est vrai).
+
+Ces transitions sont portées par **`NextQuestionUseCase`** (passage question à question, bascule entre sous-étapes) et **`AdvanceIfTimeUpUseCase`** (fin de timer → entrée en feedback question). Le modèle est décrit sur l’entité **`Session`** (`showingResult`, `showingCumulativeRanking`).
+
+Côté présentation, le composant **`SessionHostQuestionFeedback`** (vue animateur, et réutilisé côté participant pour la cohérence d’affichage) s’appuie sur **`computeChoiceCounts`** dans `@kahin/qcm-application` pour agréger les réponses QCM par choix : la logique de comptage reste dans la couche application, la couche UI ne fait qu’afficher graphiques et libellés.
+
+```mermaid
+sequenceDiagram
+  participant Animateur
+  participant Front
+  participant API
+  participant NextQuestionUseCase
+  participant SessionRepository
+
+  Note over Front: Question en cours (showingResult false)
+  Animateur->>Front: Question suivante ou timer ecoule
+  Front->>API: POST session next ou advance-if-time-up
+  API->>NextQuestionUseCase: execute (selon route)
+  NextQuestionUseCase->>SessionRepository: save session avec showingResult true, showingCumulativeRanking false
+  API-->>Front: 200 session
+  Front-->>Animateur: Feedback question (repartition)
+  Animateur->>Front: Continuer vers classement ou question suivante
+  Front->>API: POST session next
+  API->>NextQuestionUseCase: execute
+  NextQuestionUseCase->>SessionRepository: save (classement ou question suivante)
+```
+
 ---
 
 ## 6. Résumé
 
 - La structure **`apps/front/src/qcm/`** et **`apps/api/src/`** (routes, middleware, validation) respecte les **principes SOLID** et une architecture hexagonale.
 - **Un front unifié** (`apps/front`) et **une API** (`apps/api`) avec les **packages partagés** (`qcm-domain`, `qcm-application`, `qcm-infrastructure`, `shared-utils`) permettent une seule base de code, un déploiement front sur GitHub Pages, l’API sur un hébergeur Node (ex. **Render**) et la base quiz sur **Neon** (Postgres).
-- Les **diagrammes de séquence** ci-dessus décrivent les flux métier principaux (création QCM, lancement session, rejoindre, répondre, question suivante).
+- Les **diagrammes de séquence** ci-dessus décrivent les flux métier principaux (création QCM, lancement session, rejoindre, répondre, question suivante, résultat par question / classement).

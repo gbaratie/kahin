@@ -42,7 +42,10 @@ function QuestionFeedbackTooltip({
         boxShadow: theme.shadows[8],
       }}
     >
-      <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+      <Typography
+        variant="body2"
+        sx={{ color: 'text.primary', fontWeight: 600 }}
+      >
         {fullLabel}
       </Typography>
       <Typography
@@ -68,8 +71,7 @@ export function SessionHostQuestionFeedback({
   const chartData = useMemo(() => {
     const rows = computeChoiceCounts(session, question);
     return rows.map((r) => ({
-      name:
-        r.label.length > 42 ? `${r.label.slice(0, 40)}…` : r.label,
+      name: r.label.length > 42 ? `${r.label.slice(0, 40)}…` : r.label,
       fullLabel: r.label,
       count: r.count,
       choiceId: r.choiceId,

@@ -30,6 +30,7 @@ import { SessionHostRankingChart } from './SessionHostRankingChart';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
 import { withBasePath } from '@/config/site';
+import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
 
 const HOST_TIMER_TICK_MS = 100;
 
@@ -81,18 +82,13 @@ export function SessionHostView({
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
   const isInProgress = session?.status === 'in_progress';
-  const showPerQuestionFeedback = Boolean(
-    isInProgress &&
-      session?.showingResult &&
-      session.showingCumulativeRanking === false
-  );
+  const showPerQuestionFeedback = isPerQuestionFeedbackPhase(session);
 
   const displayedQuestionRaw: Question | null = (() => {
     if (!isInProgress) return null;
     if (showPerQuestionFeedback && session && quiz) {
       const idx = session.currentQuestionIndex;
-      if (idx >= 0 && idx < quiz.questions.length)
-        return quiz.questions[idx];
+      if (idx >= 0 && idx < quiz.questions.length) return quiz.questions[idx];
       return null;
     }
     if (!showingResult) {
@@ -112,9 +108,7 @@ export function SessionHostView({
     isWordCloudQuestion(displayedQuestionRaw);
 
   const showLiveQuestion =
-    isInProgress &&
-    !showingResult &&
-    Boolean(displayedQuestionRaw && session);
+    isInProgress && !showingResult && Boolean(displayedQuestionRaw && session);
 
   useSessionHostPolling({
     sessionId,
@@ -203,11 +197,11 @@ export function SessionHostView({
   const hostTimerDisplaySeconds =
     questionShownAtMs == null
       ? null
-      : hostRemainingSeconds ??
+      : (hostRemainingSeconds ??
         Math.max(
           0,
           timerSecondsForHost - (Date.now() - questionShownAtMs) / 1000
-        );
+        ));
 
   const isFinished = isApi
     ? session?.status === 'finished' || finished
@@ -433,7 +427,11 @@ export function SessionHostView({
           </Typography>
           {questionShownAtMs != null && hostTimerDisplaySeconds != null ? (
             <>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Temps restant
               </Typography>
               <LinearProgress

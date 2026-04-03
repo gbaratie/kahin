@@ -74,7 +74,11 @@ export class PostgresQuizRepository implements QuizRepository {
 
       await client.query('DELETE FROM questions WHERE quiz_id = $1', [quiz.id]);
 
-      for (let questionIndex = 0; questionIndex < quiz.questions.length; questionIndex++) {
+      for (
+        let questionIndex = 0;
+        questionIndex < quiz.questions.length;
+        questionIndex++
+      ) {
         const question = quiz.questions[questionIndex];
         const timerSeconds = question.timerSeconds ?? 10;
         const questionType = parseQuestionType(question.type);
@@ -102,7 +106,11 @@ export class PostgresQuizRepository implements QuizRepository {
           question.id,
         ]);
 
-        for (let choiceIndex = 0; choiceIndex < question.choices.length; choiceIndex++) {
+        for (
+          let choiceIndex = 0;
+          choiceIndex < question.choices.length;
+          choiceIndex++
+        ) {
           const choice = question.choices[choiceIndex];
           await client.query(
             `

@@ -28,6 +28,7 @@ import {
 } from '../apiClient';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
+import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
 
 const SESSION_POLL_WHEN_WAITING_MS = 1500;
 const TOP_RANKING_LIMIT = 10;
@@ -50,12 +51,9 @@ export function SessionParticipantView({
   const { currentQuestion, sessionFinished, sessionSnapshot } =
     useSessionStream(sessionId);
   const { session, refetch } = useSession(sessionId);
-  const effectiveSession = isApiMode() ? sessionSnapshot ?? session : session;
+  const effectiveSession = isApiMode() ? (sessionSnapshot ?? session) : session;
 
-  const showQuestionFeedbackOnly =
-    effectiveSession?.status === 'in_progress' &&
-    Boolean(effectiveSession.showingResult) &&
-    effectiveSession.showingCumulativeRanking === false;
+  const showQuestionFeedbackOnly = isPerQuestionFeedbackPhase(effectiveSession);
   const { getQuiz } = useQcmDependencies();
   const { execute: submitAnswer, loading, error } = useSubmitAnswer();
   const [selectedChoiceId, setSelectedChoiceId] = React.useState<string | null>(
@@ -80,14 +78,22 @@ export function SessionParticipantView({
 
   // Charger le quiz dès qu'il n'y a pas de question affichée (pour afficher la page scores/classement)
   useEffect(() => {
-    const sid = isApiMode() ? sessionSnapshot?.quizId ?? session?.quizId : session?.quizId;
+    const sid = isApiMode()
+      ? (sessionSnapshot?.quizId ?? session?.quizId)
+      : session?.quizId;
     if (!sid || currentQuestion) return;
     if (isApiMode()) {
       apiGetSessionQuizForParticipant.execute(sessionId).then(setQuiz);
     } else {
       getQuiz.execute(sid).then(setQuiz);
     }
-  }, [session?.quizId, sessionSnapshot?.quizId, currentQuestion, getQuiz, sessionId]);
+  }, [
+    session?.quizId,
+    sessionSnapshot?.quizId,
+    currentQuestion,
+    getQuiz,
+    sessionId,
+  ]);
 
   const rankingUpTo = useMemo(() => {
     if (!effectiveSession || !quiz) return 0;
