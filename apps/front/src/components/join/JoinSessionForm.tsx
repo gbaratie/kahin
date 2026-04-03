@@ -45,9 +45,11 @@ export default function JoinSessionForm({
       participantName: name.trim() || 'Participant',
     });
     if (result) {
-      router.push(
-        `/session/${result.session.id}?participantId=${result.participant.id}`
-      );
+      const q = new URLSearchParams({
+        sessionId: result.session.id,
+        participantId: result.participant.id,
+      });
+      router.push(`/session/participant?${q.toString()}`);
     }
   };
 

@@ -15,9 +15,11 @@ import QcmForm, {
 } from '@/qcm/components/QcmForm';
 import { layout } from '@/config/layout';
 
+/** Page statique (export GitHub Pages) : `quizId` en query, pas en segment dynamique. */
 function QcmEditPageContent() {
   const router = useRouter();
-  const { quizId } = router.query;
+  const quizId =
+    typeof router.query.quizId === 'string' ? router.query.quizId : null;
   const { execute: updateQuiz, loading, error } = useUpdateQuiz();
   const [fetchStatus, setFetchStatus] = useState<
     'loading' | 'ready' | 'not_found' | 'error'
@@ -26,7 +28,7 @@ function QcmEditPageContent() {
   const [questions, setQuestions] = useState([{ ...initialQuestion }]);
 
   useEffect(() => {
-    if (typeof quizId !== 'string') return;
+    if (!quizId) return;
     setFetchStatus('loading');
     apiGetQuiz
       .execute(quizId)
@@ -48,10 +50,32 @@ function QcmEditPageContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (typeof quizId !== 'string') return;
+    if (!quizId) return;
     const quiz = await updateQuiz(quizId, draftToPayload(title, questions));
     if (quiz) router.push(`/qcm/launch?quizId=${quiz.id}`);
   };
+
+  if (!router.isReady) {
+    return <LoadingScreen title="Modifier le QCM" />;
+  }
+
+  if (!quizId) {
+    return (
+      <Layout>
+        <Head>
+          <title>QCM</title>
+        </Head>
+        <Box sx={{ ...layout.pagePaddingAuto }}>
+          <Alert severity="warning">
+            Lien invalide : paramètre <code>quizId</code> manquant.
+          </Alert>
+          <Button component={Link} href="/" sx={{ mt: 2 }}>
+            Retour à l&apos;accueil
+          </Button>
+        </Box>
+      </Layout>
+    );
+  }
 
   if (fetchStatus === 'loading') {
     return <LoadingScreen title="Modifier le QCM" />;

@@ -5,10 +5,14 @@ import { Box, Typography, Alert } from '@mui/material';
 import Layout from '@/components/Layout';
 import { SessionParticipantView } from '@/qcm/components/SessionParticipantView';
 
-export default function SessionPage() {
+/**
+ * Page statique (export GitHub Pages) : les IDs sont passés en query string,
+ * pas en segment d’URL dynamique — sinon le build ne produit pas de HTML par UUID.
+ */
+export default function SessionParticipantPage() {
   const router = useRouter();
   const sessionId =
-    typeof router.query.id === 'string' ? router.query.id : null;
+    typeof router.query.sessionId === 'string' ? router.query.sessionId : null;
   const participantId =
     typeof router.query.participantId === 'string'
       ? router.query.participantId

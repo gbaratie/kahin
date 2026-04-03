@@ -194,7 +194,7 @@ export default function HomePage() {
                         </Button>
                         <IconButton
                           component={Link}
-                          href={`/qcm/edit/${encodeURIComponent(q.id)}`}
+                          href={`/qcm/edit/quiz?quizId=${encodeURIComponent(q.id)}`}
                           aria-label="Modifier le QCM"
                           size="small"
                           color="primary"

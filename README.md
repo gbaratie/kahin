@@ -69,7 +69,7 @@ Sans `NEXT_PUBLIC_API_URL`, le front utilise un stockage **in-memory** local (se
 
 ## Déploiement
 
-- **Front** : build → `apps/front/out` (export statique). Déployable sur GitHub Pages, Vercel, etc. Le workflow `.github/workflows/deploy.yml` build le front et déploie `apps/front/out` vers GitHub Pages.
+- **Front** : build → `apps/front/out` (export statique). Déployable sur GitHub Pages, Vercel, etc. Le workflow `.github/workflows/deploy.yml` build le front et déploie `apps/front/out` vers GitHub Pages. Avec `output: 'export'`, les segments dynamiques (`/foo/<id>`) ne produisent pas un fichier par identifiant sur GitHub Pages. Les pages concernées utilisent des **chemins fixes + query** : participant **`/session/participant?sessionId=…&participantId=…`**, édition **`/qcm/edit/quiz?quizId=…`**, session animateur **`/qcm/session/host?sessionId=…`**.
 - **API** : build → `apps/api/dist`, puis `node dist/index.js`. Déployable sur Render (Web Service). Un fichier **`render.yaml`** à la racine définit le service (build : `npm ci && npm run build:api`, start : `npm run start -w api`). En production, définir **`DATABASE_URL`** vers un projet **Neon** (Postgres) — voir [`docs/neon.md`](docs/neon.md) et [`apps/api/README.md`](apps/api/README.md).
 
 **Base path** : si la variable de dépôt `NEXT_PUBLIC_BASE_PATH` n’est pas définie, elle est fixée par défaut à `/<nom-du-repo>` (ex. `/kahin`) pour que les liens et assets fonctionnent sous `https://<user>.github.io/<repo>/`. Variables optionnelles : `NEXT_PUBLIC_BASE_PATH`, `NEXT_PUBLIC_SITE_NAME`, `NEXT_PUBLIC_API_URL`.

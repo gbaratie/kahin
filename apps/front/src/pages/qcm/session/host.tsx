@@ -8,11 +8,16 @@ import ErrorAlert from '@/components/common/ErrorAlert';
 import { SessionHostView } from '@/qcm/components/SessionHostView';
 import { useSession } from '@/qcm/hooks/useSession';
 
+/** Page statique (export GitHub Pages) : `sessionId` en query, pas en segment dynamique. */
 function QcmSessionPageContent() {
   const router = useRouter();
   const sessionId =
-    typeof router.query.id === 'string' ? router.query.id : null;
+    typeof router.query.sessionId === 'string' ? router.query.sessionId : null;
   const { session, loading, error } = useSession(sessionId);
+
+  if (!router.isReady) {
+    return <LoadingScreen title="Session" />;
+  }
 
   if (!sessionId) {
     return (
@@ -20,7 +25,7 @@ function QcmSessionPageContent() {
         <Head>
           <title>Session</title>
         </Head>
-        <ErrorAlert message="Session introuvable." />
+        <ErrorAlert message="Paramètre sessionId manquant." />
       </Layout>
     );
   }
