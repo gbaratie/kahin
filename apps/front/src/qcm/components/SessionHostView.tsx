@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -78,6 +78,7 @@ export function SessionHostView({
   );
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
+  const autoCsvDownloadTriggeredRef = useRef(false);
 
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
@@ -207,11 +208,15 @@ export function SessionHostView({
     ? session?.status === 'finished' || finished
     : finished || sessionFinished;
 
+  useEffect(() => {
+    autoCsvDownloadTriggeredRef.current = false;
+  }, [sessionId]);
+
   const handleNextQuestion = () => {
     nextQuestion(sessionId).then(() => refetch());
   };
 
-  const handleDownloadResultsCsv = () => {
+  const handleDownloadResultsCsv = useCallback(() => {
     setCsvError(null);
     if (isApi) {
       setCsvLoading(true);
@@ -241,7 +246,18 @@ export function SessionHostView({
     } catch (e: unknown) {
       setCsvError(e instanceof Error ? e.message : String(e));
     }
-  };
+  }, [isApi, quiz, session, sessionId]);
+
+  useEffect(() => {
+    if (!isFinished) {
+      autoCsvDownloadTriggeredRef.current = false;
+      return;
+    }
+    if (!session || !quiz) return;
+    if (autoCsvDownloadTriggeredRef.current) return;
+    autoCsvDownloadTriggeredRef.current = true;
+    handleDownloadResultsCsv();
+  }, [isFinished, session, quiz, handleDownloadResultsCsv]);
 
   const showCumulativeRanking =
     session &&
