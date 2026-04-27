@@ -7,7 +7,7 @@ services:
   - type: web
     name: kahin-api
     runtime: node
-    buildCommand: npm ci && npm run build:api
+    buildCommand: npm ci --include=dev && npm run build:api
     startCommand: npm run start -w api
     envVars:
       - key: NODE_ENV
