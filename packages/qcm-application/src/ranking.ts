@@ -52,15 +52,12 @@ function timeWeightedCap(
 
 /**
  * Points pour une réponse « au plus proche » :
- * 100 % à distance 0, 0 % à distance >= scoringRange (défaut max(|attendu|, 1)),
- * puis pondération vitesse comme le QCM.
+ * 100 % à distance 0, 0 % à distance >= scoringRange (défaut max(|attendu|, 1)).
+ * Pas de pondération vitesse — seul l’écart compte.
  */
 export function pointsForClosestAnswer(
-  session: Session,
-  questionIndex: number,
   question: Question,
-  numberValue: number | undefined,
-  answeredAt: Date | string | undefined
+  numberValue: number | undefined
 ): number {
   if (typeof numberValue !== 'number' || !Number.isFinite(numberValue)) {
     return 0;
@@ -78,8 +75,7 @@ export function pointsForClosestAnswer(
   const distance = Math.abs(numberValue - question.expectedNumber);
   const distanceFactor = Math.max(0, 1 - distance / range);
   if (distanceFactor <= 0) return 0;
-  const cap = timeWeightedCap(session, questionIndex, question, answeredAt);
-  return Math.round(cap * distanceFactor);
+  return Math.round(POINTS_PER_QUESTION * distanceFactor);
 }
 
 export function computeRanking(
@@ -99,13 +95,7 @@ export function computeRanking(
       const current = scoreByParticipant.get(answer.participantId) ?? 0;
       let points = 0;
       if (isClosestQuestion(question)) {
-        points = pointsForClosestAnswer(
-          session,
-          i,
-          question,
-          answer.numberValue,
-          answer.answeredAt
-        );
+        points = pointsForClosestAnswer(question, answer.numberValue);
       } else if (question.correctChoiceId != null) {
         if (answer.choiceId === question.correctChoiceId) {
           points = timeWeightedCap(

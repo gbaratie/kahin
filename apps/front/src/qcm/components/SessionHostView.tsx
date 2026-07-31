@@ -524,7 +524,6 @@ export function SessionHostView({
           <SessionHostQuestionFeedback
             session={session}
             question={displayedQuestion}
-            questionIndex={session.currentQuestionIndex}
           />
         )}
 

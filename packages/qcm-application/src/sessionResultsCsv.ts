@@ -79,13 +79,7 @@ export function buildSessionResultsCsv(session: Session, quiz: Quiz): string {
         let pts = 0;
         if (answer) {
           if (isClosestQuestion(question)) {
-            pts = pointsForClosestAnswer(
-              session,
-              questionIndex,
-              question,
-              answer.numberValue,
-              answer.answeredAt
-            );
+            pts = pointsForClosestAnswer(question, answer.numberValue);
           } else {
             pts = pointsForQcmAnswer(
               session,

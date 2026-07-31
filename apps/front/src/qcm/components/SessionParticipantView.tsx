@@ -168,7 +168,6 @@ export function SessionParticipantView({
         a.questionId === feedbackQuestionForResults.id &&
         typeof a.numberValue === 'number'
     );
-    const questionIndex = effectiveSession.currentQuestionIndex;
     if (!mine || typeof mine.numberValue !== 'number') {
       return { kind: 'no_answer' as const };
     }
@@ -178,11 +177,8 @@ export function SessionParticipantView({
         ? Math.abs(mine.numberValue - expected)
         : null;
     const points = pointsForClosestAnswer(
-      effectiveSession,
-      questionIndex,
       feedbackQuestionForResults,
-      mine.numberValue,
-      mine.answeredAt
+      mine.numberValue
     );
     return {
       kind: 'answered' as const,
@@ -449,7 +445,6 @@ export function SessionParticipantView({
             <SessionHostQuestionFeedback
               session={effectiveSession}
               question={feedbackQuestionForResults}
-              questionIndex={effectiveSession.currentQuestionIndex}
             />
           )}
           <Typography

@@ -69,7 +69,6 @@ function QuestionFeedbackTooltip({
 type SessionHostQuestionFeedbackProps = {
   session: Session;
   question: Question;
-  questionIndex?: number;
 };
 
 function formatNumber(n: number): string {
@@ -79,7 +78,6 @@ function formatNumber(n: number): string {
 function ClosestQuestionFeedback({
   session,
   question,
-  questionIndex = 0,
 }: SessionHostQuestionFeedbackProps) {
   const theme = useTheme();
 
@@ -108,18 +106,12 @@ function ClosestQuestionFeedback({
         name: nameById.get(a.participantId) ?? 'Participant',
         value: a.numberValue,
         distance,
-        points: pointsForClosestAnswer(
-          session,
-          questionIndex,
-          question,
-          a.numberValue,
-          a.answeredAt
-        ),
+        points: pointsForClosestAnswer(question, a.numberValue),
       });
     }
     list.sort((a, b) => a.distance - b.distance || b.points - a.points);
     return list;
-  }, [session, question, questionIndex]);
+  }, [session, question]);
 
   const range =
     typeof question.scoringRange === 'number' && question.scoringRange > 0
@@ -335,15 +327,10 @@ function QcmQuestionFeedback({
 export function SessionHostQuestionFeedback({
   session,
   question,
-  questionIndex,
 }: SessionHostQuestionFeedbackProps) {
   if (isClosestQuestion(question)) {
     return (
-      <ClosestQuestionFeedback
-        session={session}
-        question={question}
-        questionIndex={questionIndex}
-      />
+      <ClosestQuestionFeedback session={session} question={question} />
     );
   }
   return <QcmQuestionFeedback session={session} question={question} />;
