@@ -7,8 +7,6 @@ import {
   Stack,
   List,
   ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   CircularProgress,
   Alert,
   IconButton,
@@ -17,9 +15,11 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Paper,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import JoinSessionForm from '@/components/join/JoinSessionForm';
@@ -122,60 +122,125 @@ export default function HomePage() {
           content="Créez et lancez des QCM interactifs, ou rejoignez une session."
         />
       </Head>
-      <Box sx={layout.pagePaddingAuto}>
-        <Typography variant="h4" gutterBottom>
+      <Box sx={{ ...layout.pagePaddingAuto, py: { xs: 2, sm: 4 } }}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
+        >
           {siteName}
         </Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
+        <Typography
+          color="text.secondary"
+          sx={{
+            mb: { xs: 2, sm: 3 },
+            display: { xs: 'none', sm: 'block' },
+          }}
+        >
           Gérez une banque de questions par thématique, composez des QCM
-          réutilisables, ou rejoignez une session avec le code de l&apos;animateur.
+          réutilisables, ou rejoignez une session avec le code de
+          l&apos;animateur.
         </Typography>
-        <Stack spacing={2}>
-          <Button
-            component={Link}
-            href="/qcm/questions"
-            variant="contained"
-            size="large"
-            fullWidth
+
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: { xs: 2, md: 3 },
+            alignItems: 'stretch',
+          }}
+        >
+          <Box
+            sx={{
+              width: { md: 220 },
+              flexShrink: 0,
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr 1fr', md: '1fr' },
+              gap: 1,
+            }}
           >
-            Banque de questions
-          </Button>
-          <Button
-            component={Link}
-            href="/qcm/create"
-            variant="outlined"
-            size="large"
-            fullWidth
-          >
-            Créer un QCM
-          </Button>
-          <Button
-            component={Link}
-            href="/qcm/classes"
-            variant="outlined"
-            size="large"
-            fullWidth
-          >
-            Classes
-          </Button>
-          <Button
-            component={Link}
-            href="/join"
-            variant="outlined"
-            size="large"
-            fullWidth
-          >
-            Rejoindre une session
-          </Button>
+            <Button
+              component={Link}
+              href="/qcm/questions"
+              variant="contained"
+              size="medium"
+              fullWidth
+              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+            >
+              Banque de questions
+            </Button>
+            <Button
+              component={Link}
+              href="/qcm/create"
+              variant="outlined"
+              size="medium"
+              fullWidth
+              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+            >
+              Créer un QCM
+            </Button>
+            <Button
+              component={Link}
+              href="/qcm/classes"
+              variant="outlined"
+              size="medium"
+              fullWidth
+              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+            >
+              Classes
+            </Button>
+            <Button
+              component={Link}
+              href="/join"
+              variant="outlined"
+              size="medium"
+              fullWidth
+              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+            >
+              Rejoindre
+            </Button>
+          </Box>
 
           {isApiMode() && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                QCM existants
-              </Typography>
+            <Paper
+              variant="outlined"
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                p: { xs: 1.5, sm: 2 },
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                spacing={1}
+                sx={{ mb: 1.5 }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
+                >
+                  QCM existants
+                </Typography>
+                <Button
+                  component={Link}
+                  href="/qcm/create"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  sx={{
+                    display: { xs: 'none', sm: 'inline-flex' },
+                    flexShrink: 0,
+                  }}
+                >
+                  Nouveau
+                </Button>
+              </Stack>
               {loading && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                  <CircularProgress size={24} />
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress size={28} />
                 </Box>
               )}
               {error && (
@@ -184,29 +249,56 @@ export default function HomePage() {
                 </Alert>
               )}
               {!loading && !error && quizzes.length === 0 && (
-                <Typography color="text.secondary" variant="body2">
-                  Aucun QCM pour le moment. Créez-en un ci-dessus.
+                <Typography
+                  color="text.secondary"
+                  variant="body2"
+                  sx={{ py: 2 }}
+                >
+                  Aucun QCM pour le moment. Créez-en un pour commencer.
                 </Typography>
               )}
               {!loading && !error && quizzes.length > 0 && (
-                <List dense disablePadding>
+                <List disablePadding>
                   {quizzes.map((q) => (
                     <ListItem
                       key={q.id}
+                      disableGutters
                       sx={{
                         px: 0,
+                        py: { xs: 1.25, sm: 1.5 },
                         borderBottom: 1,
                         borderColor: 'divider',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        '&:last-child': { borderBottom: 0 },
                       }}
                     >
-                      <ListItemText primary={q.title} />
-                      <ListItemSecondaryAction>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontWeight: 500,
+                          fontSize: { xs: '0.95rem', sm: '1.05rem' },
+                          wordBreak: 'break-word',
+                          overflowWrap: 'anywhere',
+                        }}
+                      >
+                        {q.title}
+                      </Typography>
+                      <Stack
+                        direction="row"
+                        spacing={0.25}
+                        alignItems="center"
+                        sx={{ flexShrink: 0 }}
+                      >
                         <Button
                           component={Link}
                           href={`/qcm/launch?quizId=${encodeURIComponent(q.id)}`}
                           size="small"
-                          variant="outlined"
-                          sx={{ mr: 0.5 }}
+                          variant="contained"
+                          sx={{ px: { xs: 1, sm: 1.5 } }}
                         >
                           Lancer
                         </Button>
@@ -215,28 +307,25 @@ export default function HomePage() {
                           href={`/qcm/edit/quiz?quizId=${encodeURIComponent(q.id)}`}
                           aria-label="Modifier le QCM"
                           size="small"
-                          color="primary"
-                          sx={{ mr: 0.5 }}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
                           aria-label="Supprimer le QCM"
                           size="small"
-                          color="primary"
                           disabled={deletingId === q.id}
                           onClick={() => handleDeleteClick(q)}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
-                      </ListItemSecondaryAction>
+                      </Stack>
                     </ListItem>
                   ))}
                 </List>
               )}
-            </Box>
+            </Paper>
           )}
-        </Stack>
+        </Box>
       </Box>
 
       <Dialog
