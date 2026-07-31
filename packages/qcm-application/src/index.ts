@@ -2,7 +2,10 @@ export { GetQuizUseCase } from './GetQuizUseCase';
 export { ListQuizzesUseCase } from './ListQuizzesUseCase';
 export { DeleteQuizUseCase } from './DeleteQuizUseCase';
 export { CreateQuizUseCase } from './CreateQuizUseCase';
-export type { CreateQuizInput } from './CreateQuizUseCase';
+export type {
+  CreateQuizInput,
+  QuizQuestionInput,
+} from './CreateQuizUseCase';
 export { UpdateQuizUseCase } from './UpdateQuizUseCase';
 export type { UpdateQuizInput } from './UpdateQuizUseCase';
 export { LaunchSessionUseCase } from './LaunchSessionUseCase';
@@ -41,3 +44,14 @@ export {
   buildSessionResultsCsv,
   escapeCsvField,
 } from './sessionResultsCsv';
+export { CreateThemeUseCase } from './CreateThemeUseCase';
+export type { CreateThemeInput } from './CreateThemeUseCase';
+export { UpdateThemeUseCase } from './UpdateThemeUseCase';
+export type { UpdateThemeInput } from './UpdateThemeUseCase';
+export { DeleteThemeUseCase } from './DeleteThemeUseCase';
+export { ListThemesUseCase } from './ListThemesUseCase';
+export { SaveQuestionUseCase } from './SaveQuestionUseCase';
+export type { SaveQuestionInput } from './SaveQuestionUseCase';
+export { DeleteQuestionUseCase } from './DeleteQuestionUseCase';
+export { ListQuestionsUseCase } from './ListQuestionsUseCase';
+export { GetQuestionUseCase } from './GetQuestionUseCase';

@@ -11,6 +11,8 @@ export type Question = {
   correctChoiceId?: string;
   /** Durée en secondes pour répondre (défaut 10 pour QCM, 180 pour word_cloud). */
   timerSeconds?: number;
+  /** Thématique optionnelle dans la banque de questions. */
+  themeId?: string;
 };
 
 /**

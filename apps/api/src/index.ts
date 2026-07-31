@@ -8,6 +8,8 @@ import { authRoutes } from './routes/auth.js';
 import { quizRoutes } from './routes/quiz.js';
 import { sessionRoutes } from './routes/session.js';
 import { classRoutes } from './routes/classes.js';
+import { themeRoutes } from './routes/theme.js';
+import { questionRoutes } from './routes/question.js';
 import {
   QUIZ_JSON_STORAGE_PATH,
   CLASSES_JSON_STORAGE_PATH,
@@ -27,6 +29,8 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/quiz', quizRoutes);
+app.use('/api/themes', themeRoutes);
+app.use('/api/questions', questionRoutes);
 app.use('/api/session', sessionRoutes);
 app.use('/api/classes', classRoutes);
 app.use(errorHandler);

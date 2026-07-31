@@ -25,7 +25,7 @@ function QcmEditPageContent() {
     'loading' | 'ready' | 'not_found' | 'error'
   >('loading');
   const [title, setTitle] = useState('');
-  const [questions, setQuestions] = useState([{ ...initialQuestion }]);
+  const [questions, setQuestions] = useState([initialQuestion()]);
 
   useEffect(() => {
     if (!quizId) return;
@@ -41,7 +41,7 @@ function QcmEditPageContent() {
         setQuestions(
           quiz.questions.length > 0
             ? quizToDraft(quiz)
-            : [{ ...initialQuestion }]
+            : [initialQuestion()]
         );
         setFetchStatus('ready');
       })

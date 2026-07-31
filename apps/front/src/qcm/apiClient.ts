@@ -7,7 +7,7 @@ import type {
   JoinSessionInput,
   JoinSessionResult,
 } from '@kahin/qcm-application';
-import type { Quiz, Session } from '@kahin/qcm-domain';
+import type { Quiz, Session, Question } from '@kahin/qcm-domain';
 
 export const getApiUrl = () =>
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
@@ -81,11 +81,13 @@ function quizInputToApiBody(input: QuizWriteInput) {
   return {
     title: input.title,
     questions: input.questions.map((q) => ({
+      id: (q as { id?: string }).id,
       label: q.label,
       type: q.type,
       choices: (q.choices ?? []).map((c) => ({ label: c.label })),
       correctChoiceIndex: q.correctChoiceIndex,
       timerSeconds: q.timerSeconds,
+      themeId: (q as { themeId?: string | null }).themeId,
     })),
   };
 }
@@ -458,3 +460,131 @@ export const apiDownloadSessionResultsCsv = {
 export function isApiMode(): boolean {
   return Boolean(getApiUrl());
 }
+
+export type ThemeDto = { id: string; name: string; sortOrder: number };
+
+export type QuestionSummaryDto = {
+  id: string;
+  label: string;
+  type?: 'qcm' | 'word_cloud';
+  themeId?: string;
+  timerSeconds?: number;
+  choiceCount: number;
+};
+
+export const apiListThemes = {
+  async execute(): Promise<ThemeDto[]> {
+    const { data, error } = await apiFetch<ThemeDto[]>('/api/themes', {
+      requireAdminAuth: true,
+    });
+    if (error) throw new Error(error);
+    return Array.isArray(data) ? data : [];
+  },
+};
+
+export const apiCreateTheme = {
+  async execute(name: string): Promise<ThemeDto> {
+    const { data, error } = await apiFetch<ThemeDto>('/api/themes', {
+      method: 'POST',
+      requireAdminAuth: true,
+      body: JSON.stringify({ name }),
+    });
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Create theme failed');
+    return data;
+  },
+};
+
+export const apiUpdateTheme = {
+  async execute(
+    themeId: string,
+    input: { name: string; sortOrder?: number }
+  ): Promise<ThemeDto> {
+    const { data, error } = await apiFetch<ThemeDto>(
+      `/api/themes/${encodeURIComponent(themeId)}`,
+      {
+        method: 'PUT',
+        requireAdminAuth: true,
+        body: JSON.stringify(input),
+      }
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Update theme failed');
+    return data;
+  },
+};
+
+export const apiDeleteTheme = {
+  async execute(themeId: string): Promise<void> {
+    const { error } = await apiFetch(
+      `/api/themes/${encodeURIComponent(themeId)}`,
+      { method: 'DELETE', requireAdminAuth: true }
+    );
+    if (error) throw new Error(error);
+  },
+};
+
+export const apiListQuestions = {
+  async execute(opts?: {
+    themeId?: string | null;
+    summaries?: boolean;
+  }): Promise<Question[] | QuestionSummaryDto[]> {
+    const params = new URLSearchParams();
+    if (opts?.themeId === null) params.set('themeId', 'null');
+    else if (typeof opts?.themeId === 'string')
+      params.set('themeId', opts.themeId);
+    if (opts?.summaries) params.set('summaries', '1');
+    const qs = params.toString();
+    const { data, error } = await apiFetch<Question[] | QuestionSummaryDto[]>(
+      `/api/questions${qs ? `?${qs}` : ''}`,
+      { requireAdminAuth: true }
+    );
+    if (error) throw new Error(error);
+    return Array.isArray(data) ? data : [];
+  },
+};
+
+export const apiGetQuestion = {
+  async execute(questionId: string): Promise<Question | null> {
+    const { data, error } = await apiFetch<Question>(
+      `/api/questions/${encodeURIComponent(questionId)}`,
+      { requireAdminAuth: true }
+    );
+    if (error && error !== 'Question not found') throw new Error(error);
+    return data ?? null;
+  },
+};
+
+export const apiSaveQuestion = {
+  async execute(input: {
+    id?: string;
+    label: string;
+    type?: 'qcm' | 'word_cloud';
+    choices: Array<{ label: string }>;
+    correctChoiceIndex?: number;
+    timerSeconds?: number;
+    themeId?: string | null;
+  }): Promise<Question> {
+    const path = input.id
+      ? `/api/questions/${encodeURIComponent(input.id)}`
+      : '/api/questions';
+    const { data, error } = await apiFetch<Question>(path, {
+      method: input.id ? 'PUT' : 'POST',
+      requireAdminAuth: true,
+      body: JSON.stringify(input),
+    });
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Save question failed');
+    return data;
+  },
+};
+
+export const apiDeleteQuestion = {
+  async execute(questionId: string): Promise<void> {
+    const { error } = await apiFetch(
+      `/api/questions/${encodeURIComponent(questionId)}`,
+      { method: 'DELETE', requireAdminAuth: true }
+    );
+    if (error) throw new Error(error);
+  },
+};

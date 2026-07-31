@@ -24,6 +24,11 @@ export const navItemCreateQuiz: NavItem = {
   href: '/qcm/create',
 };
 
+export const navItemQuestions: NavItem = {
+  label: 'Questions',
+  href: '/qcm/questions',
+};
+
 export const navItemRoster: NavItem = {
   label: 'Classes',
   href: '/qcm/classes',
@@ -32,6 +37,7 @@ export const navItemRoster: NavItem = {
 /** Navigation complète (animateur connecté ou mode bypass sans API). */
 export const navItems: NavItem[] = [
   navItemsParticipant[0],
+  navItemQuestions,
   navItemCreateQuiz,
   navItemRoster,
   navItemsParticipant[1],

@@ -2,11 +2,13 @@ import type { CreateQuizInput } from '@kahin/qcm-application';
 import type { QuestionType } from '@kahin/qcm-domain';
 
 type RawQuestion = {
+  id?: string;
   label?: string;
   type?: string;
   choices?: Array<{ label?: string }>;
   correctChoiceIndex?: number;
   timerSeconds?: number;
+  themeId?: string | null;
 };
 
 type RawBody = {
@@ -35,6 +37,7 @@ export function validateQuizBody(body: RawBody): CreateQuizInput {
               label: String(c?.label ?? ''),
             }));
       return {
+        id: typeof q?.id === 'string' && q.id.trim() ? q.id.trim() : undefined,
         label: String(q?.label ?? ''),
         type,
         choices,
@@ -46,6 +49,12 @@ export function validateQuizBody(body: RawBody): CreateQuizInput {
           typeof q?.timerSeconds === 'number' && q.timerSeconds >= 1
             ? Math.min(300, Math.floor(q.timerSeconds))
             : undefined,
+        themeId:
+          q?.themeId === null
+            ? null
+            : typeof q?.themeId === 'string'
+              ? q.themeId
+              : undefined,
       };
     }),
   };

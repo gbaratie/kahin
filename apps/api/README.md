@@ -27,7 +27,7 @@ L’API est en général déployée sur un service type **Render** (Web Service)
 - **`NODE_ENV`** : `production`.
 - **`DATABASE_URL`** : URI **Postgres Neon** (recommandé pour la prod avec Render : connectivité simple, souvent sans souci IPv6).
   - Console Neon : **Connection details** → copier la connection string (format `postgresql://…`).
-  - Avant la première mise en prod, exécute le script SQL du dépôt [`db/schema.sql`](db/schema.sql) dans le **SQL Editor** Neon.
+  - Avant la première mise en prod, exécute le script SQL du dépôt [`db/schema.sql`](db/schema.sql) dans le **SQL Editor** Neon (idempotent : crée tables + migre l’ancien `questions.quiz_id` vers `quiz_questions`). Voir aussi [`docs/migration-question-bank.md`](../../docs/migration-question-bank.md).
   - Guide pas à pas : [`docs/neon.md`](../../docs/neon.md).
 - **`PORT`** : optionnel sur Render (la plateforme fournit souvent le port).
 
