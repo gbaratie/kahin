@@ -16,20 +16,31 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import LockOutlined from '@mui/icons-material/LockOutlined';
 import Logout from '@mui/icons-material/Logout';
+import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
+import BrightnessAutoOutlined from '@mui/icons-material/BrightnessAutoOutlined';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { siteName, navItems } from '@/config/site';
 import ApiStatus from '@/components/ApiStatus';
 import AdminLoginDialog from '@/components/AdminLoginDialog';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useColorMode } from '@/contexts/ColorModeContext';
 
 type LayoutProps = { children: React.ReactNode };
+
+function themeToggleLabel(preference: 'system' | 'light' | 'dark'): string {
+  if (preference === 'system') return 'Thème : automatique (système)';
+  if (preference === 'light') return 'Thème : clair';
+  return 'Thème : sombre';
+}
 
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = router.pathname;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isAdmin, openLoginDialog, logout, showAdminLoginUi } = useAdminAuth();
+  const { preference, cyclePreference } = useColorMode();
 
   /** Participants : pas d’onglets (accueil = déjà « rejoindre »). */
   const visibleNavItems = useMemo(() => (isAdmin ? navItems : []), [isAdmin]);
@@ -111,6 +122,23 @@ export default function Layout({ children }: LayoutProps) {
               </Stack>
             )}
 
+            <IconButton
+              color="inherit"
+              aria-label={themeToggleLabel(preference)}
+              title={themeToggleLabel(preference)}
+              onClick={cyclePreference}
+              size="small"
+              sx={{ color: 'text.secondary' }}
+            >
+              {preference === 'system' ? (
+                <BrightnessAutoOutlined fontSize="small" />
+              ) : preference === 'light' ? (
+                <LightModeOutlined fontSize="small" />
+              ) : (
+                <DarkModeOutlined fontSize="small" />
+              )}
+            </IconButton>
+
             {showAdminLoginUi && (
               <IconButton
                 color="inherit"
@@ -177,35 +205,50 @@ export default function Layout({ children }: LayoutProps) {
               </List>
             </>
           )}
-          {showAdminLoginUi && hasNavLinks && (
-            <>
-              <Divider sx={{ my: 1 }} />
-              <Box sx={{ px: 2 }}>
-                {isAdmin ? (
-                  <Button
-                    fullWidth
-                    startIcon={<Logout />}
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    Déconnexion animateur
-                  </Button>
+          <Divider sx={{ my: 1 }} />
+          <Box sx={{ px: 2 }}>
+            <Button
+              fullWidth
+              startIcon={
+                preference === 'system' ? (
+                  <BrightnessAutoOutlined />
+                ) : preference === 'light' ? (
+                  <LightModeOutlined />
                 ) : (
-                  <Button
-                    fullWidth
-                    startIcon={<LockOutlined />}
-                    onClick={() => {
-                      openLoginDialog();
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    Connexion animateur
-                  </Button>
-                )}
-              </Box>
-            </>
+                  <DarkModeOutlined />
+                )
+              }
+              onClick={cyclePreference}
+            >
+              {themeToggleLabel(preference)}
+            </Button>
+          </Box>
+          {showAdminLoginUi && hasNavLinks && (
+            <Box sx={{ px: 2, mt: 1 }}>
+              {isAdmin ? (
+                <Button
+                  fullWidth
+                  startIcon={<Logout />}
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Déconnexion animateur
+                </Button>
+              ) : (
+                <Button
+                  fullWidth
+                  startIcon={<LockOutlined />}
+                  onClick={() => {
+                    openLoginDialog();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Connexion animateur
+                </Button>
+              )}
+            </Box>
           )}
         </Box>
       </Drawer>
