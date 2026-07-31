@@ -2,6 +2,7 @@ import React, { createContext, useMemo, useContext } from 'react';
 import {
   InMemoryQuizRepository,
   InMemorySessionRepository,
+  InMemoryClassRepository,
   MockRealtimeTransport,
 } from '@kahin/qcm-infrastructure';
 import type { CreateQuizInput } from '@kahin/qcm-application';
@@ -9,6 +10,7 @@ import type {
   JoinSessionInput,
   JoinSessionResult,
   SubmitAnswerInput,
+  LaunchSessionInput,
 } from '@kahin/qcm-application';
 import {
   CreateQuizUseCase,
@@ -34,17 +36,20 @@ import {
 
 const quizRepo = new InMemoryQuizRepository();
 const sessionRepo = new InMemorySessionRepository();
+const classRepo = new InMemoryClassRepository();
 const realtimeTransport = new MockRealtimeTransport();
 
 const createQuizUseCase = new CreateQuizUseCase(quizRepo);
 const launchSessionUseCase = new LaunchSessionUseCase(
   quizRepo,
   sessionRepo,
-  realtimeTransport
+  realtimeTransport,
+  classRepo
 );
 const joinSessionUseCase = new JoinSessionUseCase(
   sessionRepo,
-  realtimeTransport
+  realtimeTransport,
+  classRepo
 );
 const submitAnswerUseCase = new SubmitAnswerUseCase(
   sessionRepo,
@@ -65,7 +70,9 @@ const getSessionUseCase = new GetSessionUseCase(sessionRepo);
 
 export type QcmDependencies = {
   createQuiz: { execute(input: CreateQuizInput): Promise<Quiz> };
-  launchSession: { execute(quizId: string): Promise<Session> };
+  launchSession: {
+    execute(input: LaunchSessionInput | string): Promise<Session>;
+  };
   joinSession: { execute(input: JoinSessionInput): Promise<JoinSessionResult> };
   submitAnswer: { execute(input: SubmitAnswerInput): Promise<void> };
   nextQuestion: {

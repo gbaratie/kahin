@@ -6,6 +6,7 @@ import {
 import {
   joinSessionUseCase,
   getSessionUseCase,
+  getSessionJoinInfoUseCase,
   submitAnswerUseCase,
   nextQuestionUseCase,
   advanceIfTimeUpUseCase,
@@ -20,6 +21,19 @@ import {
 } from '../validation/sessionBody.js';
 
 export const sessionRoutes = Router();
+
+/** Infos pour rejoindre (liste de la classe ou inscription libre) — avant /:id. */
+sessionRoutes.get(
+  '/join-info',
+  handleAsync(async (req, res) => {
+    const code = typeof req.query.code === 'string' ? req.query.code : '';
+    if (!code.trim()) {
+      throw new Error('session code required');
+    }
+    const info = await getSessionJoinInfoUseCase.execute(code);
+    res.json(info);
+  })
+);
 
 /** Quiz pour les participants (sans bonnes réponses encore secrètes). */
 sessionRoutes.get(

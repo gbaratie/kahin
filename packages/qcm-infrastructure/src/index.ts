@@ -1,4 +1,5 @@
 export { InMemoryQuizRepository } from './InMemoryQuizRepository';
 export { InMemorySessionRepository } from './InMemorySessionRepository';
 export { InMemoryStudentRosterRepository } from './InMemoryStudentRosterRepository';
+export { InMemoryClassRepository } from './InMemoryClassRepository';
 export { MockRealtimeTransport } from './MockRealtimeTransport';

@@ -17,7 +17,9 @@ const BAD_REQUEST_MESSAGES = new Set([
   'choiceId (QCM) or word (nuage de mots) required',
   'title and questions required',
   'names required',
+  'class name required',
   'Name not in student roster',
+  'session code required',
 ]);
 
 function getStatusForError(e: unknown): number {
@@ -26,6 +28,7 @@ function getStatusForError(e: unknown): number {
 
   if (code === 'QUIZ_NOT_FOUND' || message === 'Quiz not found') return 404;
   if (message === 'Session not found') return 404;
+  if (message === 'Class not found') return 404;
   if (BAD_REQUEST_MESSAGES.has(message)) return 400;
   if (message === 'DATABASE_URL must be set to use PostgresQuizRepository.') {
     return 503;

@@ -182,10 +182,18 @@ export const apiUpdateQuiz = {
 };
 
 export const apiLaunchSession = {
-  async execute(quizId: string): Promise<Session> {
+  async execute(
+    input: { quizId: string; classId?: string | null } | string
+  ): Promise<Session> {
+    const quizId = typeof input === 'string' ? input : input.quizId;
+    const classId = typeof input === 'string' ? null : (input.classId ?? null);
     const { data, error } = await apiFetch<Session>(
       `/api/quiz/${encodeURIComponent(quizId)}/launch`,
-      { method: 'POST', requireAdminAuth: true }
+      {
+        method: 'POST',
+        requireAdminAuth: true,
+        body: JSON.stringify({ classId }),
+      }
     );
     if (error) throw new Error(error);
     if (!data) throw new Error('Launch failed');
@@ -246,23 +254,130 @@ export const apiJoinSession = {
 
 export type StudentRosterDto = { names: string[] };
 
-export const apiGetStudentRoster = {
-  async execute(): Promise<StudentRosterDto> {
-    const { data, error } = await apiFetch<StudentRosterDto>('/api/roster');
+export type SchoolClassSummaryDto = {
+  id: string;
+  name: string;
+  studentCount: number;
+};
+
+export type SchoolClassDto = {
+  id: string;
+  name: string;
+  names: string[];
+};
+
+export type SessionJoinInfoDto = {
+  sessionId: string;
+  code: string;
+  classId: string | null;
+  className: string | null;
+  names: string[];
+  freeRegistration: boolean;
+};
+
+export const apiListClasses = {
+  async execute(): Promise<SchoolClassSummaryDto[]> {
+    const { data, error } =
+      await apiFetch<SchoolClassSummaryDto[]>('/api/classes');
     if (error) throw new Error(error);
-    return data ?? { names: [] };
+    return Array.isArray(data) ? data : [];
   },
 };
 
-export const apiUpdateStudentRoster = {
-  async execute(names: string[]): Promise<StudentRosterDto> {
-    const { data, error } = await apiFetch<StudentRosterDto>('/api/roster', {
-      method: 'PUT',
+export const apiGetClass = {
+  async execute(classId: string): Promise<SchoolClassDto> {
+    const { data, error } = await apiFetch<SchoolClassDto>(
+      `/api/classes/${encodeURIComponent(classId)}`
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Class not found');
+    return data;
+  },
+};
+
+export const apiCreateClass = {
+  async execute(input: {
+    name: string;
+    names?: string[];
+  }): Promise<SchoolClassDto> {
+    const { data, error } = await apiFetch<SchoolClassDto>('/api/classes', {
+      method: 'POST',
       requireAdminAuth: true,
-      body: JSON.stringify({ names }),
+      body: JSON.stringify(input),
     });
     if (error) throw new Error(error);
-    return data ?? { names: [] };
+    if (!data) throw new Error('Create class failed');
+    return data;
+  },
+};
+
+export const apiUpdateClass = {
+  async execute(
+    classId: string,
+    input: { name: string; names: string[] }
+  ): Promise<SchoolClassDto> {
+    const { data, error } = await apiFetch<SchoolClassDto>(
+      `/api/classes/${encodeURIComponent(classId)}`,
+      {
+        method: 'PUT',
+        requireAdminAuth: true,
+        body: JSON.stringify(input),
+      }
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Update class failed');
+    return data;
+  },
+};
+
+export const apiDeleteClass = {
+  async execute(classId: string): Promise<void> {
+    const { error } = await apiFetch(
+      `/api/classes/${encodeURIComponent(classId)}`,
+      { method: 'DELETE', requireAdminAuth: true }
+    );
+    if (error) throw new Error(error);
+  },
+};
+
+export const apiGetSessionJoinInfo = {
+  async execute(code: string): Promise<SessionJoinInfoDto> {
+    const q = new URLSearchParams({ code: code.trim().toUpperCase() });
+    const { data, error } = await apiFetch<SessionJoinInfoDto>(
+      `/api/session/join-info?${q.toString()}`
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Session not found');
+    return data;
+  },
+};
+
+/** @deprecated Utiliser apiListClasses / apiGetClass */
+export const apiGetStudentRoster = {
+  async execute(): Promise<StudentRosterDto> {
+    const classes = await apiListClasses.execute();
+    if (classes.length === 0) return { names: [] };
+    const first = await apiGetClass.execute(classes[0].id);
+    return { names: first.names };
+  },
+};
+
+/** @deprecated */
+export const apiUpdateStudentRoster = {
+  async execute(names: string[]): Promise<StudentRosterDto> {
+    const classes = await apiListClasses.execute();
+    if (classes.length === 0) {
+      const created = await apiCreateClass.execute({
+        name: 'Classe',
+        names,
+      });
+      return { names: created.names };
+    }
+    const updated = await apiUpdateClass.execute(classes[0].id, {
+      name: classes[0].name,
+      names,
+    });
+    return { names: updated.names };
   },
 };
 

@@ -7,10 +7,10 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { authRoutes } from './routes/auth.js';
 import { quizRoutes } from './routes/quiz.js';
 import { sessionRoutes } from './routes/session.js';
-import { rosterRoutes } from './routes/roster.js';
+import { classRoutes } from './routes/classes.js';
 import {
   QUIZ_JSON_STORAGE_PATH,
-  ROSTER_JSON_STORAGE_PATH,
+  CLASSES_JSON_STORAGE_PATH,
 } from './container.js';
 
 const app = express();
@@ -28,11 +28,11 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/session', sessionRoutes);
-app.use('/api/roster', rosterRoutes);
+app.use('/api/classes', classRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`);
   console.log(`Quiz storage: ${QUIZ_JSON_STORAGE_PATH}`);
-  console.log(`Roster storage: ${ROSTER_JSON_STORAGE_PATH}`);
+  console.log(`Classes storage: ${CLASSES_JSON_STORAGE_PATH}`);
 });
