@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -13,34 +13,92 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  useMediaQuery,
+  InputAdornment,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import type { Quiz, QuestionType } from '@kahin/qcm-domain';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import SearchIcon from '@mui/icons-material/Search';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { Quiz, Question, QuestionType } from '@kahin/qcm-domain';
+import {
+  apiListQuestions,
+  apiListQuizzes,
+  apiGetQuiz,
+  apiListThemes,
+  isApiMode,
+  type QuestionSummaryDto,
+  type ThemeDto,
+  type QuizSummary,
+} from '@/qcm/apiClient';
+import { getErrorMessage } from '@kahin/shared-utils';
 
 const DEFAULT_QCM_TIMER = 10;
 const DEFAULT_WORD_CLOUD_TIMER = 180;
 
 export type QuestionDraft = {
+  /** Identité banque — préservée pour le partage N:M entre QCM. */
+  id?: string;
   type: QuestionType;
   label: string;
   choices: string[];
   correctChoiceIndex?: number;
   timerSeconds?: number;
+  themeId?: string | null;
+  /** Clé stable pour le drag-and-drop (même sans id serveur). */
+  clientKey: string;
 };
 
-export const initialQuestion: QuestionDraft = {
+function newClientKey(): string {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export const initialQuestion = (): QuestionDraft => ({
   type: 'qcm',
   label: '',
   choices: ['', ''],
   timerSeconds: DEFAULT_QCM_TIMER,
-};
+  clientKey: newClientKey(),
+});
 
 /** Convertit les questions brouillon en payload pour create/update API */
 export function draftToPayload(
@@ -49,11 +107,13 @@ export function draftToPayload(
 ): {
   title: string;
   questions: Array<{
+    id?: string;
     label: string;
     type: QuestionType;
     choices: { label: string }[];
     correctChoiceIndex?: number;
     timerSeconds?: number;
+    themeId?: string | null;
   }>;
 } {
   return {
@@ -86,11 +146,13 @@ export function draftToPayload(
             ? Math.min(300, Math.floor(q.timerSeconds))
             : defaultTimer;
         return {
+          id: q.id,
           label: q.label.trim(),
           type,
           choices: trimmedChoices,
           correctChoiceIndex: submittedCorrectIndex,
           timerSeconds,
+          themeId: q.themeId,
         };
       }),
   };
@@ -116,6 +178,7 @@ export function quizToDraft(quiz: Quiz): QuestionDraft[] {
         ? q.choices.findIndex((c) => c.id === q.correctChoiceId)
         : undefined;
     return {
+      id: q.id,
       type,
       label: q.label,
       choices,
@@ -124,8 +187,14 @@ export function quizToDraft(quiz: Quiz): QuestionDraft[] {
           ? correctChoiceIndex
           : undefined,
       timerSeconds: q.timerSeconds ?? defaultTimer,
+      themeId: q.themeId ?? null,
+      clientKey: q.id || newClientKey(),
     };
   });
+}
+
+export function questionToDraft(q: Question): QuestionDraft {
+  return quizToDraft({ id: '', title: '', questions: [q] })[0];
 }
 
 export type QcmFormProps = {
@@ -143,6 +212,304 @@ export type QcmFormProps = {
   cancelButton?: { label: string; onClick: () => void };
 };
 
+function SortableQuestionCard({
+  q,
+  qIndex,
+  questionsCount,
+  onRemove,
+  onUpdateLabel,
+  onUpdateChoice,
+  onAddChoice,
+  onRemoveChoice,
+  onSetCorrect,
+  onUpdateTimer,
+  onSetType,
+}: {
+  q: QuestionDraft;
+  qIndex: number;
+  questionsCount: number;
+  onRemove: () => void;
+  onUpdateLabel: (label: string) => void;
+  onUpdateChoice: (cIndex: number, value: string) => void;
+  onAddChoice: () => void;
+  onRemoveChoice: (cIndex: number) => void;
+  onSetCorrect: (choiceIndex: number | undefined) => void;
+  onUpdateTimer: (value: number) => void;
+  onSetType: (type: QuestionType) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: q.clientKey });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.85 : 1,
+    zIndex: isDragging ? 2 : 0,
+  };
+
+  const isWordCloud = q.type === 'word_cloud';
+  const defaultTimer = isWordCloud
+    ? DEFAULT_WORD_CLOUD_TIMER
+    : DEFAULT_QCM_TIMER;
+
+  return (
+    <Paper
+      ref={setNodeRef}
+      style={style}
+      sx={{
+        p: { xs: 1.5, sm: 2 },
+        mb: 2,
+        overflow: 'hidden',
+        border: isDragging ? 2 : 0,
+        borderColor: 'primary.main',
+        touchAction: 'manipulation',
+      }}
+    >
+      <Stack spacing={1.25} sx={{ mb: 1 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ minWidth: 0 }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={0.5}
+            sx={{ minWidth: 0, flex: 1 }}
+          >
+            <IconButton
+              size="small"
+              aria-label="Réordonner la question"
+              sx={{
+                cursor: 'grab',
+                touchAction: 'none',
+                color: 'text.secondary',
+                flexShrink: 0,
+              }}
+              {...attributes}
+              {...listeners}
+            >
+              <DragIndicatorIcon fontSize="small" />
+            </IconButton>
+            <Typography variant="subtitle2" sx={{ minWidth: 0, pr: 1 }}>
+              Question {qIndex + 1}
+              {q.id ? (
+                <Typography
+                  component="span"
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ ml: 1 }}
+                >
+                  (banque)
+                </Typography>
+              ) : null}
+            </Typography>
+          </Stack>
+          <Tooltip title="Retirer du QCM (reste dans la banque si déjà enregistrée)">
+            <span>
+              <IconButton
+                size="small"
+                onClick={onRemove}
+                disabled={questionsCount <= 1}
+                aria-label="Retirer la question du QCM"
+                sx={{
+                  flexShrink: 0,
+                  color: 'text.secondary',
+                  opacity: 0.7,
+                  '&:hover': { opacity: 1, color: 'text.primary' },
+                }}
+              >
+                <RemoveCircleOutlineIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Stack>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.5}
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ minWidth: 0 }}
+        >
+          <FormControl
+            size="small"
+            sx={{
+              minWidth: { xs: 140, sm: 160 },
+              flex: { xs: '1 1 140px', sm: '0 0 auto' },
+              maxWidth: '100%',
+            }}
+          >
+            <InputLabel id={`question-type-${q.clientKey}`}>Type</InputLabel>
+            <Select
+              labelId={`question-type-${q.clientKey}`}
+              value={q.type ?? 'qcm'}
+              label="Type"
+              onChange={(e) => onSetType(e.target.value as QuestionType)}
+            >
+              <MenuItem value="qcm">QCM</MenuItem>
+              <MenuItem value="word_cloud">Nuage de mots</MenuItem>
+            </Select>
+          </FormControl>
+          <Tooltip title="Durée en secondes">
+            <Stack
+              direction="row"
+              alignItems="center"
+              sx={{
+                flexShrink: 0,
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 1,
+                bgcolor: 'action.hover',
+                pl: 0.5,
+                pr: 0.25,
+                py: 0.125,
+              }}
+            >
+              <AccessTimeIcon
+                sx={{ color: 'text.secondary', mr: 0.375, fontSize: 14 }}
+              />
+              <TextField
+                type="number"
+                size="small"
+                value={q.timerSeconds ?? defaultTimer}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  if (!Number.isNaN(v) && v >= 1)
+                    onUpdateTimer(Math.min(300, v));
+                }}
+                inputProps={{
+                  min: 1,
+                  max: 180,
+                  step: 1,
+                  style: { textAlign: 'center', width: 30 },
+                  'aria-label': 'Durée en secondes',
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { border: 'none' },
+                    backgroundColor: 'transparent',
+                    minHeight: 24,
+                    '& .MuiInput-input': { fontSize: '0.7rem', py: 0.125 },
+                  },
+                  '& input[type=number]': { MozAppearance: 'textfield' },
+                  '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button':
+                    { WebkitAppearance: 'none', margin: 0 },
+                }}
+                variant="outlined"
+              />
+              <Stack direction="column" sx={{ ml: 0 }}>
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    onUpdateTimer(
+                      Math.min(300, (q.timerSeconds ?? defaultTimer) + 1)
+                    )
+                  }
+                  disabled={(q.timerSeconds ?? defaultTimer) >= 300}
+                  aria-label="Augmenter la durée"
+                  sx={{ py: 0, minWidth: 18, height: 12 }}
+                >
+                  <KeyboardArrowUpIcon sx={{ fontSize: 12 }} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    onUpdateTimer(
+                      Math.max(1, (q.timerSeconds ?? defaultTimer) - 1)
+                    )
+                  }
+                  disabled={(q.timerSeconds ?? defaultTimer) <= 1}
+                  aria-label="Diminuer la durée"
+                  sx={{ py: 0, minWidth: 18, height: 12 }}
+                >
+                  <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
+                </IconButton>
+              </Stack>
+            </Stack>
+          </Tooltip>
+        </Stack>
+      </Stack>
+      <TextField
+        fullWidth
+        label="Énoncé"
+        value={q.label}
+        onChange={(e) => onUpdateLabel(e.target.value)}
+        sx={{ mb: 2 }}
+      />
+      {!isWordCloud &&
+        q.choices.map((choice, cIndex) => (
+          <Stack
+            key={cIndex}
+            direction="row"
+            alignItems="flex-start"
+            spacing={0.75}
+            sx={{ mb: 1, minWidth: 0 }}
+          >
+            <TextField
+              size="small"
+              label={`Choix ${cIndex + 1}`}
+              value={choice}
+              onChange={(e) => onUpdateChoice(cIndex, e.target.value)}
+              sx={{
+                flex: '1 1 0%',
+                minWidth: 0,
+                '& .MuiOutlinedInput-root': { alignItems: 'center' },
+              }}
+            />
+            <Stack
+              direction="row"
+              alignItems="center"
+              sx={{ flexShrink: 0, pt: 0.5 }}
+            >
+              <Tooltip title="Bonne réponse">
+                <Checkbox
+                  size="small"
+                  icon={<CheckBoxOutlineBlankIcon />}
+                  checkedIcon={<CheckBoxIcon color="success" />}
+                  checked={q.correctChoiceIndex === cIndex}
+                  onChange={() =>
+                    onSetCorrect(
+                      q.correctChoiceIndex === cIndex ? undefined : cIndex
+                    )
+                  }
+                  sx={{
+                    color: 'action.disabled',
+                    '&.Mui-checked': { color: 'success.main' },
+                    p: 0.5,
+                    borderRadius: 0,
+                    '& .MuiSvgIcon-root': { borderRadius: 0 },
+                  }}
+                />
+              </Tooltip>
+              <IconButton
+                size="small"
+                onClick={() => onRemoveChoice(cIndex)}
+                disabled={q.choices.length <= 2}
+                aria-label="Supprimer le choix"
+                sx={{ flexShrink: 0 }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+          </Stack>
+        ))}
+      {!isWordCloud && (
+        <Button size="small" startIcon={<AddIcon />} onClick={onAddChoice}>
+          Ajouter un choix
+        </Button>
+      )}
+    </Paper>
+  );
+}
+
 export default function QcmForm({
   pageTitle,
   title,
@@ -157,13 +524,77 @@ export default function QcmForm({
   error,
   cancelButton,
 }: QcmFormProps) {
-  const addQuestion = () => setQuestions((q) => [...q, { ...initialQuestion }]);
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const [bankOpen, setBankOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [bankError, setBankError] = useState<string | null>(null);
+  const [themes, setThemes] = useState<ThemeDto[]>([]);
+  const [themeFilter, setThemeFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [bankItems, setBankItems] = useState<QuestionSummaryDto[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
+  const [copyQuizId, setCopyQuizId] = useState('');
+  const [copyQuestions, setCopyQuestions] = useState<Question[]>([]);
+  const [bankLoading, setBankLoading] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const linkedIds = useMemo(
+    () => new Set(questions.map((q) => q.id).filter(Boolean) as string[]),
+    [questions]
+  );
+
+  const loadBank = async () => {
+    if (!isApiMode()) return;
+    setBankLoading(true);
+    setBankError(null);
+    try {
+      const [themeList, summaries] = await Promise.all([
+        apiListThemes.execute(),
+        apiListQuestions.execute({
+          summaries: true,
+          themeId: themeFilter === 'all' ? undefined : themeFilter === 'none' ? null : themeFilter,
+        }) as Promise<QuestionSummaryDto[]>,
+      ]);
+      setThemes(themeList);
+      setBankItems(summaries);
+    } catch (e) {
+      setBankError(getErrorMessage(e));
+    } finally {
+      setBankLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (bankOpen) void loadBank();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankOpen, themeFilter]);
+
+  const filteredBank = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return bankItems;
+    return bankItems.filter((item) => item.label.toLowerCase().includes(q));
+  }, [bankItems, search]);
+
+  const addQuestion = () => setQuestions((q) => [...q, initialQuestion()]);
+
   const removeQuestion = (index: number) =>
     setQuestions((q) => q.filter((_, i) => i !== index));
+
   const updateQuestion = (index: number, label: string) =>
     setQuestions((q) =>
       q.map((item, i) => (i === index ? { ...item, label } : item))
     );
+
   const updateChoice = (qIndex: number, cIndex: number, value: string) =>
     setQuestions((q) =>
       q.map((item, i) =>
@@ -175,12 +606,14 @@ export default function QcmForm({
           : item
       )
     );
+
   const addChoice = (qIndex: number) =>
     setQuestions((q) =>
       q.map((item, i) =>
         i === qIndex ? { ...item, choices: [...item.choices, ''] } : item
       )
     );
+
   const removeChoice = (qIndex: number, cIndex: number) =>
     setQuestions((q) =>
       q.map((item, i) => {
@@ -198,6 +631,7 @@ export default function QcmForm({
         };
       })
     );
+
   const setCorrectChoiceIndex = (
     qIndex: number,
     choiceIndex: number | undefined
@@ -207,6 +641,7 @@ export default function QcmForm({
         i === qIndex ? { ...item, correctChoiceIndex: choiceIndex } : item
       )
     );
+
   const updateTimerSeconds = (qIndex: number, value: number) =>
     setQuestions((q) =>
       q.map((item, i) =>
@@ -239,12 +674,193 @@ export default function QcmForm({
       })
     );
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setQuestions((items) => {
+      const oldIndex = items.findIndex((i) => i.clientKey === active.id);
+      const newIndex = items.findIndex((i) => i.clientKey === over.id);
+      if (oldIndex < 0 || newIndex < 0) return items;
+      return arrayMove(items, oldIndex, newIndex);
+    });
+  };
+
+  const addFromBank = async (summary: QuestionSummaryDto) => {
+    if (linkedIds.has(summary.id)) return;
+    try {
+      const full = await (
+        await import('@/qcm/apiClient')
+      ).apiGetQuestion.execute(summary.id);
+      if (!full) return;
+      setQuestions((prev) => {
+        const emptyOnly =
+          prev.length === 1 && !prev[0].label.trim() && !prev[0].id;
+        const draft = questionToDraft(full);
+        return emptyOnly ? [draft] : [...prev, draft];
+      });
+    } catch (e) {
+      setBankError(getErrorMessage(e));
+    }
+  };
+
+  const openCopyDialog = async () => {
+    setCopyOpen(true);
+    setBankError(null);
+    try {
+      const list = await apiListQuizzes.execute();
+      setQuizzes(list);
+    } catch (e) {
+      setBankError(getErrorMessage(e));
+    }
+  };
+
+  const loadCopyQuiz = async (quizId: string) => {
+    setCopyQuizId(quizId);
+    setCopyQuestions([]);
+    if (!quizId) return;
+    try {
+      const quiz = await apiGetQuiz.execute(quizId);
+      setCopyQuestions(quiz?.questions ?? []);
+    } catch (e) {
+      setBankError(getErrorMessage(e));
+    }
+  };
+
+  const addCopiedQuestion = (q: Question) => {
+    if (linkedIds.has(q.id)) return;
+    setQuestions((prev) => {
+      const emptyOnly =
+        prev.length === 1 && !prev[0].label.trim() && !prev[0].id;
+      const draft = questionToDraft(q);
+      return emptyOnly ? [draft] : [...prev, draft];
+    });
+  };
+
+  const bankPanel = (
+    <Box
+      sx={{
+        width: { xs: '100%', md: 360 },
+        p: 2,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 1 }}
+      >
+        <Typography variant="h6">Banque</Typography>
+        {!isDesktop && (
+          <IconButton aria-label="Fermer" onClick={() => setBankOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        )}
+      </Stack>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Ajoutez des questions existantes. Une question peut figurer dans
+        plusieurs QCM.
+      </Typography>
+      <TextField
+        size="small"
+        placeholder="Rechercher…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 1.5 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" />
+            </InputAdornment>
+          ),
+        }}
+      />
+      <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
+        <InputLabel id="theme-filter-label">Thématique</InputLabel>
+        <Select
+          labelId="theme-filter-label"
+          label="Thématique"
+          value={themeFilter}
+          onChange={(e) => setThemeFilter(e.target.value)}
+        >
+          <MenuItem value="all">Toutes</MenuItem>
+          <MenuItem value="none">Sans thématique</MenuItem>
+          {themes.map((t) => (
+            <MenuItem key={t.id} value={t.id}>
+              {t.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {bankError && (
+        <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+          {bankError}
+        </Typography>
+      )}
+      <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+        {bankLoading ? (
+          <Typography variant="body2" color="text.secondary">
+            Chargement…
+          </Typography>
+        ) : filteredBank.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            Aucune question dans la banque pour ce filtre.
+          </Typography>
+        ) : (
+          <List dense disablePadding>
+            {filteredBank.map((item) => {
+              const already = linkedIds.has(item.id);
+              return (
+                <ListItemButton
+                  key={item.id}
+                  disabled={already}
+                  onClick={() => void addFromBank(item)}
+                  sx={{
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <ListItemText
+                    primary={item.label}
+                    secondary={
+                      item.type === 'word_cloud'
+                        ? 'Nuage de mots'
+                        : `${item.choiceCount} choix`
+                    }
+                    primaryTypographyProps={{
+                      variant: 'body2',
+                      sx: {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      },
+                    }}
+                  />
+                  {already ? (
+                    <Chip size="small" label="Déjà ajoutée" sx={{ ml: 1 }} />
+                  ) : (
+                    <AddIcon fontSize="small" sx={{ mt: 0.5, ml: 1 }} />
+                  )}
+                </ListItemButton>
+              );
+            })}
+          </List>
+        )}
+      </Box>
+    </Box>
+  );
+
   return (
     <Box
       sx={{
         py: 4,
         px: { xs: 1.5, sm: 2 },
-        maxWidth: { xs: '100%', sm: 640, md: 960 },
+        maxWidth: { xs: '100%', sm: 640, md: bankOpen ? 1200 : 960 },
         mx: 'auto',
         width: '100%',
         boxSizing: 'border-box',
@@ -255,296 +871,226 @@ export default function QcmForm({
           {pageTitle}
         </Typography>
       )}
-      <form onSubmit={onSubmit}>
-        <TextField
-          fullWidth
-          label="Titre du QCM"
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          sx={{ mb: 3 }}
-        />
-        {questions.map((q, qIndex) => {
-          const isWordCloud = q.type === 'word_cloud';
-          const defaultTimer = isWordCloud
-            ? DEFAULT_WORD_CLOUD_TIMER
-            : DEFAULT_QCM_TIMER;
-          return (
-            <Paper
-              key={qIndex}
-              sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, overflow: 'hidden' }}
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
+        Glissez les questions pour changer l’ordre. Ajoutez depuis la banque ou
+        un autre QCM — le contenu reste partagé.
+      </Typography>
+
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={2}
+        alignItems="stretch"
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <form onSubmit={onSubmit}>
+            <TextField
+              fullWidth
+              label="Titre du QCM"
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ mb: 2 }}
             >
-              <Stack spacing={1.25} sx={{ mb: 1 }}>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  sx={{ minWidth: 0 }}
-                >
-                  <Typography variant="subtitle2" sx={{ minWidth: 0, pr: 1 }}>
-                    Question {qIndex + 1}
-                  </Typography>
-                  <IconButton
+              {isApiMode() && (
+                <>
+                  <Button
                     size="small"
-                    onClick={() => removeQuestion(qIndex)}
-                    disabled={questions.length <= 1}
-                    aria-label="Supprimer la question"
-                    sx={{
-                      flexShrink: 0,
-                      color: 'text.secondary',
-                      opacity: 0.7,
-                      '&:hover': { opacity: 1, color: 'text.primary' },
-                    }}
+                    variant={bankOpen ? 'contained' : 'outlined'}
+                    startIcon={<LibraryBooksIcon />}
+                    onClick={() => setBankOpen((o) => !o)}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Stack>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={0.5}
-                  flexWrap="wrap"
-                  useFlexGap
-                  sx={{ minWidth: 0 }}
-                >
-                  <FormControl
+                    Banque
+                  </Button>
+                  <Button
                     size="small"
-                    sx={{
-                      minWidth: { xs: 140, sm: 160 },
-                      flex: { xs: '1 1 140px', sm: '0 0 auto' },
-                      maxWidth: '100%',
-                    }}
+                    variant="outlined"
+                    startIcon={<ContentCopyIcon />}
+                    onClick={() => void openCopyDialog()}
                   >
-                    <InputLabel id={`question-type-${qIndex}`}>Type</InputLabel>
-                    <Select
-                      labelId={`question-type-${qIndex}`}
-                      value={q.type ?? 'qcm'}
-                      label="Type"
-                      onChange={(e) =>
-                        setQuestionType(qIndex, e.target.value as QuestionType)
-                      }
-                    >
-                      <MenuItem value="qcm">QCM</MenuItem>
-                      <MenuItem value="word_cloud">Nuage de mots</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Tooltip title="Durée en secondes">
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      sx={{
-                        flexShrink: 0,
-                        border: 1,
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        bgcolor: 'action.hover',
-                        pl: 0.5,
-                        pr: 0.25,
-                        py: 0.125,
-                      }}
-                    >
-                      <AccessTimeIcon
-                        sx={{
-                          color: 'text.secondary',
-                          mr: 0.375,
-                          fontSize: 14,
-                        }}
-                      />
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={q.timerSeconds ?? defaultTimer}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
-                          if (!Number.isNaN(v) && v >= 1)
-                            updateTimerSeconds(qIndex, Math.min(300, v));
-                        }}
-                        inputProps={{
-                          min: 1,
-                          max: 180,
-                          step: 1,
-                          style: { textAlign: 'center', width: 30 },
-                          'aria-label': 'Durée en secondes',
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': { border: 'none' },
-                            backgroundColor: 'transparent',
-                            minHeight: 24,
-                            '& .MuiInput-input': {
-                              fontSize: '0.7rem',
-                              py: 0.125,
-                            },
-                          },
-                          '& input[type=number]': {
-                            MozAppearance: 'textfield',
-                          },
-                          '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button':
-                            { WebkitAppearance: 'none', margin: 0 },
-                        }}
-                        variant="outlined"
-                      />
-                      <Stack direction="column" sx={{ ml: 0 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            updateTimerSeconds(
-                              qIndex,
-                              Math.min(
-                                300,
-                                (q.timerSeconds ?? defaultTimer) + 1
-                              )
-                            )
-                          }
-                          disabled={(q.timerSeconds ?? defaultTimer) >= 300}
-                          aria-label="Augmenter la durée"
-                          sx={{ py: 0, minWidth: 18, height: 12 }}
-                        >
-                          <KeyboardArrowUpIcon sx={{ fontSize: 12 }} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            updateTimerSeconds(
-                              qIndex,
-                              Math.max(1, (q.timerSeconds ?? defaultTimer) - 1)
-                            )
-                          }
-                          disabled={(q.timerSeconds ?? defaultTimer) <= 1}
-                          aria-label="Diminuer la durée"
-                          sx={{ py: 0, minWidth: 18, height: 12 }}
-                        >
-                          <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
-                        </IconButton>
-                      </Stack>
-                    </Stack>
-                  </Tooltip>
-                </Stack>
-              </Stack>
-              <TextField
-                fullWidth
-                label="Énoncé"
-                value={q.label}
-                onChange={(e) => updateQuestion(qIndex, e.target.value)}
-                sx={{ mb: 2 }}
-              />
-              {!isWordCloud &&
-                q.choices.map((choice, cIndex) => (
-                  <Stack
-                    key={cIndex}
-                    direction="row"
-                    alignItems="flex-start"
-                    spacing={0.75}
-                    sx={{ mb: 1, minWidth: 0 }}
-                  >
-                    <TextField
-                      size="small"
-                      label={`Choix ${cIndex + 1}`}
-                      value={choice}
-                      onChange={(e) =>
-                        updateChoice(qIndex, cIndex, e.target.value)
-                      }
-                      sx={{
-                        flex: '1 1 0%',
-                        minWidth: 0,
-                        '& .MuiOutlinedInput-root': { alignItems: 'center' },
-                      }}
-                    />
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      sx={{ flexShrink: 0, pt: 0.5 }}
-                    >
-                      <Tooltip title="Bonne réponse">
-                        <Checkbox
-                          size="small"
-                          icon={<CheckBoxOutlineBlankIcon />}
-                          checkedIcon={<CheckBoxIcon color="success" />}
-                          checked={q.correctChoiceIndex === cIndex}
-                          onChange={() =>
-                            setCorrectChoiceIndex(
-                              qIndex,
-                              q.correctChoiceIndex === cIndex
-                                ? undefined
-                                : cIndex
-                            )
-                          }
-                          sx={{
-                            color: 'action.disabled',
-                            '&.Mui-checked': { color: 'success.main' },
-                            p: 0.5,
-                            borderRadius: 0,
-                            '& .MuiSvgIcon-root': { borderRadius: 0 },
-                          }}
-                        />
-                      </Tooltip>
-                      <IconButton
-                        size="small"
-                        onClick={() => removeChoice(qIndex, cIndex)}
-                        disabled={q.choices.length <= 2}
-                        aria-label="Supprimer le choix"
-                        sx={{ flexShrink: 0 }}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </Stack>
-                ))}
-              {!isWordCloud && (
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => addChoice(qIndex)}
-                >
-                  Ajouter un choix
-                </Button>
+                    Depuis un QCM
+                  </Button>
+                </>
               )}
-            </Paper>
-          );
-        })}
-        <Stack spacing={2} sx={{ mt: 2 }}>
-          <Button
+            </Stack>
+
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={questions.map((q) => q.clientKey)}
+                strategy={verticalListSortingStrategy}
+              >
+                {questions.map((q, qIndex) => (
+                  <SortableQuestionCard
+                    key={q.clientKey}
+                    q={q}
+                    qIndex={qIndex}
+                    questionsCount={questions.length}
+                    onRemove={() => removeQuestion(qIndex)}
+                    onUpdateLabel={(label) => updateQuestion(qIndex, label)}
+                    onUpdateChoice={(cIndex, value) =>
+                      updateChoice(qIndex, cIndex, value)
+                    }
+                    onAddChoice={() => addChoice(qIndex)}
+                    onRemoveChoice={(cIndex) => removeChoice(qIndex, cIndex)}
+                    onSetCorrect={(idx) => setCorrectChoiceIndex(qIndex, idx)}
+                    onUpdateTimer={(v) => updateTimerSeconds(qIndex, v)}
+                    onSetType={(t) => setQuestionType(qIndex, t)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+
+            <Stack spacing={2} sx={{ mt: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={addQuestion}
+              >
+                Nouvelle question
+              </Button>
+              <Stack direction="row" spacing={2} flexWrap="wrap">
+                {secondarySubmitLabel && onSecondarySubmit ? (
+                  <>
+                    <Button type="submit" variant="outlined" disabled={loading}>
+                      {submitLabel}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="contained"
+                      disabled={loading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void onSecondarySubmit(e);
+                      }}
+                    >
+                      {secondarySubmitLabel}
+                    </Button>
+                  </>
+                ) : (
+                  <Button type="submit" variant="contained" disabled={loading}>
+                    {submitLabel}
+                  </Button>
+                )}
+                {cancelButton && (
+                  <Button variant="text" onClick={cancelButton.onClick}>
+                    {cancelButton.label}
+                  </Button>
+                )}
+              </Stack>
+            </Stack>
+          </form>
+          {error && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {error.message}
+            </Typography>
+          )}
+        </Box>
+
+        {isDesktop && bankOpen && (
+          <Paper
             variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={addQuestion}
+            sx={{
+              width: 360,
+              flexShrink: 0,
+              position: 'sticky',
+              top: 16,
+              alignSelf: 'flex-start',
+              maxHeight: 'calc(100vh - 32px)',
+              overflow: 'hidden',
+            }}
           >
-            Ajouter une question
-          </Button>
-          <Stack direction="row" spacing={2} flexWrap="wrap">
-            {secondarySubmitLabel && onSecondarySubmit ? (
-              <>
-                <Button type="submit" variant="outlined" disabled={loading}>
-                  {submitLabel}
-                </Button>
-                <Button
-                  type="button"
-                  variant="contained"
-                  disabled={loading}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    void onSecondarySubmit(e);
-                  }}
-                >
-                  {secondarySubmitLabel}
-                </Button>
-              </>
-            ) : (
-              <Button type="submit" variant="contained" disabled={loading}>
-                {submitLabel}
-              </Button>
-            )}
-            {cancelButton && (
-              <Button variant="text" onClick={cancelButton.onClick}>
-                {cancelButton.label}
-              </Button>
-            )}
-          </Stack>
-        </Stack>
-      </form>
-      {error && (
-        <Typography color="error" sx={{ mt: 2 }}>
-          {error.message}
-        </Typography>
+            {bankPanel}
+          </Paper>
+        )}
+      </Stack>
+
+      {!isDesktop && (
+        <Drawer
+          anchor="bottom"
+          open={bankOpen}
+          onClose={() => setBankOpen(false)}
+          PaperProps={{
+            sx: {
+              height: '85vh',
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+            },
+          }}
+        >
+          {bankPanel}
+        </Drawer>
       )}
+
+      <Dialog
+        open={copyOpen}
+        onClose={() => setCopyOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        fullScreen={!isDesktop}
+      >
+        <DialogTitle>Copier depuis un autre QCM</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Les questions restent partagées : elles ne sont pas dupliquées dans
+            la banque.
+          </Typography>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel id="copy-quiz-label">QCM source</InputLabel>
+            <Select
+              labelId="copy-quiz-label"
+              label="QCM source"
+              value={copyQuizId}
+              onChange={(e) => void loadCopyQuiz(e.target.value)}
+            >
+              {quizzes.map((qz) => (
+                <MenuItem key={qz.id} value={qz.id}>
+                  {qz.title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Divider sx={{ mb: 1 }} />
+          <List dense disablePadding>
+            {copyQuestions.map((q) => {
+              const already = linkedIds.has(q.id);
+              return (
+                <ListItemButton
+                  key={q.id}
+                  disabled={already}
+                  onClick={() => addCopiedQuestion(q)}
+                >
+                  <ListItemText
+                    primary={q.label}
+                    secondary={
+                      q.type === 'word_cloud'
+                        ? 'Nuage de mots'
+                        : `${q.choices.length} choix`
+                    }
+                  />
+                  {already ? (
+                    <Chip size="small" label="Déjà ajoutée" />
+                  ) : (
+                    <AddIcon fontSize="small" />
+                  )}
+                </ListItemButton>
+              );
+            })}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCopyOpen(false)}>Fermer</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

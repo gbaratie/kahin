@@ -13,7 +13,7 @@ function QcmCreatePageContent() {
   const router = useRouter();
   const { execute: createQuiz, loading, error } = useCreateQuiz();
   const [title, setTitle] = useState('');
-  const [questions, setQuestions] = useState([{ ...initialQuestion }]);
+  const [questions, setQuestions] = useState([initialQuestion()]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

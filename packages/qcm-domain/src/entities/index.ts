@@ -1,6 +1,7 @@
 export type { Choice } from './Choice';
 export type { Question, QuestionType } from './Question';
 export { isWordCloudQuestion } from './Question';
+export type { Theme } from './Theme';
 export type { Quiz } from './Quiz';
 export type { Participant } from './Participant';
 export type { Answer } from './Answer';

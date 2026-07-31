@@ -18,6 +18,10 @@ const BAD_REQUEST_MESSAGES = new Set([
   'title and questions required',
   'names required',
   'Name not in student roster',
+  'name required',
+  'label required',
+  'Theme name required',
+  'Question label required',
 ]);
 
 function getStatusForError(e: unknown): number {
@@ -25,9 +29,15 @@ function getStatusForError(e: unknown): number {
   const code = (e as ErrorWithCode)?.code;
 
   if (code === 'QUIZ_NOT_FOUND' || message === 'Quiz not found') return 404;
+  if (code === 'THEME_NOT_FOUND' || message === 'Theme not found') return 404;
+  if (code === 'QUESTION_NOT_FOUND' || message === 'Question not found')
+    return 404;
   if (message === 'Session not found') return 404;
   if (BAD_REQUEST_MESSAGES.has(message)) return 400;
-  if (message === 'DATABASE_URL must be set to use PostgresQuizRepository.') {
+  if (
+    message === 'DATABASE_URL must be set to use PostgresQuizRepository.' ||
+    message === 'DATABASE_URL must be set to use Postgres repositories.'
+  ) {
     return 503;
   }
   return 500;
