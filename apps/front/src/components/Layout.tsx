@@ -122,13 +122,17 @@ export default function Layout({ children }: LayoutProps) {
               </Stack>
             )}
 
+            {/* Thème : bandeau desktop uniquement ; sur mobile → menu burger */}
             <IconButton
               color="inherit"
               aria-label={themeToggleLabel(preference)}
               title={themeToggleLabel(preference)}
               onClick={cyclePreference}
               size="small"
-              sx={{ color: 'text.secondary' }}
+              sx={{
+                color: 'text.secondary',
+                display: { xs: 'none', md: 'inline-flex' },
+              }}
             >
               {preference === 'system' ? (
                 <BrightnessAutoOutlined fontSize="small" />
@@ -157,16 +161,14 @@ export default function Layout({ children }: LayoutProps) {
               </IconButton>
             )}
 
-            {hasNavLinks && (
-              <IconButton
-                color="inherit"
-                aria-label="Ouvrir le menu"
-                onClick={() => setMobileMenuOpen(true)}
-                sx={{ display: { xs: 'inline-flex', md: 'none' } }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
+            <IconButton
+              color="inherit"
+              aria-label="Ouvrir le menu"
+              onClick={() => setMobileMenuOpen(true)}
+              sx={{ display: { xs: 'inline-flex', md: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
           </Stack>
         </Stack>
       </Box>
@@ -203,9 +205,9 @@ export default function Layout({ children }: LayoutProps) {
                   </ListItem>
                 ))}
               </List>
+              <Divider sx={{ my: 1 }} />
             </>
           )}
-          <Divider sx={{ my: 1 }} />
           <Box sx={{ px: 2 }}>
             <Button
               fullWidth
