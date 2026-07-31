@@ -22,6 +22,7 @@ kahin/
 ├── docs/
 │   ├── ARCHITECTURE.md  # Principes SOLID, déploiement et diagrammes de séquence
 │   ├── neon.md          # Postgres managé (Neon) : schéma, URI, Render
+│   ├── migration-question-bank.md  # Migration banque de questions (N:M)
 │   └── render-config.md # Détails de configuration Render (optionnel)
 ├── package.json         # Workspaces npm
 └── tsconfig.base.json

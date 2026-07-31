@@ -1,22 +1,20 @@
-import type { Quiz, Question, Choice, QuestionType } from '@kahin/qcm-domain';
-import type { QuizRepository } from '@kahin/qcm-domain';
+import type { Quiz, Question } from '@kahin/qcm-domain';
+import type { QuizRepository, QuestionRepository } from '@kahin/qcm-domain';
+import {
+  buildQuestionFromInput,
+  type QuizQuestionInput,
+} from './CreateQuizUseCase';
 
 export type UpdateQuizInput = {
   title: string;
-  questions: Array<{
-    label: string;
-    type?: QuestionType;
-    choices: Array<{ label: string }>;
-    correctChoiceIndex?: number;
-    timerSeconds?: number;
-  }>;
+  questions: QuizQuestionInput[];
 };
 
-const DEFAULT_QCM_TIMER = 10;
-const DEFAULT_WORD_CLOUD_TIMER = 180;
-
 export class UpdateQuizUseCase {
-  constructor(private readonly quizRepository: QuizRepository) {}
+  constructor(
+    private readonly quizRepository: QuizRepository,
+    private readonly questionRepository?: QuestionRepository
+  ) {}
 
   async execute(quizId: string, input: UpdateQuizInput): Promise<Quiz> {
     const existing = await this.quizRepository.getById(quizId);
@@ -26,29 +24,17 @@ export class UpdateQuizUseCase {
       throw err;
     }
 
-    const questions: Question[] = input.questions.map((q) => {
-      const type = q.type ?? 'qcm';
-      const choices: Choice[] =
-        type === 'word_cloud'
-          ? []
-          : q.choices.map((c) => ({
-              id: crypto.randomUUID(),
-              label: c.label,
-            }));
-      const defaultTimer =
-        type === 'word_cloud' ? DEFAULT_WORD_CLOUD_TIMER : DEFAULT_QCM_TIMER;
-      return {
-        id: crypto.randomUUID(),
-        label: q.label,
-        type,
-        choices,
-        correctChoiceId:
-          type === 'qcm' && q.correctChoiceIndex !== undefined
-            ? choices[q.correctChoiceIndex]?.id
-            : undefined,
-        timerSeconds: q.timerSeconds ?? defaultTimer,
-      };
-    });
+    const questions: Question[] = [];
+    for (const q of input.questions) {
+      let bank: Question | null = null;
+      if (q.id) {
+        bank =
+          (await this.questionRepository?.getById(q.id)) ??
+          existing.questions.find((eq) => eq.id === q.id) ??
+          null;
+      }
+      questions.push(buildQuestionFromInput(q, { existing: bank }));
+    }
 
     const quiz: Quiz = {
       id: quizId,

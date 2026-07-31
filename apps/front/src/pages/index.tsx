@@ -127,14 +127,23 @@ export default function HomePage() {
           {siteName}
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Créez un QCM et lancez une session, ou rejoignez une session avec le
-          code communiqué par l&apos;animateur.
+          Gérez une banque de questions par thématique, composez des QCM
+          réutilisables, ou rejoignez une session avec le code de l&apos;animateur.
         </Typography>
         <Stack spacing={2}>
           <Button
             component={Link}
-            href="/qcm/create"
+            href="/qcm/questions"
             variant="contained"
+            size="large"
+            fullWidth
+          >
+            Banque de questions
+          </Button>
+          <Button
+            component={Link}
+            href="/qcm/create"
+            variant="outlined"
             size="large"
             fullWidth
           >
@@ -244,8 +253,8 @@ export default function HomePage() {
           <DialogContentText id="delete-dialog-description">
             {deleteConfirmQuiz && (
               <>
-                Supprimer le QCM « {deleteConfirmQuiz.title} » ? Cette action
-                est irréversible.
+                Supprimer le QCM « {deleteConfirmQuiz.title} » ? Les questions
+                restent dans la banque et pourront être réutilisées.
               </>
             )}
           </DialogContentText>

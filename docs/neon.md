@@ -7,7 +7,9 @@ L’API Kahin (`apps/api`) utilise **`DATABASE_URL`** pour se connecter à Postg
 1. Crée un projet sur [Neon](https://neon.tech) et note les identifiants (utilisateur, mot de passe, hôte) ou copie directement la **connection string** dans le tableau de bord.
 2. Dans la console Neon : **SQL Editor** → nouvelle requête.
 3. Colle tout le contenu de [`apps/api/db/schema.sql`](../apps/api/db/schema.sql) et exécute.
-4. Vérifie que les tables `quizzes`, `questions` et `choices` existent (onglet **Tables** ou requête `\dt` selon l’outil).
+4. Vérifie que les tables `quizzes`, `questions`, `choices`, `quiz_questions` et `themes` existent (onglet **Tables** ou requête `\dt` selon l’outil).
+
+Pour une base **déjà peuplée** avec l’ancien modèle (`questions.quiz_id`), le même `schema.sql` migre les liaisons vers `quiz_questions` sans perte. Détail : [`docs/migration-question-bank.md`](migration-question-bank.md).
 
 ## 2. Choisir l’URI de connexion
 
