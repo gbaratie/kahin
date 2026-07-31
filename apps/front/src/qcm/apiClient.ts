@@ -86,6 +86,8 @@ function quizInputToApiBody(input: QuizWriteInput) {
       type: q.type,
       choices: (q.choices ?? []).map((c) => ({ label: c.label })),
       correctChoiceIndex: q.correctChoiceIndex,
+      expectedNumber: q.expectedNumber,
+      scoringRange: q.scoringRange,
       timerSeconds: q.timerSeconds,
       themeId: (q as { themeId?: string | null }).themeId,
     })),
