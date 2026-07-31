@@ -99,12 +99,6 @@ Sans ces variables, la connexion et les opérations animateur renvoient une erre
 
 Sur **Render**, ajouter manuellement ces trois variables dans l’environnement du service API (elles ne sont pas dans `render.yaml` pour éviter de commiter des secrets).
 
-### Connexion Microsoft (étudiants)
-
-Pour que les participants s’identifient avec leur **compte Microsoft de l’école** et que le classement / export CSV utilise leur **vrai nom**, configurer Entra ID et les variables `MICROSOFT_*` + `FRONT_ORIGIN` sur l’API. Guide pas à pas : [`docs/microsoft-auth.md`](docs/microsoft-auth.md).
-
-Avec `MICROSOFT_AUTH_REQUIRED=true`, le nom libre est désactivé : seule la connexion Microsoft permet de rejoindre une session.
-
 **Persistance des données** : en **production** (`NODE_ENV=production` et `DATABASE_URL` définie), les **quiz** sont en **Postgres** (ex. Neon). En **développement** ou sans `DATABASE_URL`, ils sont dans un fichier JSON (`apps/api/data/quizzes.json` par défaut). Les **sessions** et réponses restent en mémoire : elles disparaissent au redémarrage de l’API. Pour les persister, il faudrait un stockage dédié côté API.
 
 ## Prérequis
@@ -117,7 +111,6 @@ Avec `MICROSOFT_AUTH_REQUIRED=true`, le nom libre est désactivé : seule la con
 - [Architecture et SOLID](docs/ARCHITECTURE.md) : structure des packages, principes SOLID, déploiement, et **diagrammes de séquence** des flux métier (créer QCM, lancer session, rejoindre, répondre, question suivante, résultat par question).
 - [Postgres sur Neon](docs/neon.md) : schéma SQL, URI de connexion, variables sur Render, import depuis JSON.
 - [Configuration Render](docs/render-config.md) : complément pratique pour l’API hébergée sur Render.
-- [Connexion Microsoft](docs/microsoft-auth.md) : Entra ID pour les participants (noms officiels / notes).
 
 ## Licence
 

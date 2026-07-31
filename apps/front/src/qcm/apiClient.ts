@@ -226,29 +226,16 @@ export const apiAdvanceIfTimeUp = {
   },
 };
 
-export type ApiJoinSessionInput = JoinSessionInput & {
-  microsoftToken?: string;
-};
-
 export const apiJoinSession = {
-  async execute(input: ApiJoinSessionInput): Promise<JoinSessionResult> {
-    const body: {
-      code: string;
-      participantName?: string;
-      microsoftToken?: string;
-    } = {
-      code: input.code.trim().toUpperCase(),
-    };
-    if (input.microsoftToken) {
-      body.microsoftToken = input.microsoftToken;
-    } else {
-      body.participantName = input.participantName?.trim() || 'Participant';
-    }
+  async execute(input: JoinSessionInput): Promise<JoinSessionResult> {
     const { data, error } = await apiFetch<JoinSessionResult>(
       '/api/session/join',
       {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          code: input.code.trim().toUpperCase(),
+          participantName: input.participantName?.trim() || 'Participant',
+        }),
       }
     );
     if (error) throw new Error(error);

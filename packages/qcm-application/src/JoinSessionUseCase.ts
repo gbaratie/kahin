@@ -4,8 +4,6 @@ import type { SessionRepository, RealtimeTransport } from '@kahin/qcm-domain';
 export type JoinSessionInput = {
   code: string;
   participantName: string;
-  /** Jeton Microsoft (vérifié côté API) ; ignoré en mode local. */
-  microsoftToken?: string;
 };
 
 export type JoinSessionResult = {

@@ -12,8 +12,6 @@ const BAD_REQUEST_MESSAGES = new Set([
   'word required for word cloud question',
   'choiceId required for QCM question',
   'code and participantName required',
-  'Invalid or expired Microsoft token',
-  'Microsoft authentication required',
   'participantId and questionId required',
   'provide either choiceId (QCM) or word (nuage de mots), not both',
   'choiceId (QCM) or word (nuage de mots) required',

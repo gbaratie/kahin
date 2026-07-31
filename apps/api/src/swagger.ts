@@ -178,20 +178,10 @@ export const openApiSpec = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['code'],
+                required: ['code', 'participantName'],
                 properties: {
                   code: { type: 'string', example: 'ABC123' },
-                  participantName: {
-                    type: 'string',
-                    example: 'Jean',
-                    description:
-                      'Nom libre (ignoré si microsoftToken est fourni ; interdit si MICROSOFT_AUTH_REQUIRED=true)',
-                  },
-                  microsoftToken: {
-                    type: 'string',
-                    description:
-                      'Jeton participant obtenu via GET /api/auth/microsoft (nom vérifié Microsoft)',
-                  },
+                  participantName: { type: 'string', example: 'Jean' },
                 },
               },
             },
@@ -203,39 +193,6 @@ export const openApiSpec = {
             description: 'code et participantName requis ou session invalide',
           },
           '500': { description: 'Erreur serveur' },
-        },
-      },
-    },
-    '/api/auth/microsoft/status': {
-      get: {
-        summary: 'Statut de la connexion Microsoft (participants)',
-        tags: ['Auth'],
-        responses: {
-          '200': {
-            description: 'enabled / required',
-          },
-        },
-      },
-    },
-    '/api/auth/microsoft': {
-      get: {
-        summary: 'Démarrer OAuth Microsoft (redirection)',
-        tags: ['Auth'],
-        parameters: [
-          {
-            name: 'returnPath',
-            in: 'query',
-            schema: { type: 'string', example: '/' },
-          },
-          {
-            name: 'sessionCode',
-            in: 'query',
-            schema: { type: 'string', example: 'ABC123' },
-          },
-        ],
-        responses: {
-          '302': { description: 'Redirection vers Microsoft' },
-          '503': { description: 'Non configuré' },
         },
       },
     },
