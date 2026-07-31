@@ -83,7 +83,22 @@ BEGIN
 END $$;
 
 -- Liste des élèves (début d'année) : les participants choisissent parmi ces noms
+-- (legacy ; migré automatiquement vers `classes` / `class_roster_names`)
 CREATE TABLE IF NOT EXISTS roster_names (
   name TEXT PRIMARY KEY,
   sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+-- Multi-classes : une session peut être liée à une classe, ou aucune (inscription libre)
+CREATE TABLE IF NOT EXISTS classes (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS class_roster_names (
+  class_id TEXT NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (class_id, name)
 );

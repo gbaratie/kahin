@@ -139,9 +139,27 @@ export const openApiSpec = {
             schema: { type: 'string' },
           },
         ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  classId: {
+                    type: 'string',
+                    nullable: true,
+                    description:
+                      'Id de la classe (liste de noms). Null ou absent = inscription libre.',
+                  },
+                },
+              },
+            },
+          },
+        },
         responses: {
           '201': { description: 'Session lancée' },
-          '404': { description: 'Quiz non trouvé' },
+          '404': { description: 'Quiz ou classe non trouvé' },
           '500': { description: 'Erreur serveur' },
         },
       },
@@ -294,34 +312,34 @@ export const openApiSpec = {
         },
       },
     },
-    '/api/roster': {
+    '/api/classes': {
       get: {
-        summary: 'Liste des élèves (noms pour rejoindre une session)',
-        tags: ['Roster'],
+        summary: 'Liste des classes (id, nom, effectif)',
+        tags: ['Classes'],
         responses: {
           '200': {
-            description: 'Liste des noms',
+            description: 'Classes',
             content: {
               'application/json': {
                 schema: {
-                  type: 'object',
-                  properties: {
-                    names: {
-                      type: 'array',
-                      items: { type: 'string' },
-                      example: ['Alice Martin', 'Bob Dupont'],
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      name: { type: 'string' },
+                      studentCount: { type: 'number' },
                     },
                   },
                 },
               },
             },
           },
-          '500': { description: 'Erreur serveur' },
         },
       },
-      put: {
-        summary: 'Mettre à jour la liste des élèves (animateur)',
-        tags: ['Roster'],
+      post: {
+        summary: 'Créer une classe (animateur)',
+        tags: ['Classes'],
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -329,12 +347,12 @@ export const openApiSpec = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['names'],
+                required: ['name'],
                 properties: {
+                  name: { type: 'string', example: '3e A' },
                   names: {
                     type: 'array',
                     items: { type: 'string' },
-                    example: ['Alice Martin', 'Bob Dupont'],
                   },
                 },
               },
@@ -342,10 +360,29 @@ export const openApiSpec = {
           },
         },
         responses: {
-          '200': { description: 'Liste mise à jour' },
-          '400': { description: 'names requis' },
+          '201': { description: 'Classe créée' },
+          '400': { description: 'Nom requis' },
           '401': { description: 'Non authentifié' },
-          '500': { description: 'Erreur serveur' },
+        },
+      },
+    },
+    '/api/session/join-info': {
+      get: {
+        summary:
+          'Infos pour rejoindre (liste de la classe ou inscription libre)',
+        tags: ['Session'],
+        parameters: [
+          {
+            name: 'code',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          '200': { description: 'Infos de rejoindre' },
+          '400': { description: 'Code manquant' },
+          '404': { description: 'Session non trouvée' },
         },
       },
     },

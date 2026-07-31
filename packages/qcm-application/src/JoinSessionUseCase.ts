@@ -2,7 +2,7 @@ import type { Session, Participant } from '@kahin/qcm-domain';
 import type {
   SessionRepository,
   RealtimeTransport,
-  StudentRosterRepository,
+  ClassRepository,
 } from '@kahin/qcm-domain';
 
 export type JoinSessionInput = {
@@ -23,7 +23,7 @@ export class JoinSessionUseCase {
   constructor(
     private readonly sessionRepository: SessionRepository,
     private readonly realtimeTransport: RealtimeTransport,
-    private readonly rosterRepository?: StudentRosterRepository
+    private readonly classRepository?: ClassRepository
   ) {}
 
   async execute(input: JoinSessionInput): Promise<JoinSessionResult> {
@@ -37,21 +37,24 @@ export class JoinSessionUseCase {
 
     const participantName = input.participantName.trim() || 'Participant';
 
-    const roster = this.rosterRepository
-      ? await this.rosterRepository.get()
-      : null;
-
     let canonicalName = participantName;
-    if (roster && roster.names.length > 0) {
-      const match = roster.names.find((n) => namesMatch(n, participantName));
-      if (!match) {
-        throw new Error('Name not in student roster');
+    if (session.classId && this.classRepository) {
+      const schoolClass = await this.classRepository.getById(session.classId);
+      if (!schoolClass) {
+        throw new Error('Class not found');
       }
-      canonicalName = match;
+      if (schoolClass.names.length > 0) {
+        const match = schoolClass.names.find((n) =>
+          namesMatch(n, participantName)
+        );
+        if (!match) {
+          throw new Error('Name not in student roster');
+        }
+        canonicalName = match;
+      }
     }
 
-    // Reconnexion : si ce nom est déjà dans la session, réutiliser le participant
-    // (évite les doublons au classement et conserve les réponses).
+    // Reconnexion : si ce nom est déjà dans la session, réutiliser le participant.
     const existing = session.participants.find((p) =>
       namesMatch(p.name, canonicalName)
     );

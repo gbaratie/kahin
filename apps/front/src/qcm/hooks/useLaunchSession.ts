@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { Session } from '@kahin/qcm-domain';
+import type { LaunchSessionInput } from '@kahin/qcm-application';
 import { useQcmDependencies } from '../QcmDependenciesContext';
 import { useAsyncCall } from '@/hooks/useAsyncCall';
 
@@ -12,7 +13,7 @@ export function useLaunchSession() {
     result: session,
   } = useAsyncCall(
     useCallback(
-      (quizId: string) => launchSession.execute(quizId),
+      (input: LaunchSessionInput | string) => launchSession.execute(input),
       [launchSession]
     )
   );

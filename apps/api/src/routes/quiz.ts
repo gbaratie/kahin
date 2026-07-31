@@ -54,7 +54,12 @@ quizRoutes.post(
   '/:quizId/launch',
   handleAsync(async (req, res) => {
     const { quizId } = req.params;
-    const session = await launchSessionUseCase.execute(quizId);
+    const body = req.body as { classId?: unknown };
+    let classId: string | null = null;
+    if (body?.classId != null && String(body.classId).trim() !== '') {
+      classId = String(body.classId).trim();
+    }
+    const session = await launchSessionUseCase.execute({ quizId, classId });
     res.status(201).json(session);
   })
 );

@@ -107,7 +107,7 @@ export default function HomePage() {
         </Head>
         <JoinSessionForm
           title={siteName}
-          description="Choisissez votre nom dans la liste de la classe, puis saisissez le code de session. L’animateur se connecte via l’icône en haut à droite."
+          description="Saisissez le code de session, puis choisissez votre nom (ou inscrivez-vous librement selon le choix de l’animateur). L’animateur se connecte via l’icône en haut à droite."
         />
       </Layout>
     );
@@ -151,12 +151,12 @@ export default function HomePage() {
           </Button>
           <Button
             component={Link}
-            href="/qcm/roster"
+            href="/qcm/classes"
             variant="outlined"
             size="large"
             fullWidth
           >
-            Liste des élèves
+            Classes
           </Button>
           <Button
             component={Link}

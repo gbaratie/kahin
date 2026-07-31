@@ -1,6 +1,6 @@
 /**
  * Injection des dépendances : use cases + repositories.
- * Quiz / questions / thèmes / roster : JSON en dev, Postgres en production.
+ * Quiz / questions / thèmes / classes : JSON en dev, Postgres en production.
  * Sessions : in-memory.
  */
 import path from 'path';
@@ -12,8 +12,8 @@ import {
   PostgresQuizRepository,
   PostgresQuestionRepository,
   PostgresThemeRepository,
-  JsonFileStudentRosterRepository,
-  PostgresStudentRosterRepository,
+  JsonFileClassRepository,
+  PostgresClassRepository,
 } from '@kahin/qcm-infrastructure/node';
 import {
   InMemorySessionRepository,
@@ -31,8 +31,12 @@ import {
   GetQuizUseCase,
   ListQuizzesUseCase,
   DeleteQuizUseCase,
-  GetStudentRosterUseCase,
-  UpdateStudentRosterUseCase,
+  ListClassesUseCase,
+  GetClassUseCase,
+  CreateClassUseCase,
+  UpdateClassUseCase,
+  DeleteClassUseCase,
+  GetSessionJoinInfoUseCase,
   CreateThemeUseCase,
   UpdateThemeUseCase,
   DeleteThemeUseCase,
@@ -46,11 +50,18 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const defaultQuizJsonPath = path.join(__dirname, '..', 'data', 'quizzes.json');
 const quizJsonPath = process.env.QUIZ_JSON_PATH ?? defaultQuizJsonPath;
+const defaultClassesJsonPath = path.join(
+  __dirname,
+  '..',
+  'data',
+  'classes.json'
+);
+const classesJsonPath = process.env.CLASSES_JSON_PATH ?? defaultClassesJsonPath;
 const defaultRosterJsonPath = path.join(__dirname, '..', 'data', 'roster.json');
 const rosterJsonPath = process.env.ROSTER_JSON_PATH ?? defaultRosterJsonPath;
 
 export const QUIZ_JSON_STORAGE_PATH = quizJsonPath;
-export const ROSTER_JSON_STORAGE_PATH = rosterJsonPath;
+export const CLASSES_JSON_STORAGE_PATH = classesJsonPath;
 
 function isPostgresStorage(): boolean {
   return (
@@ -79,17 +90,17 @@ function createThemeRepository() {
   return new JsonFileThemeRepository(quizJsonPath);
 }
 
-function createRosterRepository() {
+function createClassRepository() {
   if (isPostgresStorage()) {
-    return new PostgresStudentRosterRepository();
+    return new PostgresClassRepository();
   }
-  return new JsonFileStudentRosterRepository(rosterJsonPath);
+  return new JsonFileClassRepository(classesJsonPath, rosterJsonPath);
 }
 
 const quizRepo = createQuizRepository();
 const questionRepo = createQuestionRepository();
 const themeRepo = createThemeRepository();
-const rosterRepo = createRosterRepository();
+const classRepo = createClassRepository();
 const sessionRepo = new InMemorySessionRepository();
 const realtimeTransport = new MockRealtimeTransport();
 
@@ -109,19 +120,26 @@ export const getQuestionUseCase = new GetQuestionUseCase(questionRepo);
 export const saveQuestionUseCase = new SaveQuestionUseCase(questionRepo);
 export const deleteQuestionUseCase = new DeleteQuestionUseCase(questionRepo);
 
-export const getStudentRosterUseCase = new GetStudentRosterUseCase(rosterRepo);
-export const updateStudentRosterUseCase = new UpdateStudentRosterUseCase(
-  rosterRepo
-);
+export const listClassesUseCase = new ListClassesUseCase(classRepo);
+export const getClassUseCase = new GetClassUseCase(classRepo);
+export const createClassUseCase = new CreateClassUseCase(classRepo);
+export const updateClassUseCase = new UpdateClassUseCase(classRepo);
+export const deleteClassUseCase = new DeleteClassUseCase(classRepo);
+
 export const launchSessionUseCase = new LaunchSessionUseCase(
   quizRepo,
   sessionRepo,
-  realtimeTransport
+  realtimeTransport,
+  classRepo
 );
 export const joinSessionUseCase = new JoinSessionUseCase(
   sessionRepo,
   realtimeTransport,
-  rosterRepo
+  classRepo
+);
+export const getSessionJoinInfoUseCase = new GetSessionJoinInfoUseCase(
+  sessionRepo,
+  classRepo
 );
 export const getSessionUseCase = new GetSessionUseCase(sessionRepo);
 export const submitAnswerUseCase = new SubmitAnswerUseCase(

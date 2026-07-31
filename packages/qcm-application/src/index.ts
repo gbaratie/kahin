@@ -9,6 +9,7 @@ export type {
 export { UpdateQuizUseCase } from './UpdateQuizUseCase';
 export type { UpdateQuizInput } from './UpdateQuizUseCase';
 export { LaunchSessionUseCase } from './LaunchSessionUseCase';
+export type { LaunchSessionInput } from './LaunchSessionUseCase';
 export { JoinSessionUseCase } from './JoinSessionUseCase';
 export type { JoinSessionInput, JoinSessionResult } from './JoinSessionUseCase';
 export { SubmitAnswerUseCase } from './SubmitAnswerUseCase';
@@ -19,7 +20,17 @@ export { GetSessionUseCase } from './GetSessionUseCase';
 export { GetStudentRosterUseCase } from './GetStudentRosterUseCase';
 export { UpdateStudentRosterUseCase } from './UpdateStudentRosterUseCase';
 export type { UpdateStudentRosterInput } from './UpdateStudentRosterUseCase';
-export { normalizeRosterNames } from './UpdateStudentRosterUseCase';
+export { normalizeRosterNames } from './normalizeRosterNames';
+export { ListClassesUseCase } from './ListClassesUseCase';
+export { GetClassUseCase } from './ListClassesUseCase';
+export {
+  CreateClassUseCase,
+  UpdateClassUseCase,
+  DeleteClassUseCase,
+} from './ClassCrudUseCases';
+export type { CreateClassInput, UpdateClassInput } from './ClassCrudUseCases';
+export { GetSessionJoinInfoUseCase } from './GetSessionJoinInfoUseCase';
+export type { SessionJoinInfo } from './GetSessionJoinInfoUseCase';
 export {
   computeRanking,
   pointsForQcmAnswer,

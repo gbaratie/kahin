@@ -8,6 +8,12 @@ export type Session = {
   quizId: string;
   code: string;
   status: SessionStatus;
+  /**
+   * Classe liée à la session.
+   * - `string` : les participants doivent choisir un nom de cette classe.
+   * - `null` / absent : inscription libre (saisie du nom).
+   */
+  classId?: string | null;
   /** Index de la question affichée (ou de la dernière question dont on affiche le résultat). -1 = pas encore démarré. */
   currentQuestionIndex: number;
   /** true = phase après la question (réponses fermées, bonne réponse révélable) ; false = question en cours. */
