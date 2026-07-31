@@ -1,8 +1,16 @@
 import React, { useMemo } from 'react';
-import { Box, Paper, Typography, useTheme } from '@mui/material';
+import { Box, Paper, Typography, useTheme, Stack, Alert } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import type { Question, Session } from '@kahin/qcm-domain';
-import { computeChoiceCounts } from '@kahin/qcm-application';
+import {
+  defaultClosestScoringRange,
+  isClosestQuestion,
+  type Question,
+  type Session,
+} from '@kahin/qcm-domain';
+import {
+  computeChoiceCounts,
+  pointsForClosestAnswer,
+} from '@kahin/qcm-application';
 import {
   BarChart,
   Bar,
@@ -61,9 +69,138 @@ function QuestionFeedbackTooltip({
 type SessionHostQuestionFeedbackProps = {
   session: Session;
   question: Question;
+  questionIndex?: number;
 };
 
-export function SessionHostQuestionFeedback({
+function formatNumber(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+}
+
+function ClosestQuestionFeedback({
+  session,
+  question,
+  questionIndex = 0,
+}: SessionHostQuestionFeedbackProps) {
+  const theme = useTheme();
+
+  const rows = useMemo(() => {
+    const nameById = new Map(session.participants.map((p) => [p.id, p.name]));
+    const expected =
+      typeof question.expectedNumber === 'number'
+        ? question.expectedNumber
+        : null;
+    const list: Array<{
+      participantId: string;
+      name: string;
+      value: number;
+      distance: number;
+      points: number;
+    }> = [];
+    for (const a of session.answers) {
+      if (a.questionId !== question.id) continue;
+      if (typeof a.numberValue !== 'number' || !Number.isFinite(a.numberValue)) {
+        continue;
+      }
+      const distance =
+        expected == null ? 0 : Math.abs(a.numberValue - expected);
+      list.push({
+        participantId: a.participantId,
+        name: nameById.get(a.participantId) ?? 'Participant',
+        value: a.numberValue,
+        distance,
+        points: pointsForClosestAnswer(
+          session,
+          questionIndex,
+          question,
+          a.numberValue,
+          a.answeredAt
+        ),
+      });
+    }
+    list.sort((a, b) => a.distance - b.distance || b.points - a.points);
+    return list;
+  }, [session, question, questionIndex]);
+
+  const range =
+    typeof question.scoringRange === 'number' && question.scoringRange > 0
+      ? question.scoringRange
+      : typeof question.expectedNumber === 'number'
+        ? defaultClosestScoringRange(question.expectedNumber)
+        : null;
+
+  return (
+    <Paper sx={{ p: 2, mb: 2 }}>
+      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+        Résultat de la question
+      </Typography>
+      <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
+        {question.label}
+      </Typography>
+
+      <Alert severity="success" sx={{ mb: 2 }}>
+        Réponse attendue :{' '}
+        <strong>
+          {typeof question.expectedNumber === 'number'
+            ? formatNumber(question.expectedNumber)
+            : '—'}
+        </strong>
+        {range != null ? (
+          <Typography component="span" variant="body2" sx={{ ml: 1 }}>
+            (0 pt à ±{formatNumber(range)})
+          </Typography>
+        ) : null}
+      </Alert>
+
+      {rows.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          Aucune réponse numérique.
+        </Typography>
+      ) : (
+        <Stack spacing={1}>
+          {rows.map((row, index) => (
+            <Box
+              key={row.participantId}
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 1,
+                alignItems: 'baseline',
+                py: 0.75,
+                px: 1,
+                borderRadius: 1,
+                bgcolor:
+                  index === 0
+                    ? alpha(theme.palette.success.main, 0.12)
+                    : 'transparent',
+                border: `1px solid ${
+                  index === 0
+                    ? theme.palette.success.main
+                    : theme.palette.divider
+                }`,
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {index + 1}. {row.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {formatNumber(row.value)}
+                {typeof question.expectedNumber === 'number' ? (
+                  <>
+                    {' '}
+                    (écart {formatNumber(row.distance)}) — {row.points} pt
+                    {row.points !== 1 ? 's' : ''}
+                  </>
+                ) : null}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+      )}
+    </Paper>
+  );
+}
+
+function QcmQuestionFeedback({
   session,
   question,
 }: SessionHostQuestionFeedbackProps) {
@@ -193,4 +330,21 @@ export function SessionHostQuestionFeedback({
       )}
     </Paper>
   );
+}
+
+export function SessionHostQuestionFeedback({
+  session,
+  question,
+  questionIndex,
+}: SessionHostQuestionFeedbackProps) {
+  if (isClosestQuestion(question)) {
+    return (
+      <ClosestQuestionFeedback
+        session={session}
+        question={question}
+        questionIndex={questionIndex}
+      />
+    );
+  }
+  return <QcmQuestionFeedback session={session} question={question} />;
 }

@@ -7,7 +7,9 @@ import type {
 } from '@kahin/qcm-domain';
 
 function parseQuestionType(raw: string | null | undefined): QuestionType {
-  return raw === 'word_cloud' ? 'word_cloud' : 'qcm';
+  if (raw === 'word_cloud') return 'word_cloud';
+  if (raw === 'closest') return 'closest';
+  return 'qcm';
 }
 
 type PgPool = {
@@ -56,15 +58,29 @@ async function upsertQuestion(
 ): Promise<void> {
   const timerSeconds = question.timerSeconds ?? 10;
   const questionType = parseQuestionType(question.type);
+  const expectedNumber =
+    questionType === 'closest' &&
+    typeof question.expectedNumber === 'number' &&
+    Number.isFinite(question.expectedNumber)
+      ? question.expectedNumber
+      : null;
+  const scoringRange =
+    questionType === 'closest' &&
+    typeof question.scoringRange === 'number' &&
+    question.scoringRange > 0
+      ? question.scoringRange
+      : null;
   await client.query(
     `
-    INSERT INTO questions (id, label, timer_seconds, question_type, theme_id)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO questions (id, label, timer_seconds, question_type, theme_id, expected_number, scoring_range)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (id) DO UPDATE SET
       label = EXCLUDED.label,
       timer_seconds = EXCLUDED.timer_seconds,
       question_type = EXCLUDED.question_type,
-      theme_id = EXCLUDED.theme_id
+      theme_id = EXCLUDED.theme_id,
+      expected_number = EXCLUDED.expected_number,
+      scoring_range = EXCLUDED.scoring_range
     `,
     [
       question.id,
@@ -72,6 +88,8 @@ async function upsertQuestion(
       timerSeconds,
       questionType,
       question.themeId ?? null,
+      expectedNumber,
+      scoringRange,
     ]
   );
 
@@ -116,6 +134,8 @@ async function loadQuestionById(
     question_type: string | null;
     correct_choice_id: string | null;
     theme_id: string | null;
+    expected_number: number | string | null;
+    scoring_range: number | string | null;
     choice_id: string | null;
     choice_label: string | null;
   }>(
@@ -126,6 +146,8 @@ async function loadQuestionById(
            q.question_type,
            q.correct_choice_id,
            q.theme_id,
+           q.expected_number,
+           q.scoring_range,
            c.id AS choice_id,
            c.label AS choice_label
     FROM questions q
@@ -146,6 +168,8 @@ async function loadQuestionById(
     timerSeconds: first.timer_seconds ?? undefined,
     correctChoiceId: first.correct_choice_id ?? undefined,
     themeId: first.theme_id ?? undefined,
+    expectedNumber: parseOptionalDbNumber(first.expected_number),
+    scoringRange: parseOptionalDbNumber(first.scoring_range),
     choices: [],
   };
 
@@ -155,6 +179,14 @@ async function loadQuestionById(
     }
   }
   return question;
+}
+
+function parseOptionalDbNumber(
+  value: number | string | null | undefined
+): number | undefined {
+  if (value == null) return undefined;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 export class PostgresQuizRepository implements QuizRepository {
@@ -225,6 +257,8 @@ export class PostgresQuizRepository implements QuizRepository {
         question_type: string | null;
         correct_choice_id: string | null;
         theme_id: string | null;
+        expected_number: number | string | null;
+        scoring_range: number | string | null;
         choice_id: string | null;
         choice_label: string | null;
         qq_sort: number;
@@ -236,6 +270,8 @@ export class PostgresQuizRepository implements QuizRepository {
                q.question_type,
                q.correct_choice_id,
                q.theme_id,
+               q.expected_number,
+               q.scoring_range,
                c.id AS choice_id,
                c.label AS choice_label,
                qq.sort_order AS qq_sort
@@ -261,6 +297,8 @@ export class PostgresQuizRepository implements QuizRepository {
             timerSeconds: row.timer_seconds ?? undefined,
             correctChoiceId: row.correct_choice_id ?? undefined,
             themeId: row.theme_id ?? undefined,
+            expectedNumber: parseOptionalDbNumber(row.expected_number),
+            scoringRange: parseOptionalDbNumber(row.scoring_range),
             choices: [],
           };
           questionsMap.set(row.id, question);
@@ -322,6 +360,8 @@ export class PostgresQuestionRepository implements QuestionRepository {
         question_type: string | null;
         correct_choice_id: string | null;
         theme_id: string | null;
+        expected_number: number | string | null;
+        scoring_range: number | string | null;
         choice_id: string | null;
         choice_label: string | null;
       }>(
@@ -332,6 +372,8 @@ export class PostgresQuestionRepository implements QuestionRepository {
                q.question_type,
                q.correct_choice_id,
                q.theme_id,
+               q.expected_number,
+               q.scoring_range,
                c.id AS choice_id,
                c.label AS choice_label
         FROM questions q
@@ -354,6 +396,8 @@ export class PostgresQuestionRepository implements QuestionRepository {
             timerSeconds: row.timer_seconds ?? undefined,
             correctChoiceId: row.correct_choice_id ?? undefined,
             themeId: row.theme_id ?? undefined,
+            expectedNumber: parseOptionalDbNumber(row.expected_number),
+            scoringRange: parseOptionalDbNumber(row.scoring_range),
             choices: [],
           };
           map.set(row.id, q);

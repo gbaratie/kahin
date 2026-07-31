@@ -6,6 +6,7 @@ export type AnswerBodyPayload = {
   questionId: string;
   choiceId?: string;
   word?: string;
+  numberValue?: number;
 };
 
 export function validateJoinBody(body: unknown): JoinSessionInput {
@@ -21,6 +22,15 @@ export function validateJoinBody(body: unknown): JoinSessionInput {
   };
 }
 
+function parseNumberValue(v: unknown): number | undefined {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v.replace(',', '.'));
+    if (Number.isFinite(n)) return n;
+  }
+  return undefined;
+}
+
 export function validateAnswerBody(
   sessionId: string,
   body: unknown
@@ -30,18 +40,27 @@ export function validateAnswerBody(
     questionId?: unknown;
     choiceId?: unknown;
     word?: unknown;
+    numberValue?: unknown;
   };
   const { participantId, questionId, choiceId, word } = b;
+  const numberValue = parseNumberValue(b.numberValue);
   if (!participantId || !questionId) {
     throw new Error('participantId and questionId required');
   }
-  if (choiceId != null && word != null) {
+  const provided = [
+    choiceId != null,
+    word != null,
+    numberValue !== undefined,
+  ].filter(Boolean).length;
+  if (provided > 1) {
     throw new Error(
-      'provide either choiceId (QCM) or word (nuage de mots), not both'
+      'provide either choiceId (QCM), word (nuage de mots) or numberValue (au plus proche), not several'
     );
   }
-  if (choiceId == null && word == null) {
-    throw new Error('choiceId (QCM) or word (nuage de mots) required');
+  if (provided === 0) {
+    throw new Error(
+      'choiceId (QCM), word (nuage de mots) or numberValue (au plus proche) required'
+    );
   }
   const payload: AnswerBodyPayload = {
     sessionId,
@@ -50,5 +69,6 @@ export function validateAnswerBody(
   };
   if (choiceId != null) payload.choiceId = String(choiceId);
   if (word != null) payload.word = String(word).trim();
+  if (numberValue !== undefined) payload.numberValue = numberValue;
   return payload;
 }

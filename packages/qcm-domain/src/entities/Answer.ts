@@ -5,5 +5,7 @@ export type Answer = {
   choiceId?: string;
   /** Pour une question nuage de mots : liste des mots soumis (plusieurs par participant). */
   words?: string[];
+  /** Pour une question au plus proche : valeur numérique soumise. */
+  numberValue?: number;
   answeredAt: Date;
 };

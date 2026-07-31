@@ -34,6 +34,7 @@ export type { SessionJoinInfo } from './GetSessionJoinInfoUseCase';
 export {
   computeRanking,
   pointsForQcmAnswer,
+  pointsForClosestAnswer,
   POINTS_PER_QUESTION,
 } from './ranking';
 export type { RankEntry } from './ranking';

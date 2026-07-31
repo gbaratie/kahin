@@ -30,7 +30,7 @@ L’app **front** contient la **couche présentation** (context, hooks, composan
 
 ### **S – Single Responsibility (Responsabilité unique)**
 
-- **Entités** : ne portent que les données et invariants métier (ex. `Session`, `Quiz`, `Question` avec type `qcm` ou `word_cloud`, `Answer` avec choiceId ou words).
+- **Entités** : ne portent que les données et invariants métier (ex. `Session`, `Quiz`, `Question` avec type `qcm`, `word_cloud` ou `closest`, `Answer` avec choiceId, words ou numberValue).
 - **Use cases** : un cas d’usage = une action métier (ex. `CreateQuizUseCase` ne fait que créer un quiz).
 - **Repositories / Transport** : une seule raison de changer (persistance quiz, persistance session, temps réel).
 - **Middleware d’erreur** : une seule responsabilité — transformer les erreurs en réponses HTTP (code + message).

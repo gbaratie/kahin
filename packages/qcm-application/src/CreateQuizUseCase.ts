@@ -8,6 +8,8 @@ export type QuizQuestionInput = {
   type?: QuestionType;
   choices: Array<{ label: string }>;
   correctChoiceIndex?: number;
+  expectedNumber?: number;
+  scoringRange?: number;
   timerSeconds?: number;
   themeId?: string | null;
 };
@@ -19,6 +21,7 @@ export type CreateQuizInput = {
 
 const DEFAULT_QCM_TIMER = 10;
 const DEFAULT_WORD_CLOUD_TIMER = 180;
+const DEFAULT_CLOSEST_TIMER = 15;
 
 export function buildQuestionFromInput(
   input: QuizQuestionInput,
@@ -29,18 +32,40 @@ export function buildQuestionFromInput(
   const type = input.type ?? 'qcm';
   const existing = options?.existing ?? null;
   const choices: Choice[] =
-    type === 'word_cloud'
+    type === 'word_cloud' || type === 'closest'
       ? []
       : input.choices.map((c) => {
           const same = existing?.choices.find((bc) => bc.label === c.label);
           return { id: same?.id ?? crypto.randomUUID(), label: c.label };
         });
   const defaultTimer =
-    type === 'word_cloud' ? DEFAULT_WORD_CLOUD_TIMER : DEFAULT_QCM_TIMER;
+    type === 'word_cloud'
+      ? DEFAULT_WORD_CLOUD_TIMER
+      : type === 'closest'
+        ? DEFAULT_CLOSEST_TIMER
+        : DEFAULT_QCM_TIMER;
   const themeId =
     input.themeId === null
       ? undefined
       : (input.themeId ?? existing?.themeId);
+
+  const expectedNumber =
+    type === 'closest' && typeof input.expectedNumber === 'number'
+      ? input.expectedNumber
+      : type === 'closest'
+        ? existing?.expectedNumber
+        : undefined;
+  if (type === 'closest' && typeof expectedNumber !== 'number') {
+    throw new Error('expectedNumber required for closest question');
+  }
+  const scoringRange =
+    type === 'closest' &&
+    typeof input.scoringRange === 'number' &&
+    input.scoringRange > 0
+      ? input.scoringRange
+      : type === 'closest'
+        ? existing?.scoringRange
+        : undefined;
 
   return {
     id: existing?.id ?? input.id ?? crypto.randomUUID(),
@@ -51,6 +76,8 @@ export function buildQuestionFromInput(
       type === 'qcm' && input.correctChoiceIndex !== undefined
         ? choices[input.correctChoiceIndex]?.id
         : undefined,
+    expectedNumber,
+    scoringRange,
     timerSeconds: input.timerSeconds ?? existing?.timerSeconds ?? defaultTimer,
     themeId,
   };

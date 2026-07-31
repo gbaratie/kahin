@@ -12,6 +12,7 @@ import {
 import Link from 'next/link';
 import {
   isWordCloudQuestion,
+  isClosestQuestion,
   type Answer,
   type Question,
   type Quiz,
@@ -21,7 +22,7 @@ import { useSessionStream } from '../hooks/useSessionStream';
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer';
 import { useSession } from '../hooks/useSession';
 import { useQcmDependencies } from '../QcmDependenciesContext';
-import { computeRanking } from '@kahin/qcm-application';
+import { computeRanking, pointsForClosestAnswer } from '@kahin/qcm-application';
 import {
   isApiMode,
   apiAdvanceIfTimeUp,
@@ -63,6 +64,7 @@ export function SessionParticipantView({
   );
   const [wordInput, setWordInput] = useState('');
   const [mySubmittedWords, setMySubmittedWords] = useState<string[]>([]);
+  const [numberInput, setNumberInput] = useState('');
   const [hasAnsweredCurrentQuestion, setHasAnsweredCurrentQuestion] =
     React.useState(false);
   const [timeUpForCurrentQuestion, setTimeUpForCurrentQuestion] =
@@ -134,7 +136,7 @@ export function SessionParticipantView({
     return quiz.questions[idx];
   }, [quiz, effectiveSession, showQuestionFeedbackOnly]);
 
-  /** Résultat personnel (QCM uniquement) sur l’écran « Résultat de la question ». */
+  /** Résultat personnel (QCM / au plus proche) sur l’écran « Résultat de la question ». */
   const myFeedbackQcmOutcome = useMemo(():
     | 'correct'
     | 'incorrect'
@@ -142,6 +144,7 @@ export function SessionParticipantView({
     | null => {
     if (!effectiveSession || !feedbackQuestionForResults) return null;
     if (isWordCloudQuestion(feedbackQuestionForResults)) return null;
+    if (isClosestQuestion(feedbackQuestionForResults)) return null;
     const correctId = feedbackQuestionForResults.correctChoiceId;
     if (!correctId) return null;
     const mine = effectiveSession.answers.filter(
@@ -154,6 +157,40 @@ export function SessionParticipantView({
     if (mine.length === 0) return 'no_answer';
     const last = mine[mine.length - 1] as Answer & { choiceId: string };
     return last.choiceId === correctId ? 'correct' : 'incorrect';
+  }, [effectiveSession, feedbackQuestionForResults, participantId]);
+
+  const myClosestFeedback = useMemo(() => {
+    if (!effectiveSession || !feedbackQuestionForResults) return null;
+    if (!isClosestQuestion(feedbackQuestionForResults)) return null;
+    const mine = effectiveSession.answers.find(
+      (a) =>
+        a.participantId === participantId &&
+        a.questionId === feedbackQuestionForResults.id &&
+        typeof a.numberValue === 'number'
+    );
+    const questionIndex = effectiveSession.currentQuestionIndex;
+    if (!mine || typeof mine.numberValue !== 'number') {
+      return { kind: 'no_answer' as const };
+    }
+    const expected = feedbackQuestionForResults.expectedNumber;
+    const distance =
+      typeof expected === 'number'
+        ? Math.abs(mine.numberValue - expected)
+        : null;
+    const points = pointsForClosestAnswer(
+      effectiveSession,
+      questionIndex,
+      feedbackQuestionForResults,
+      mine.numberValue,
+      mine.answeredAt
+    );
+    return {
+      kind: 'answered' as const,
+      value: mine.numberValue,
+      expected,
+      distance,
+      points,
+    };
   }, [effectiveSession, feedbackQuestionForResults, participantId]);
 
   const participantFeedbackWordCloudWords = useMemo(() => {
@@ -184,6 +221,9 @@ export function SessionParticipantView({
   const isWordCloud = isWordCloudQuestion(
     currentQuestionData as Question | undefined
   );
+  const isClosest = isClosestQuestion(
+    currentQuestionData as Question | undefined
+  );
 
   // Réinitialiser "a répondu" et "temps écoulé" quand une nouvelle question est affichée (pas quand on passe aux résultats)
   const currentQuestionId = currentQuestion?.question.id;
@@ -193,6 +233,7 @@ export function SessionParticipantView({
       setTimeUpForCurrentQuestion(false);
       setMySubmittedWords([]);
       setWordInput('');
+      setNumberInput('');
       advanceCalledRef.current = false;
     }
   }, [currentQuestionId]);
@@ -220,7 +261,8 @@ export function SessionParticipantView({
 
   // Timer : calcul du temps restant et appel advance-if-time-up à 0
   const timerSeconds =
-    currentQuestionData?.timerSeconds ?? (isWordCloud ? 180 : 10);
+    currentQuestionData?.timerSeconds ??
+    (isWordCloud ? 180 : isClosest ? 15 : 10);
   const questionShownAt = currentQuestion?.questionShownAt;
   useEffect(() => {
     if (!questionShownAt || hasAnsweredCurrentQuestion) {
@@ -270,6 +312,25 @@ export function SessionParticipantView({
         setMySubmittedWords((prev) => [...prev, w]);
         setWordInput('');
         refetch();
+      } catch {
+        // L'erreur est déjà affichée par useSubmitAnswer
+      }
+      return;
+    }
+    if (isClosest) {
+      const raw = numberInput.trim().replace(',', '.');
+      if (!raw) return;
+      const numberValue = Number(raw);
+      if (!Number.isFinite(numberValue)) return;
+      try {
+        await submitAnswer({
+          sessionId,
+          participantId,
+          questionId: currentQuestion.question.id,
+          numberValue,
+        } as SubmitAnswerInput);
+        setNumberInput('');
+        setHasAnsweredCurrentQuestion(true);
       } catch {
         // L'erreur est déjà affichée par useSubmitAnswer
       }
@@ -340,6 +401,43 @@ export function SessionParticipantView({
               </Typography>
             </Alert>
           )}
+          {myClosestFeedback?.kind === 'no_answer' && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body1" fontWeight={500}>
+                Vous n&apos;avez pas répondu à cette question.
+              </Typography>
+            </Alert>
+          )}
+          {myClosestFeedback?.kind === 'answered' && (
+            <Alert
+              severity={
+                myClosestFeedback.points >= 800
+                  ? 'success'
+                  : myClosestFeedback.points > 0
+                    ? 'info'
+                    : 'warning'
+              }
+              sx={{ mb: 2 }}
+            >
+              <Typography variant="body1" fontWeight={600}>
+                Votre réponse : {myClosestFeedback.value}
+                {typeof myClosestFeedback.expected === 'number'
+                  ? ` (attendu : ${myClosestFeedback.expected})`
+                  : ''}
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {myClosestFeedback.points} point
+                {myClosestFeedback.points !== 1 ? 's' : ''}
+                {myClosestFeedback.distance != null
+                  ? ` — écart ${
+                      Number.isInteger(myClosestFeedback.distance)
+                        ? myClosestFeedback.distance
+                        : Math.round(myClosestFeedback.distance * 100) / 100
+                    }`
+                  : ''}
+              </Typography>
+            </Alert>
+          )}
           {isWordCloudQuestion(feedbackQuestionForResults) ? (
             <SessionHostDisplayedQuestion
               displayedQuestion={feedbackQuestionForResults}
@@ -351,6 +449,7 @@ export function SessionParticipantView({
             <SessionHostQuestionFeedback
               session={effectiveSession}
               question={feedbackQuestionForResults}
+              questionIndex={effectiveSession.currentQuestionIndex}
             />
           )}
           <Typography
@@ -427,7 +526,7 @@ export function SessionParticipantView({
     );
   }
 
-  // Le participant a déjà répondu à cette question (QCM uniquement) : page d'attente
+  // Le participant a déjà répondu à cette question (QCM / au plus proche) : page d'attente
   if (!isWordCloud && hasAnsweredCurrentQuestion) {
     return (
       <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
@@ -515,6 +614,41 @@ export function SessionParticipantView({
               Mots envoyés : {displayedMyWords.join(', ')}
             </Typography>
           )}
+        </>
+      ) : isClosest ? (
+        <>
+          <TextField
+            fullWidth
+            type="number"
+            size="medium"
+            placeholder="Votre estimation…"
+            value={numberInput}
+            onChange={(e) => setNumberInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void handleSubmit();
+              }
+            }}
+            inputProps={{
+              step: 'any',
+              'aria-label': 'Réponse numérique',
+            }}
+            sx={{ mb: 2 }}
+          />
+          <Button
+            variant="contained"
+            size="large"
+            fullWidth
+            onClick={() => void handleSubmit()}
+            disabled={
+              !numberInput.trim() ||
+              !Number.isFinite(Number(numberInput.trim().replace(',', '.'))) ||
+              loading
+            }
+          >
+            {loading ? 'Envoi…' : 'Valider'}
+          </Button>
         </>
       ) : (
         <>
