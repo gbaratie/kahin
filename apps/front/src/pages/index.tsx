@@ -31,6 +31,15 @@ import type { QuizSummary } from '@/qcm/apiClient';
 import { getErrorMessage } from '@kahin/shared-utils';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
+const homeNavButtonSx = {
+  py: 1,
+  fontSize: { xs: '0.8rem', sm: '0.875rem' },
+  justifyContent: 'center',
+  textAlign: 'center',
+  whiteSpace: 'normal',
+  lineHeight: 1.3,
+} as const;
+
 function loadQuizzes(
   setQuizzes: (q: QuizSummary[]) => void,
   setLoading: (l: boolean) => void,
@@ -165,7 +174,7 @@ export default function HomePage() {
               variant="contained"
               size="medium"
               fullWidth
-              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+              sx={homeNavButtonSx}
             >
               Banque de questions
             </Button>
@@ -175,7 +184,7 @@ export default function HomePage() {
               variant="outlined"
               size="medium"
               fullWidth
-              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+              sx={homeNavButtonSx}
             >
               Créer un QCM
             </Button>
@@ -185,7 +194,7 @@ export default function HomePage() {
               variant="outlined"
               size="medium"
               fullWidth
-              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+              sx={homeNavButtonSx}
             >
               Classes
             </Button>
@@ -195,7 +204,7 @@ export default function HomePage() {
               variant="outlined"
               size="medium"
               fullWidth
-              sx={{ py: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+              sx={homeNavButtonSx}
             >
               Rejoindre
             </Button>

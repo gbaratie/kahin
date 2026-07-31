@@ -41,6 +41,15 @@ export function createAppTheme(mode: PaletteMode): Theme {
           html: { colorScheme: mode },
         },
       },
+      // text-align: center so wrapped multi-line labels stay centered
+      // (justify-content alone only centers the flex item as a whole).
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textAlign: 'center',
+          },
+        },
+      },
       MuiCard: {
         styleOverrides: {
           root: {
