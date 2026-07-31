@@ -24,9 +24,15 @@ export const navItemCreateQuiz: NavItem = {
   href: '/qcm/create',
 };
 
+export const navItemRoster: NavItem = {
+  label: 'Élèves',
+  href: '/qcm/roster',
+};
+
 /** Navigation complète (animateur connecté ou mode bypass sans API). */
 export const navItems: NavItem[] = [
   navItemsParticipant[0],
   navItemCreateQuiz,
+  navItemRoster,
   navItemsParticipant[1],
 ];

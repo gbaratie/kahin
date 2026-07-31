@@ -5,3 +5,4 @@ export type { Quiz } from './Quiz';
 export type { Participant } from './Participant';
 export type { Answer } from './Answer';
 export type { Session, SessionStatus } from './Session';
+export type { StudentRoster } from './StudentRoster';

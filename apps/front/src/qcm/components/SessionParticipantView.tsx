@@ -9,6 +9,7 @@ import {
   LinearProgress,
   TextField,
 } from '@mui/material';
+import Link from 'next/link';
 import {
   isWordCloudQuestion,
   type Answer,
@@ -26,6 +27,7 @@ import {
   apiAdvanceIfTimeUp,
   apiGetSessionQuizForParticipant,
 } from '../apiClient';
+import { clearRememberedParticipantName } from '../participantIdentity';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
 import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
@@ -113,6 +115,17 @@ export function SessionParticipantView({
     ? ranking.findIndex((e) => e.participantId === participantId) + 1
     : 0;
   const top10 = ranking.slice(0, TOP_RANKING_LIMIT);
+
+  const myParticipantName = useMemo(() => {
+    const fromSession = effectiveSession?.participants.find(
+      (p) => p.id === participantId
+    )?.name;
+    return fromSession ?? myEntry?.participantName ?? null;
+  }, [effectiveSession, participantId, myEntry]);
+
+  const handleChangeIdentity = () => {
+    clearRememberedParticipantName();
+  };
 
   const feedbackQuestionForResults = useMemo(() => {
     if (!quiz || !effectiveSession || !showQuestionFeedbackOnly) return null;
@@ -355,6 +368,25 @@ export function SessionParticipantView({
         {timeUpForCurrentQuestion && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             Le temps est écoulé
+          </Alert>
+        )}
+        {rankingUpTo === 0 && myParticipantName && (
+          <Alert
+            severity="info"
+            sx={{ mb: 2 }}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                component={Link}
+                href="/"
+                onClick={handleChangeIdentity}
+              >
+                Changer
+              </Button>
+            }
+          >
+            Connecté en tant que <strong>{myParticipantName}</strong>
           </Alert>
         )}
         <Box sx={{ textAlign: 'center', mb: 3 }}>

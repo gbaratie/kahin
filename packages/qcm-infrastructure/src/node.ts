@@ -4,3 +4,5 @@
  */
 export { JsonFileQuizRepository } from './JsonFileQuizRepository';
 export { PostgresQuizRepository } from './PostgresQuizRepository';
+export { JsonFileStudentRosterRepository } from './JsonFileStudentRosterRepository';
+export { PostgresStudentRosterRepository } from './PostgresStudentRosterRepository';

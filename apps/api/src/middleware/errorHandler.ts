@@ -16,6 +16,8 @@ const BAD_REQUEST_MESSAGES = new Set([
   'provide either choiceId (QCM) or word (nuage de mots), not both',
   'choiceId (QCM) or word (nuage de mots) required',
   'title and questions required',
+  'names required',
+  'Name not in student roster',
 ]);
 
 function getStatusForError(e: unknown): number {

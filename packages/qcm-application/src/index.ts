@@ -13,6 +13,10 @@ export type { SubmitAnswerInput } from './SubmitAnswerUseCase';
 export { NextQuestionUseCase } from './NextQuestionUseCase';
 export { AdvanceIfTimeUpUseCase } from './AdvanceIfTimeUpUseCase';
 export { GetSessionUseCase } from './GetSessionUseCase';
+export { GetStudentRosterUseCase } from './GetStudentRosterUseCase';
+export { UpdateStudentRosterUseCase } from './UpdateStudentRosterUseCase';
+export type { UpdateStudentRosterInput } from './UpdateStudentRosterUseCase';
+export { normalizeRosterNames } from './UpdateStudentRosterUseCase';
 export {
   computeRanking,
   pointsForQcmAnswer,

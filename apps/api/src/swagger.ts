@@ -294,6 +294,61 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/roster': {
+      get: {
+        summary: 'Liste des élèves (noms pour rejoindre une session)',
+        tags: ['Roster'],
+        responses: {
+          '200': {
+            description: 'Liste des noms',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    names: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      example: ['Alice Martin', 'Bob Dupont'],
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '500': { description: 'Erreur serveur' },
+        },
+      },
+      put: {
+        summary: 'Mettre à jour la liste des élèves (animateur)',
+        tags: ['Roster'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['names'],
+                properties: {
+                  names: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    example: ['Alice Martin', 'Bob Dupont'],
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Liste mise à jour' },
+          '400': { description: 'names requis' },
+          '401': { description: 'Non authentifié' },
+          '500': { description: 'Erreur serveur' },
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
