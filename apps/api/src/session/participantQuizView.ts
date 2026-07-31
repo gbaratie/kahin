@@ -1,14 +1,17 @@
 import type { Quiz, Question, Session } from '@kahin/qcm-domain';
 
-function withoutCorrectChoice(q: Question): Question {
+function withoutHiddenAnswers(q: Question): Question {
   const copy = { ...q };
   delete copy.correctChoiceId;
+  delete copy.expectedNumber;
+  delete copy.scoringRange;
   return copy;
 }
 
 /**
- * Masque correctChoiceId pour les questions dont la bonne réponse ne doit pas
- * encore être connue (question en cours en phase réponse, ou questions futures).
+ * Masque correctChoiceId / expectedNumber pour les questions dont la bonne
+ * réponse ne doit pas encore être connue (question en cours en phase réponse,
+ * ou questions futures).
  */
 export function redactQuizForParticipant(session: Session, quiz: Quiz): Quiz {
   const idx = session.currentQuestionIndex;
@@ -22,18 +25,18 @@ export function redactQuizForParticipant(session: Session, quiz: Quiz): Quiz {
         return q;
       }
       if (questionIndex > idx) {
-        return withoutCorrectChoice(q);
+        return withoutHiddenAnswers(q);
       }
       if (questionIndex < idx) {
         return q;
       }
       if (idx < 0) {
-        return withoutCorrectChoice(q);
+        return withoutHiddenAnswers(q);
       }
       if (showingResult) {
         return q;
       }
-      return withoutCorrectChoice(q);
+      return withoutHiddenAnswers(q);
     }),
   };
 }

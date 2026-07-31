@@ -58,6 +58,8 @@ type EditorState = {
   type: QuestionType;
   choices: string[];
   correctChoiceIndex?: number;
+  expectedNumber?: number | '';
+  scoringRange?: number | '';
   timerSeconds: number;
   themeId: string | null;
 };
@@ -69,6 +71,11 @@ const emptyEditor = (): EditorState => ({
   timerSeconds: 10,
   themeId: null,
 });
+
+function resolveQuestionType(type: QuestionType | undefined): QuestionType {
+  if (type === 'word_cloud' || type === 'closest') return type;
+  return 'qcm';
+}
 
 function QuestionBankPageContent() {
   const [themes, setThemes] = useState<ThemeDto[]>([]);
@@ -152,7 +159,7 @@ function QuestionBankPageContent() {
         setError('Question introuvable');
         return;
       }
-      const type: QuestionType = q.type === 'word_cloud' ? 'word_cloud' : 'qcm';
+      const type = resolveQuestionType(q.type);
       const correctChoiceIndex =
         type === 'qcm' && q.correctChoiceId
           ? q.choices.findIndex((c) => c.id === q.correctChoiceId)
@@ -162,7 +169,7 @@ function QuestionBankPageContent() {
         label: q.label,
         type,
         choices:
-          type === 'word_cloud'
+          type === 'word_cloud' || type === 'closest'
             ? []
             : q.choices.length
               ? q.choices.map((c) => c.label)
@@ -171,7 +178,21 @@ function QuestionBankPageContent() {
           correctChoiceIndex != null && correctChoiceIndex >= 0
             ? correctChoiceIndex
             : undefined,
-        timerSeconds: q.timerSeconds ?? (type === 'word_cloud' ? 180 : 10),
+        expectedNumber:
+          type === 'closest' && typeof q.expectedNumber === 'number'
+            ? q.expectedNumber
+            : type === 'closest'
+              ? ''
+              : undefined,
+        scoringRange:
+          type === 'closest' && typeof q.scoringRange === 'number'
+            ? q.scoringRange
+            : type === 'closest'
+              ? ''
+              : undefined,
+        timerSeconds:
+          q.timerSeconds ??
+          (type === 'word_cloud' ? 180 : type === 'closest' ? 15 : 10),
         themeId: q.themeId ?? null,
       });
       setEditorOpen(true);
@@ -185,7 +206,7 @@ function QuestionBankPageContent() {
     setError(null);
     try {
       const choices =
-        editor.type === 'word_cloud'
+        editor.type === 'word_cloud' || editor.type === 'closest'
           ? []
           : editor.choices
               .filter((c) => c.trim())
@@ -202,12 +223,31 @@ function QuestionBankPageContent() {
       } else {
         correctChoiceIndex = undefined;
       }
+      const expectedNumber =
+        editor.type === 'closest' &&
+        typeof editor.expectedNumber === 'number' &&
+        Number.isFinite(editor.expectedNumber)
+          ? editor.expectedNumber
+          : undefined;
+      const scoringRange =
+        editor.type === 'closest' &&
+        typeof editor.scoringRange === 'number' &&
+        editor.scoringRange > 0
+          ? editor.scoringRange
+          : undefined;
+      if (editor.type === 'closest' && expectedNumber === undefined) {
+        setError('La réponse attendue est obligatoire pour « Au plus proche ».');
+        setSaving(false);
+        return;
+      }
       await apiSaveQuestion.execute({
         id: editor.id,
         label: editor.label.trim(),
         type: editor.type,
         choices,
         correctChoiceIndex,
+        expectedNumber,
+        scoringRange,
         timerSeconds: editor.timerSeconds,
         themeId: editor.themeId,
       });
@@ -283,7 +323,7 @@ function QuestionBankPageContent() {
         await load();
         return;
       }
-      const type: QuestionType = q.type === 'word_cloud' ? 'word_cloud' : 'qcm';
+      const type = resolveQuestionType(q.type);
       const correctChoiceIndex =
         type === 'qcm' && q.correctChoiceId
           ? q.choices.findIndex((c) => c.id === q.correctChoiceId)
@@ -293,13 +333,15 @@ function QuestionBankPageContent() {
         label: q.label,
         type,
         choices:
-          type === 'word_cloud'
+          type === 'word_cloud' || type === 'closest'
             ? []
             : q.choices.map((c) => ({ label: c.label })),
         correctChoiceIndex:
           correctChoiceIndex != null && correctChoiceIndex >= 0
             ? correctChoiceIndex
             : undefined,
+        expectedNumber: type === 'closest' ? q.expectedNumber : undefined,
+        scoringRange: type === 'closest' ? q.scoringRange : undefined,
         timerSeconds: q.timerSeconds,
         themeId,
       });
@@ -566,7 +608,9 @@ function QuestionBankPageContent() {
                     <Typography variant="caption" color="text.secondary">
                       {item.type === 'word_cloud'
                         ? 'Nuage de mots'
-                        : `${item.choiceCount} choix`}
+                        : item.type === 'closest'
+                          ? 'Au plus proche'
+                          : `${item.choiceCount} choix`}
                     </Typography>
                     <FormControl
                       size="small"
@@ -722,28 +766,47 @@ function QuestionBankPageContent() {
                 value={editor.type}
                 onChange={(e) => {
                   const type = e.target.value as QuestionType;
-                  setEditor((prev) =>
-                    type === 'word_cloud'
-                      ? {
-                          ...prev,
-                          type,
-                          choices: [],
-                          correctChoiceIndex: undefined,
-                          timerSeconds: 180,
-                        }
-                      : {
-                          ...prev,
-                          type,
-                          choices:
-                            prev.choices.length > 0 ? prev.choices : ['', ''],
-                          timerSeconds:
-                            prev.timerSeconds === 180 ? 10 : prev.timerSeconds,
-                        }
-                  );
+                  setEditor((prev) => {
+                    if (type === 'word_cloud') {
+                      return {
+                        ...prev,
+                        type,
+                        choices: [],
+                        correctChoiceIndex: undefined,
+                        expectedNumber: undefined,
+                        scoringRange: undefined,
+                        timerSeconds: 180,
+                      };
+                    }
+                    if (type === 'closest') {
+                      return {
+                        ...prev,
+                        type,
+                        choices: [],
+                        correctChoiceIndex: undefined,
+                        expectedNumber: prev.expectedNumber ?? '',
+                        scoringRange: prev.scoringRange ?? '',
+                        timerSeconds: 15,
+                      };
+                    }
+                    return {
+                      ...prev,
+                      type,
+                      choices:
+                        prev.choices.length > 0 ? prev.choices : ['', ''],
+                      expectedNumber: undefined,
+                      scoringRange: undefined,
+                      timerSeconds:
+                        prev.timerSeconds === 180 || prev.timerSeconds === 15
+                          ? 10
+                          : prev.timerSeconds,
+                    };
+                  });
                 }}
               >
                 <MenuItem value="qcm">QCM</MenuItem>
                 <MenuItem value="word_cloud">Nuage de mots</MenuItem>
+                <MenuItem value="closest">Au plus proche</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -797,6 +860,50 @@ function QuestionBankPageContent() {
               setEditor((prev) => ({ ...prev, label: e.target.value }))
             }
           />
+          {editor.type === 'closest' && (
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+              <TextField
+                label="Réponse attendue"
+                type="number"
+                fullWidth
+                required
+                value={editor.expectedNumber ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setEditor((prev) => ({
+                    ...prev,
+                    expectedNumber:
+                      raw === ''
+                        ? ''
+                        : Number.isFinite(Number(raw))
+                          ? Number(raw)
+                          : prev.expectedNumber,
+                  }));
+                }}
+                inputProps={{ step: 'any' }}
+              />
+              <TextField
+                label="Écart max (0 pt)"
+                type="number"
+                fullWidth
+                helperText="Optionnel — défaut = |réponse|"
+                value={editor.scoringRange ?? ''}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setEditor((prev) => ({
+                    ...prev,
+                    scoringRange:
+                      raw === ''
+                        ? ''
+                        : Number.isFinite(Number(raw)) && Number(raw) > 0
+                          ? Number(raw)
+                          : prev.scoringRange,
+                  }));
+                }}
+                inputProps={{ min: 0, step: 'any' }}
+              />
+            </Stack>
+          )}
           {editor.type === 'qcm' && (
             <>
               <Divider />

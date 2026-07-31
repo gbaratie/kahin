@@ -1,4 +1,8 @@
-import { isWordCloudQuestion, type Answer } from '@kahin/qcm-domain';
+import {
+  isWordCloudQuestion,
+  isClosestQuestion,
+  type Answer,
+} from '@kahin/qcm-domain';
 import type {
   SessionRepository,
   RealtimeTransport,
@@ -11,6 +15,7 @@ export type SubmitAnswerInput = {
   questionId: string;
   choiceId?: string;
   word?: string;
+  numberValue?: number;
 };
 
 export class SubmitAnswerUseCase {
@@ -39,9 +44,7 @@ export class SubmitAnswerUseCase {
       throw new Error('Question not found or not current');
     }
 
-    const isWordCloud = isWordCloudQuestion(currentQuestion);
-
-    if (isWordCloud) {
+    if (isWordCloudQuestion(currentQuestion)) {
       if (typeof input.word !== 'string' || !input.word.trim()) {
         throw new Error('word required for word cloud question');
       }
@@ -75,6 +78,38 @@ export class SubmitAnswerUseCase {
         participantId: input.participantId,
         questionId: input.questionId,
         word: trimmedWord,
+      });
+      return;
+    }
+
+    if (isClosestQuestion(currentQuestion)) {
+      if (typeof input.numberValue !== 'number' || !Number.isFinite(input.numberValue)) {
+        throw new Error('numberValue required for closest question');
+      }
+      const numberValue = input.numberValue;
+      const existingIndex = session.answers.findIndex(
+        (a) =>
+          a.participantId === input.participantId &&
+          a.questionId === input.questionId
+      );
+      const answer: Answer = {
+        participantId: input.participantId,
+        questionId: input.questionId,
+        numberValue,
+        answeredAt: new Date(),
+      };
+      const answers =
+        existingIndex >= 0
+          ? session.answers.map((a, i) => (i === existingIndex ? answer : a))
+          : [...session.answers, answer];
+      const updatedSession = { ...session, answers };
+      await this.sessionRepository.save(updatedSession);
+      await this.realtimeTransport.joinChannel?.(input.sessionId);
+      await this.realtimeTransport.publish('answer_submitted', {
+        sessionId: input.sessionId,
+        participantId: input.participantId,
+        questionId: input.questionId,
+        numberValue,
       });
       return;
     }

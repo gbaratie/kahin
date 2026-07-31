@@ -75,9 +75,9 @@ export const openApiSpec = {
                         label: { type: 'string' },
                         type: {
                           type: 'string',
-                          enum: ['qcm', 'word_cloud'],
+                          enum: ['qcm', 'word_cloud', 'closest'],
                           description:
-                            'qcm = choix multiples, word_cloud = nuage de mots (pas de choix)',
+                            'qcm = choix multiples, word_cloud = nuage de mots (pas de choix), closest = au plus proche (réponse numérique)',
                         },
                         choices: {
                           type: 'array',
@@ -86,12 +86,23 @@ export const openApiSpec = {
                             properties: { label: { type: 'string' } },
                           },
                           description:
-                            'Obligatoire pour type qcm, vide pour word_cloud',
+                            'Obligatoire pour type qcm, vide pour word_cloud et closest',
                         },
                         correctChoiceIndex: { type: 'number' },
+                        expectedNumber: {
+                          type: 'number',
+                          description:
+                            'Réponse attendue (obligatoire pour type closest)',
+                        },
+                        scoringRange: {
+                          type: 'number',
+                          description:
+                            'Écart à partir duquel le score tombe à 0 (closest). Défaut : max(|expectedNumber|, 1)',
+                        },
                         timerSeconds: {
                           type: 'number',
-                          description: 'Défaut 10 (qcm) ou 180 (word_cloud)',
+                          description:
+                            'Défaut 10 (qcm), 15 (closest) ou 180 (word_cloud)',
                         },
                       },
                     },
@@ -246,9 +257,14 @@ export const openApiSpec = {
                     description:
                       'Pour une question nuage de mots : mot à ajouter (plusieurs appels possibles)',
                   },
+                  numberValue: {
+                    type: 'number',
+                    description:
+                      'Pour une question au plus proche : valeur numérique soumise',
+                  },
                 },
                 description:
-                  'Fournir soit choiceId (QCM) soit word (nuage de mots), selon le type de la question courante',
+                  'Fournir choiceId (QCM), word (nuage de mots) ou numberValue (au plus proche), selon le type de la question courante',
               },
             },
           },
@@ -257,7 +273,7 @@ export const openApiSpec = {
           '204': { description: 'Réponse enregistrée' },
           '400': {
             description:
-              "participantId et questionId requis ; choiceId ou word selon le type de question ; session n'accepte plus les réponses",
+              "participantId et questionId requis ; choiceId, word ou numberValue selon le type de question ; session n'accepte plus les réponses",
           },
           '500': { description: 'Erreur serveur' },
         },

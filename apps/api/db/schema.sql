@@ -36,6 +36,8 @@ ALTER TABLE questions
   ADD COLUMN IF NOT EXISTS correct_choice_id TEXT REFERENCES choices(id) ON DELETE SET NULL;
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS theme_id TEXT REFERENCES themes(id) ON DELETE SET NULL;
 ALTER TABLE choices ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS expected_number DOUBLE PRECISION;
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS scoring_range DOUBLE PRECISION;
 
 -- Liaison N:M : une question peut appartenir à plusieurs QCM, avec un ordre par QCM
 CREATE TABLE IF NOT EXISTS quiz_questions (

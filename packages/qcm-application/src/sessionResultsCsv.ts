@@ -1,9 +1,14 @@
 import {
   isWordCloudQuestion,
+  isClosestQuestion,
   type Quiz,
   type Session,
 } from '@kahin/qcm-domain';
-import { computeRanking, pointsForQcmAnswer } from './ranking';
+import {
+  computeRanking,
+  pointsForQcmAnswer,
+  pointsForClosestAnswer,
+} from './ranking';
 
 /** Séparateur point-virgule pour Excel (locale FR). */
 const CSV_SEP = ';';
@@ -71,15 +76,20 @@ export function buildSessionResultsCsv(session: Session, quiz: Quiz): string {
         const answer = session.answers.find(
           (a) => a.participantId === p.id && a.questionId === question.id
         );
-        const pts = answer
-          ? pointsForQcmAnswer(
+        let pts = 0;
+        if (answer) {
+          if (isClosestQuestion(question)) {
+            pts = pointsForClosestAnswer(question, answer.numberValue);
+          } else {
+            pts = pointsForQcmAnswer(
               session,
               questionIndex,
               question,
               answer.choiceId,
               answer.answeredAt
-            )
-          : 0;
+            );
+          }
+        }
         row.push(String(pts));
       }
       lines.push(csvRow(row));

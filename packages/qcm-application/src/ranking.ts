@@ -1,4 +1,10 @@
-import type { Question, Quiz, Session } from '@kahin/qcm-domain';
+import {
+  defaultClosestScoringRange,
+  isClosestQuestion,
+  type Question,
+  type Quiz,
+  type Session,
+} from '@kahin/qcm-domain';
 
 export const POINTS_PER_QUESTION = 1000;
 
@@ -25,6 +31,53 @@ function weightedPoints(
   return Math.round(POINTS_PER_QUESTION * factor);
 }
 
+function timeWeightedCap(
+  session: Session,
+  questionIndex: number,
+  question: Question,
+  answeredAt: Date | string | undefined
+): number {
+  const timerSeconds = question.timerSeconds ?? 10;
+  const timestamps = session.questionShownAtTimestamps ?? [];
+  const shownAtMs = toMs(
+    timestamps[questionIndex] as Date | string | null | undefined
+  );
+  const answeredAtMs = toMs(answeredAt);
+  if (shownAtMs != null && answeredAtMs != null) {
+    const timeTakenSeconds = (answeredAtMs - shownAtMs) / 1000;
+    return weightedPoints(Math.max(0, timeTakenSeconds), timerSeconds);
+  }
+  return POINTS_PER_QUESTION;
+}
+
+/**
+ * Points pour une réponse « au plus proche » :
+ * 100 % à distance 0, 0 % à distance >= scoringRange (défaut max(|attendu|, 1)).
+ * Pas de pondération vitesse — seul l’écart compte.
+ */
+export function pointsForClosestAnswer(
+  question: Question,
+  numberValue: number | undefined
+): number {
+  if (typeof numberValue !== 'number' || !Number.isFinite(numberValue)) {
+    return 0;
+  }
+  if (
+    typeof question.expectedNumber !== 'number' ||
+    !Number.isFinite(question.expectedNumber)
+  ) {
+    return 0;
+  }
+  const range =
+    typeof question.scoringRange === 'number' && question.scoringRange > 0
+      ? question.scoringRange
+      : defaultClosestScoringRange(question.expectedNumber);
+  const distance = Math.abs(numberValue - question.expectedNumber);
+  const distanceFactor = Math.max(0, 1 - distance / range);
+  if (distanceFactor <= 0) return 0;
+  return Math.round(POINTS_PER_QUESTION * distanceFactor);
+}
+
 export function computeRanking(
   session: Session,
   quiz: Quiz,
@@ -35,23 +88,25 @@ export function computeRanking(
   for (const p of session.participants) {
     scoreByParticipant.set(p.id, 0);
   }
-  const timestamps = session.questionShownAtTimestamps ?? [];
   for (let i = 0; i < upToQuestionIndex; i++) {
     const question = quiz.questions[i];
-    const correctChoiceId = question.correctChoiceId;
-    if (correctChoiceId == null) continue;
-    const timerSeconds = question.timerSeconds ?? 10;
-    const shownAtMs = toMs(timestamps[i] as Date | string | null | undefined);
     for (const answer of session.answers) {
       if (answer.questionId !== question.id) continue;
-      if (answer.choiceId === correctChoiceId) {
-        const current = scoreByParticipant.get(answer.participantId) ?? 0;
-        const answeredAtMs = toMs(answer.answeredAt);
-        let points = POINTS_PER_QUESTION;
-        if (shownAtMs != null && answeredAtMs != null) {
-          const timeTakenSeconds = (answeredAtMs - shownAtMs) / 1000;
-          points = weightedPoints(Math.max(0, timeTakenSeconds), timerSeconds);
+      const current = scoreByParticipant.get(answer.participantId) ?? 0;
+      let points = 0;
+      if (isClosestQuestion(question)) {
+        points = pointsForClosestAnswer(question, answer.numberValue);
+      } else if (question.correctChoiceId != null) {
+        if (answer.choiceId === question.correctChoiceId) {
+          points = timeWeightedCap(
+            session,
+            i,
+            question,
+            answer.answeredAt
+          );
         }
+      }
+      if (points > 0) {
         scoreByParticipant.set(answer.participantId, current + points);
       }
     }
@@ -79,16 +134,5 @@ export function pointsForQcmAnswer(
 ): number {
   if (!choiceId || question.correctChoiceId == null) return 0;
   if (choiceId !== question.correctChoiceId) return 0;
-  const timerSeconds = question.timerSeconds ?? 10;
-  const timestamps = session.questionShownAtTimestamps ?? [];
-  const shownAtMs = toMs(
-    timestamps[questionIndex] as Date | string | null | undefined
-  );
-  const answeredAtMs = toMs(answeredAt);
-  let points = POINTS_PER_QUESTION;
-  if (shownAtMs != null && answeredAtMs != null) {
-    const timeTakenSeconds = (answeredAtMs - shownAtMs) / 1000;
-    points = weightedPoints(Math.max(0, timeTakenSeconds), timerSeconds);
-  }
-  return points;
+  return timeWeightedCap(session, questionIndex, question, answeredAt);
 }

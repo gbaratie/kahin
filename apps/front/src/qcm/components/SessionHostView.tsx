@@ -11,6 +11,7 @@ import {
 import dynamic from 'next/dynamic';
 import {
   isWordCloudQuestion,
+  isClosestQuestion,
   type Answer,
   type Question,
   type Quiz,
@@ -107,6 +108,7 @@ export function SessionHostView({
   })();
   const isDisplayedQuestionWordCloud =
     isWordCloudQuestion(displayedQuestionRaw);
+  const isDisplayedQuestionClosest = isClosestQuestion(displayedQuestionRaw);
 
   const showLiveQuestion =
     isInProgress && !showingResult && Boolean(displayedQuestionRaw && session);
@@ -143,18 +145,30 @@ export function SessionHostView({
       if (isDisplayedQuestionWordCloud) {
         const w = (a as Answer).words;
         if (Array.isArray(w) && w.length > 0) ids.add(a.participantId);
+      } else if (isDisplayedQuestionClosest) {
+        if (
+          typeof a.numberValue === 'number' &&
+          Number.isFinite(a.numberValue)
+        ) {
+          ids.add(a.participantId);
+        }
       } else if (typeof a.choiceId === 'string' && a.choiceId) {
         ids.add(a.participantId);
       }
     }
     return ids.size;
-  }, [session, displayedQuestion?.id, isDisplayedQuestionWordCloud]);
+  }, [
+    session,
+    displayedQuestion?.id,
+    isDisplayedQuestionWordCloud,
+    isDisplayedQuestionClosest,
+  ]);
 
   const totalConnected = session?.participants.length ?? 0;
 
   const timerSecondsForHost =
     displayedQuestion?.timerSeconds ??
-    (isDisplayedQuestionWordCloud ? 180 : 10);
+    (isDisplayedQuestionWordCloud ? 180 : isDisplayedQuestionClosest ? 15 : 10);
 
   const [hostRemainingSeconds, setHostRemainingSeconds] = useState<
     number | null

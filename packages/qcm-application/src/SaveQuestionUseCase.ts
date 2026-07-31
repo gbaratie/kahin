@@ -7,12 +7,15 @@ export type SaveQuestionInput = {
   type?: QuestionType;
   choices: Array<{ label: string }>;
   correctChoiceIndex?: number;
+  expectedNumber?: number;
+  scoringRange?: number;
   timerSeconds?: number;
   themeId?: string | null;
 };
 
 const DEFAULT_QCM_TIMER = 10;
 const DEFAULT_WORD_CLOUD_TIMER = 180;
+const DEFAULT_CLOSEST_TIMER = 15;
 
 export class SaveQuestionUseCase {
   constructor(private readonly questionRepository: QuestionRepository) {}
@@ -35,8 +38,14 @@ export class SaveQuestionUseCase {
     }
 
     const type = input.type ?? 'qcm';
+    if (type === 'closest' && typeof input.expectedNumber !== 'number') {
+      const err = new Error('expectedNumber required for closest question');
+      (err as Error & { code?: string }).code = 'EXPECTED_NUMBER_REQUIRED';
+      throw err;
+    }
+
     const choices: Choice[] =
-      type === 'word_cloud'
+      type === 'word_cloud' || type === 'closest'
         ? []
         : input.choices.map((c) => {
             const same = existing?.choices.find((bc) => bc.label === c.label);
@@ -46,7 +55,11 @@ export class SaveQuestionUseCase {
             };
           });
     const defaultTimer =
-      type === 'word_cloud' ? DEFAULT_WORD_CLOUD_TIMER : DEFAULT_QCM_TIMER;
+      type === 'word_cloud'
+        ? DEFAULT_WORD_CLOUD_TIMER
+        : type === 'closest'
+          ? DEFAULT_CLOSEST_TIMER
+          : DEFAULT_QCM_TIMER;
 
     const question: Question = {
       id: existing?.id ?? crypto.randomUUID(),
@@ -56,6 +69,14 @@ export class SaveQuestionUseCase {
       correctChoiceId:
         type === 'qcm' && input.correctChoiceIndex !== undefined
           ? choices[input.correctChoiceIndex]?.id
+          : undefined,
+      expectedNumber:
+        type === 'closest' ? input.expectedNumber : undefined,
+      scoringRange:
+        type === 'closest' &&
+        typeof input.scoringRange === 'number' &&
+        input.scoringRange > 0
+          ? input.scoringRange
           : undefined,
       timerSeconds: input.timerSeconds ?? defaultTimer,
       themeId:

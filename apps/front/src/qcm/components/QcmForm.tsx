@@ -72,6 +72,7 @@ import { getErrorMessage } from '@kahin/shared-utils';
 
 const DEFAULT_QCM_TIMER = 10;
 const DEFAULT_WORD_CLOUD_TIMER = 180;
+const DEFAULT_CLOSEST_TIMER = 15;
 
 export type QuestionDraft = {
   /** Identité banque — préservée pour le partage N:M entre QCM. */
@@ -80,6 +81,8 @@ export type QuestionDraft = {
   label: string;
   choices: string[];
   correctChoiceIndex?: number;
+  expectedNumber?: number | '';
+  scoringRange?: number | '';
   timerSeconds?: number;
   themeId?: string | null;
   /** Clé stable pour le drag-and-drop (même sans id serveur). */
@@ -112,6 +115,8 @@ export function draftToPayload(
     type: QuestionType;
     choices: { label: string }[];
     correctChoiceIndex?: number;
+    expectedNumber?: number;
+    scoringRange?: number;
     timerSeconds?: number;
     themeId?: string | null;
   }>;
@@ -123,9 +128,13 @@ export function draftToPayload(
       .map((q) => {
         const type = q.type ?? 'qcm';
         const defaultTimer =
-          type === 'word_cloud' ? DEFAULT_WORD_CLOUD_TIMER : DEFAULT_QCM_TIMER;
-        const trimmedChoices =
           type === 'word_cloud'
+            ? DEFAULT_WORD_CLOUD_TIMER
+            : type === 'closest'
+              ? DEFAULT_CLOSEST_TIMER
+              : DEFAULT_QCM_TIMER;
+        const trimmedChoices =
+          type === 'word_cloud' || type === 'closest'
             ? []
             : q.choices
                 .filter((c) => c.trim())
@@ -145,12 +154,26 @@ export function draftToPayload(
           typeof q.timerSeconds === 'number' && q.timerSeconds >= 1
             ? Math.min(300, Math.floor(q.timerSeconds))
             : defaultTimer;
+        const expectedNumber =
+          type === 'closest' &&
+          typeof q.expectedNumber === 'number' &&
+          Number.isFinite(q.expectedNumber)
+            ? q.expectedNumber
+            : undefined;
+        const scoringRange =
+          type === 'closest' &&
+          typeof q.scoringRange === 'number' &&
+          q.scoringRange > 0
+            ? q.scoringRange
+            : undefined;
         return {
           id: q.id,
           label: q.label.trim(),
           type,
           choices: trimmedChoices,
           correctChoiceIndex: submittedCorrectIndex,
+          expectedNumber,
+          scoringRange,
           timerSeconds,
           themeId: q.themeId,
         };
@@ -160,15 +183,22 @@ export function draftToPayload(
 
 export function quizToDraft(quiz: Quiz): QuestionDraft[] {
   return quiz.questions.map((q) => {
+    const rawType = (q as { type?: QuestionType }).type;
     const type: QuestionType =
-      (q as { type?: QuestionType }).type === 'word_cloud' ||
-      (q.choices.length === 0 && q.correctChoiceId == null)
+      rawType === 'word_cloud' ||
+      (rawType == null && q.choices.length === 0 && q.correctChoiceId == null)
         ? 'word_cloud'
-        : 'qcm';
+        : rawType === 'closest'
+          ? 'closest'
+          : 'qcm';
     const defaultTimer =
-      type === 'word_cloud' ? DEFAULT_WORD_CLOUD_TIMER : DEFAULT_QCM_TIMER;
-    const choices =
       type === 'word_cloud'
+        ? DEFAULT_WORD_CLOUD_TIMER
+        : type === 'closest'
+          ? DEFAULT_CLOSEST_TIMER
+          : DEFAULT_QCM_TIMER;
+    const choices =
+      type === 'word_cloud' || type === 'closest'
         ? []
         : q.choices.length > 0
           ? q.choices.map((c) => c.label)
@@ -186,6 +216,18 @@ export function quizToDraft(quiz: Quiz): QuestionDraft[] {
         correctChoiceIndex !== undefined && correctChoiceIndex >= 0
           ? correctChoiceIndex
           : undefined,
+      expectedNumber:
+        type === 'closest' && typeof q.expectedNumber === 'number'
+          ? q.expectedNumber
+          : type === 'closest'
+            ? ''
+            : undefined,
+      scoringRange:
+        type === 'closest' && typeof q.scoringRange === 'number'
+          ? q.scoringRange
+          : type === 'closest'
+            ? ''
+            : undefined,
       timerSeconds: q.timerSeconds ?? defaultTimer,
       themeId: q.themeId ?? null,
       clientKey: q.id || newClientKey(),
@@ -224,6 +266,8 @@ function SortableQuestionCard({
   onSetCorrect,
   onUpdateTimer,
   onSetType,
+  onUpdateExpectedNumber,
+  onUpdateScoringRange,
 }: {
   q: QuestionDraft;
   qIndex: number;
@@ -236,6 +280,8 @@ function SortableQuestionCard({
   onSetCorrect: (choiceIndex: number | undefined) => void;
   onUpdateTimer: (value: number) => void;
   onSetType: (type: QuestionType) => void;
+  onUpdateExpectedNumber: (value: number | '') => void;
+  onUpdateScoringRange: (value: number | '') => void;
 }) {
   const {
     attributes,
@@ -254,9 +300,12 @@ function SortableQuestionCard({
   };
 
   const isWordCloud = q.type === 'word_cloud';
+  const isClosest = q.type === 'closest';
   const defaultTimer = isWordCloud
     ? DEFAULT_WORD_CLOUD_TIMER
-    : DEFAULT_QCM_TIMER;
+    : isClosest
+      ? DEFAULT_CLOSEST_TIMER
+      : DEFAULT_QCM_TIMER;
 
   return (
     <Paper
@@ -356,6 +405,7 @@ function SortableQuestionCard({
             >
               <MenuItem value="qcm">QCM</MenuItem>
               <MenuItem value="word_cloud">Nuage de mots</MenuItem>
+              <MenuItem value="closest">Au plus proche</MenuItem>
             </Select>
           </FormControl>
           <Tooltip title="Durée en secondes">
@@ -444,7 +494,49 @@ function SortableQuestionCard({
         onChange={(e) => onUpdateLabel(e.target.value)}
         sx={{ mb: 2 }}
       />
+      {isClosest && (
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          sx={{ mb: 2 }}
+        >
+          <TextField
+            fullWidth
+            type="number"
+            label="Réponse attendue"
+            value={q.expectedNumber ?? ''}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') {
+                onUpdateExpectedNumber('');
+                return;
+              }
+              const n = Number(raw);
+              if (Number.isFinite(n)) onUpdateExpectedNumber(n);
+            }}
+            inputProps={{ step: 'any' }}
+          />
+          <TextField
+            fullWidth
+            type="number"
+            label="Écart max (0 pt)"
+            helperText="Optionnel — défaut = |réponse|"
+            value={q.scoringRange ?? ''}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') {
+                onUpdateScoringRange('');
+                return;
+              }
+              const n = Number(raw);
+              if (Number.isFinite(n) && n > 0) onUpdateScoringRange(n);
+            }}
+            inputProps={{ min: 0, step: 'any' }}
+          />
+        </Stack>
+      )}
       {!isWordCloud &&
+        !isClosest &&
         q.choices.map((choice, cIndex) => (
           <Stack
             key={cIndex}
@@ -501,7 +593,7 @@ function SortableQuestionCard({
             </Stack>
           </Stack>
         ))}
-      {!isWordCloud && (
+      {!isWordCloud && !isClosest && (
         <Button size="small" startIcon={<AddIcon />} onClick={onAddChoice}>
           Ajouter un choix
         </Button>
@@ -659,19 +751,49 @@ export default function QcmForm({
             type: 'word_cloud',
             choices: [],
             correctChoiceIndex: undefined,
+            expectedNumber: undefined,
+            scoringRange: undefined,
             timerSeconds: DEFAULT_WORD_CLOUD_TIMER,
+          };
+        }
+        if (type === 'closest') {
+          return {
+            ...item,
+            type: 'closest',
+            choices: [],
+            correctChoiceIndex: undefined,
+            expectedNumber: item.expectedNumber ?? '',
+            scoringRange: item.scoringRange ?? '',
+            timerSeconds: DEFAULT_CLOSEST_TIMER,
           };
         }
         return {
           ...item,
           type: 'qcm',
           choices: item.choices.length > 0 ? item.choices : ['', ''],
+          expectedNumber: undefined,
+          scoringRange: undefined,
           timerSeconds:
-            item.timerSeconds === DEFAULT_WORD_CLOUD_TIMER
+            item.timerSeconds === DEFAULT_WORD_CLOUD_TIMER ||
+            item.timerSeconds === DEFAULT_CLOSEST_TIMER
               ? DEFAULT_QCM_TIMER
               : (item.timerSeconds ?? DEFAULT_QCM_TIMER),
         };
       })
+    );
+
+  const updateExpectedNumber = (qIndex: number, value: number | '') =>
+    setQuestions((q) =>
+      q.map((item, i) =>
+        i === qIndex ? { ...item, expectedNumber: value } : item
+      )
+    );
+
+  const updateScoringRange = (qIndex: number, value: number | '') =>
+    setQuestions((q) =>
+      q.map((item, i) =>
+        i === qIndex ? { ...item, scoringRange: value } : item
+      )
     );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -829,7 +951,9 @@ export default function QcmForm({
                     secondary={
                       item.type === 'word_cloud'
                         ? 'Nuage de mots'
-                        : `${item.choiceCount} choix`
+                        : item.type === 'closest'
+                          ? 'Au plus proche'
+                          : `${item.choiceCount} choix`
                     }
                     primaryTypographyProps={{
                       variant: 'body2',
@@ -945,6 +1069,10 @@ export default function QcmForm({
                     onSetCorrect={(idx) => setCorrectChoiceIndex(qIndex, idx)}
                     onUpdateTimer={(v) => updateTimerSeconds(qIndex, v)}
                     onSetType={(t) => setQuestionType(qIndex, t)}
+                    onUpdateExpectedNumber={(v) =>
+                      updateExpectedNumber(qIndex, v)
+                    }
+                    onUpdateScoringRange={(v) => updateScoringRange(qIndex, v)}
                   />
                 ))}
               </SortableContext>
@@ -1074,7 +1202,9 @@ export default function QcmForm({
                     secondary={
                       q.type === 'word_cloud'
                         ? 'Nuage de mots'
-                        : `${q.choices.length} choix`
+                        : q.type === 'closest'
+                          ? 'Au plus proche'
+                          : `${q.choices.length} choix`
                     }
                   />
                   {already ? (

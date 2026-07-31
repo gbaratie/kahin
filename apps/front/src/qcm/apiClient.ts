@@ -390,18 +390,21 @@ export const apiSubmitAnswer = {
     questionId: string;
     choiceId?: string;
     word?: string;
+    numberValue?: number;
   }): Promise<void> {
     const body: {
       participantId: string;
       questionId: string;
       choiceId?: string;
       word?: string;
+      numberValue?: number;
     } = {
       participantId: input.participantId,
       questionId: input.questionId,
     };
     if (input.choiceId != null) body.choiceId = input.choiceId;
     if (input.word != null) body.word = input.word;
+    if (input.numberValue != null) body.numberValue = input.numberValue;
     const { error } = await apiFetch(`/api/session/${input.sessionId}/answer`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -466,7 +469,7 @@ export type ThemeDto = { id: string; name: string; sortOrder: number };
 export type QuestionSummaryDto = {
   id: string;
   label: string;
-  type?: 'qcm' | 'word_cloud';
+  type?: 'qcm' | 'word_cloud' | 'closest';
   themeId?: string;
   timerSeconds?: number;
   choiceCount: number;
@@ -559,9 +562,11 @@ export const apiSaveQuestion = {
   async execute(input: {
     id?: string;
     label: string;
-    type?: 'qcm' | 'word_cloud';
+    type?: 'qcm' | 'word_cloud' | 'closest';
     choices: Array<{ label: string }>;
     correctChoiceIndex?: number;
+    expectedNumber?: number;
+    scoringRange?: number;
     timerSeconds?: number;
     themeId?: string | null;
   }): Promise<Question> {
