@@ -10,7 +10,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   FormControl,
   InputLabel,
   Select,
@@ -80,6 +79,12 @@ function QuestionBankPageContent() {
   const [editor, setEditor] = useState<EditorState>(emptyEditor());
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [assigningThemeId, setAssigningThemeId] = useState<string | null>(null);
+  const [quickThemeForQuestionId, setQuickThemeForQuestionId] = useState<
+    string | null
+  >(null);
+  const [quickThemeName, setQuickThemeName] = useState('');
+  const [quickThemeSaving, setQuickThemeSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -241,6 +246,96 @@ function QuestionBankPageContent() {
     }
   };
 
+  const handleAssignTheme = async (
+    questionId: string,
+    themeId: string | null
+  ) => {
+    setAssigningThemeId(questionId);
+    setError(null);
+    const snapshot = items.find((i) => i.id === questionId);
+    if (!snapshot) {
+      setAssigningThemeId(null);
+      return;
+    }
+    const matchesFilter =
+      themeFilter === 'all' ||
+      (themeFilter === 'none' && themeId == null) ||
+      (themeFilter !== 'none' && themeFilter === themeId);
+    setItems((prev) =>
+      matchesFilter
+        ? prev.map((i) =>
+            i.id === questionId ? { ...i, themeId: themeId ?? undefined } : i
+          )
+        : prev.filter((i) => i.id !== questionId)
+    );
+    try {
+      const q = await apiGetQuestion.execute(questionId);
+      if (!q) {
+        setError('Question introuvable');
+        await load();
+        return;
+      }
+      const type: QuestionType = q.type === 'word_cloud' ? 'word_cloud' : 'qcm';
+      const correctChoiceIndex =
+        type === 'qcm' && q.correctChoiceId
+          ? q.choices.findIndex((c) => c.id === q.correctChoiceId)
+          : undefined;
+      await apiSaveQuestion.execute({
+        id: q.id,
+        label: q.label,
+        type,
+        choices:
+          type === 'word_cloud'
+            ? []
+            : q.choices.map((c) => ({ label: c.label })),
+        correctChoiceIndex:
+          correctChoiceIndex != null && correctChoiceIndex >= 0
+            ? correctChoiceIndex
+            : undefined,
+        timerSeconds: q.timerSeconds,
+        themeId,
+      });
+    } catch (e) {
+      setItems((prev) => {
+        if (prev.some((i) => i.id === questionId)) {
+          return prev.map((i) => (i.id === questionId ? snapshot : i));
+        }
+        return [...prev, snapshot];
+      });
+      setError(getErrorMessage(e));
+    } finally {
+      setAssigningThemeId(null);
+    }
+  };
+
+  const openQuickThemeDialog = (questionId: string) => {
+    setQuickThemeForQuestionId(questionId);
+    setQuickThemeName('');
+  };
+
+  const handleQuickCreateAndAssignTheme = async () => {
+    const name = quickThemeName.trim();
+    const questionId = quickThemeForQuestionId;
+    if (!name || !questionId) return;
+    setQuickThemeSaving(true);
+    setError(null);
+    try {
+      const created = await apiCreateTheme.execute(name);
+      setQuickThemeForQuestionId(null);
+      setQuickThemeName('');
+      setThemes((prev) =>
+        [...prev, created].sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
+        )
+      );
+      await handleAssignTheme(questionId, created.id);
+    } catch (e) {
+      setError(getErrorMessage(e));
+    } finally {
+      setQuickThemeSaving(false);
+    }
+  };
+
   return (
     <Layout>
       <Head>
@@ -356,38 +451,132 @@ function QuestionBankPageContent() {
             {filtered.map((item) => (
               <ListItem
                 key={item.id}
-                sx={{ px: 0, borderBottom: 1, borderColor: 'divider' }}
+                sx={{
+                  px: 0,
+                  py: 1.25,
+                  alignItems: 'flex-start',
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  gap: 1,
+                }}
+                secondaryAction={
+                  <Stack direction="row" spacing={0.25}>
+                    <IconButton
+                      edge="end"
+                      aria-label="Modifier"
+                      onClick={() => void openEdit(item.id)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="Supprimer"
+                      onClick={() => setDeleteId(item.id)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                }
               >
                 <ListItemText
+                  sx={{ pr: 10 }}
                   primary={item.label}
                   secondary={
-                    <>
-                      {item.type === 'word_cloud'
-                        ? 'Nuage de mots'
-                        : `${item.choiceCount} choix`}
-                      {item.themeId
-                        ? ` · ${themeNameById.get(item.themeId) ?? 'Thème'}`
-                        : ''}
-                    </>
+                    <Stack
+                      direction="row"
+                      flexWrap="wrap"
+                      useFlexGap
+                      spacing={1}
+                      alignItems="center"
+                      sx={{ mt: 0.75 }}
+                      component="span"
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        component="span"
+                      >
+                        {item.type === 'word_cloud'
+                          ? 'Nuage de mots'
+                          : `${item.choiceCount} choix`}
+                      </Typography>
+                      <FormControl
+                        size="small"
+                        sx={{ minWidth: 160, maxWidth: 240 }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Select
+                          displayEmpty
+                          value={item.themeId ?? 'none'}
+                          disabled={assigningThemeId === item.id}
+                          onChange={(e) => {
+                            const value = String(e.target.value);
+                            if (value === '__new__') {
+                              openQuickThemeDialog(item.id);
+                              return;
+                            }
+                            void handleAssignTheme(
+                              item.id,
+                              value === 'none' ? null : value
+                            );
+                          }}
+                          renderValue={(selected) => {
+                            if (selected === 'none' || !selected) {
+                              return (
+                                <Chip
+                                  size="small"
+                                  label="Sans thématique"
+                                  variant="outlined"
+                                  sx={{ height: 24 }}
+                                />
+                              );
+                            }
+                            return (
+                              <Chip
+                                size="small"
+                                color="primary"
+                                label={
+                                  themeNameById.get(String(selected)) ??
+                                  'Thématique'
+                                }
+                                sx={{
+                                  height: 24,
+                                  fontWeight: 600,
+                                }}
+                              />
+                            );
+                          }}
+                          sx={{
+                            '& .MuiSelect-select': {
+                              py: 0.5,
+                              pr: '28px !important',
+                              display: 'flex',
+                              alignItems: 'center',
+                            },
+                            '& fieldset': {
+                              borderColor: item.themeId
+                                ? 'primary.main'
+                                : undefined,
+                            },
+                          }}
+                        >
+                          <MenuItem value="none">Sans thématique</MenuItem>
+                          {themes.map((t) => (
+                            <MenuItem key={t.id} value={t.id}>
+                              {t.name}
+                            </MenuItem>
+                          ))}
+                          <Divider />
+                          <MenuItem value="__new__">
+                            <AddIcon fontSize="small" sx={{ mr: 1 }} />
+                            Nouvelle thématique…
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Stack>
                   }
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
-                <ListItemSecondaryAction>
-                  <IconButton
-                    edge="end"
-                    aria-label="Modifier"
-                    onClick={() => void openEdit(item.id)}
-                    sx={{ mr: 0.5 }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    edge="end"
-                    aria-label="Supprimer"
-                    onClick={() => setDeleteId(item.id)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </ListItemSecondaryAction>
               </ListItem>
             ))}
           </List>
@@ -587,12 +776,56 @@ function QuestionBankPageContent() {
         </DialogActions>
       </Dialog>
 
+      <Dialog
+        open={quickThemeForQuestionId !== null}
+        onClose={() => {
+          if (!quickThemeSaving) setQuickThemeForQuestionId(null);
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Nouvelle thématique</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            label="Nom de la thématique"
+            value={quickThemeName}
+            onChange={(e) => setQuickThemeName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && quickThemeName.trim()) {
+                e.preventDefault();
+                void handleQuickCreateAndAssignTheme();
+              }
+            }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setQuickThemeForQuestionId(null)}
+            color="inherit"
+            disabled={quickThemeSaving}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            disabled={quickThemeSaving || !quickThemeName.trim()}
+            onClick={() => void handleQuickCreateAndAssignTheme()}
+          >
+            {quickThemeSaving ? 'Création…' : 'Créer et assigner'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={deleteId !== null} onClose={() => setDeleteId(null)}>
         <DialogTitle>Supprimer la question</DialogTitle>
         <DialogContent>
           <Typography>
-            Cette question sera retirée de tous les QCM qui l’utilisent. Continuer
-            ?
+            Cette question sera retirée de tous les QCM qui l’utilisent.
+            Continuer ?
           </Typography>
         </DialogContent>
         <DialogActions>
