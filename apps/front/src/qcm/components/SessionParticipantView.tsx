@@ -529,10 +529,12 @@ export function SessionParticipantView({
                 fullWidth
                 onClick={() => setSelectedChoiceId(choice.id)}
                 sx={{
-                  justifyContent: 'flex-start',
+                  justifyContent: 'center',
+                  textAlign: 'center',
                   textTransform: 'none',
                   py: 1.5,
                   fontSize: '1rem',
+                  whiteSpace: 'normal',
                 }}
               >
                 {choice.label}
