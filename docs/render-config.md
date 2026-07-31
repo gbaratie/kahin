@@ -37,6 +37,6 @@ Après avoir appliqué ces changements, sauvegarde et relance un déploiement.
 
 ## Variables d’environnement et base de données
 
-Les secrets (`DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_AUTH_SECRET`, et optionnellement `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` / `MICROSOFT_REDIRECT_URI` / `FRONT_ORIGIN`, etc.) s’ajoutent dans l’onglet **Environment** du service Render ; ils ne figurent pas dans `render.yaml` pour éviter de commiter des mots de passe. Voir [microsoft-auth.md](microsoft-auth.md) pour la connexion Microsoft des étudiants.
+Les secrets (`DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_AUTH_SECRET`, etc.) s’ajoutent dans l’onglet **Environment** du service Render ; ils ne figurent pas dans `render.yaml` pour éviter de commiter des mots de passe.
 
 **Postgres en production** : utilise un projet **[Neon](https://neon.tech)** et copie la connection string dans **`DATABASE_URL`**. Applique d’abord le schéma SQL du dépôt (`apps/api/db/schema.sql`) dans le SQL Editor Neon. Guide détaillé : [neon.md](neon.md). Référence rapide côté API : [`apps/api/README.md`](../apps/api/README.md).

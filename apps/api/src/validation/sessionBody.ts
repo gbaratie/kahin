@@ -1,6 +1,4 @@
 import type { JoinSessionInput } from '@kahin/qcm-application';
-import { isMicrosoftAuthRequired } from '../auth/microsoftConfig.js';
-import { verifyParticipantToken } from '../auth/participantToken.js';
 
 export type AnswerBodyPayload = {
   sessionId: string;
@@ -11,35 +9,10 @@ export type AnswerBodyPayload = {
 };
 
 export function validateJoinBody(body: unknown): JoinSessionInput {
-  const b = body as {
-    code?: unknown;
-    participantName?: unknown;
-    microsoftToken?: unknown;
-  };
-  const code = b?.code;
-  if (!code) {
-    throw new Error('code and participantName required');
-  }
-
-  const microsoftToken =
-    typeof b.microsoftToken === 'string' ? b.microsoftToken.trim() : '';
-  if (microsoftToken) {
-    const identity = verifyParticipantToken(microsoftToken);
-    if (!identity) {
-      throw new Error('Invalid or expired Microsoft token');
-    }
-    return {
-      code: String(code).trim().toUpperCase(),
-      participantName: identity.name,
-    };
-  }
-
-  if (isMicrosoftAuthRequired()) {
-    throw new Error('Microsoft authentication required');
-  }
-
-  const participantName = b?.participantName;
-  if (!participantName) {
+  const code = (body as { code?: unknown })?.code;
+  const participantName = (body as { participantName?: unknown })
+    ?.participantName;
+  if (!code || !participantName) {
     throw new Error('code and participantName required');
   }
   return {

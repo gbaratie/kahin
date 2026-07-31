@@ -107,7 +107,7 @@ export default function HomePage() {
         </Head>
         <JoinSessionForm
           title={siteName}
-          description="Saisissez le code de session pour participer. L’animateur se connecte via l’icône en haut à droite."
+          description="Saisissez le code de session et votre nom pour participer. L’animateur se connecte via l’icône en haut à droite."
         />
       </Layout>
     );
