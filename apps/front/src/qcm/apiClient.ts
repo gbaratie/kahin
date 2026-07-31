@@ -244,6 +244,28 @@ export const apiJoinSession = {
   },
 };
 
+export type StudentRosterDto = { names: string[] };
+
+export const apiGetStudentRoster = {
+  async execute(): Promise<StudentRosterDto> {
+    const { data, error } = await apiFetch<StudentRosterDto>('/api/roster');
+    if (error) throw new Error(error);
+    return data ?? { names: [] };
+  },
+};
+
+export const apiUpdateStudentRoster = {
+  async execute(names: string[]): Promise<StudentRosterDto> {
+    const { data, error } = await apiFetch<StudentRosterDto>('/api/roster', {
+      method: 'PUT',
+      requireAdminAuth: true,
+      body: JSON.stringify({ names }),
+    });
+    if (error) throw new Error(error);
+    return data ?? { names: [] };
+  },
+};
+
 export const apiSubmitAnswer = {
   async execute(input: {
     sessionId: string;

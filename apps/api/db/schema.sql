@@ -34,3 +34,9 @@ ALTER TABLE questions
 -- Ordre d'affichage (ordre de création / édition, indépendant des UUID)
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE choices ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+
+-- Liste des élèves (début d'année) : les participants choisissent parmi ces noms
+CREATE TABLE IF NOT EXISTS roster_names (
+  name TEXT PRIMARY KEY,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
