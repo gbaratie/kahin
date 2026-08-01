@@ -49,6 +49,9 @@ export default function Layout({ children }: LayoutProps) {
   );
 
   const hasNavLinks = visibleNavItems.length > 0;
+  /** Session live : header plus compact pour libérer de la hauteur utile. */
+  const isLiveSession =
+    pathname.startsWith('/session/') || pathname.startsWith('/qcm/session/');
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -87,10 +90,11 @@ export default function Layout({ children }: LayoutProps) {
       <Box
         component="header"
         sx={{
-          py: 2,
+          py: isLiveSession ? 1 : 2,
           px: 2,
           borderBottom: 1,
           borderColor: 'divider',
+          flexShrink: 0,
         }}
       >
         <Stack

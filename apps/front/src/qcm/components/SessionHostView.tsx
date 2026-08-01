@@ -34,6 +34,7 @@ import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
 import { QuestionPlayModeBanner } from './QuestionPlayModeBanner';
 import { withBasePath } from '@/config/site';
+import { layout } from '@/config/layout';
 import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
 
 const HOST_TIMER_TICK_MS = 100;
@@ -334,91 +335,96 @@ export function SessionHostView({
     [wordCloudSignature]
   );
 
+  const participantCount = session?.participants.length ?? 0;
+
   return (
-    <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
-      <Typography variant="h5" gutterBottom>
+    <Box
+      sx={{
+        ...layout.sessionViewport,
+        maxWidth: { xs: 600, md: 1100 },
+        overflow: isWaiting ? 'hidden' : 'auto',
+      }}
+    >
+      <Typography
+        variant="subtitle1"
+        sx={{ fontWeight: 700, mb: 1, flexShrink: 0 }}
+      >
         {isWaiting ? 'En attente des participants' : 'Session en cours'}
       </Typography>
-      <Paper sx={{ p: 2, mb: 2 }}>
+
+      {isWaiting ? (
         <Box
           sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: { xs: 'flex-start', md: 'center' },
-            justifyContent: 'space-between',
+            flex: 1,
+            minHeight: 0,
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1.1fr 0.9fr' },
             gap: 2,
           }}
         >
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Utilisez ce code pour rejoindre la session
+          <Paper
+            sx={{
+              p: { xs: 2, md: 3 },
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: 0,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              Code session
             </Typography>
             <Typography
-              variant="h4"
-              sx={{ letterSpacing: 2, fontFamily: 'monospace' }}
+              sx={{
+                letterSpacing: 4,
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontWeight: 700,
+                fontSize: { xs: '2.4rem', md: '3.5rem' },
+                lineHeight: 1.1,
+                my: 1,
+              }}
             >
               {sessionCode}
             </Typography>
-          </Box>
-
-          {isWaiting && (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: { xs: 'center', md: 'flex-end' },
-                minWidth: { md: 220 },
-              }}
-            >
-              {joinUrlForQr ? (
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: qrFrameBg,
-                    borderColor: theme.palette.divider,
-                  }}
+            {joinUrlForQr && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ wordBreak: 'break-all' }}
+              >
+                Rejoindre :{' '}
+                <Box
+                  component="span"
+                  sx={{ color: 'primary.main', fontWeight: 600 }}
                 >
-                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <QRCodeSVG
-                      value={joinUrlForQr}
-                      size={160}
-                      includeMargin={false}
-                      bgColor={qrFrameBg}
-                      fgColor={theme.palette.text.primary}
-                      title="Code QR pour rejoindre la session"
-                    />
-                  </Box>
-                </Paper>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Chargement du QR Code…
-                </Typography>
-              )}
-            </Box>
-          )}
-        </Box>
-      </Paper>
-
-      {isWaiting && (
-        <>
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Participants connectés
+                  {joinUrlForQr}
+                </Box>
+              </Typography>
+            )}
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              Participants : <strong>{participantCount}</strong>
             </Typography>
-            {session?.participants.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
+            {participantCount === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 Aucun participant pour l&apos;instant.
               </Typography>
             ) : (
-              <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+              <Box
+                component="ul"
+                sx={{
+                  m: 0,
+                  mt: 1,
+                  pl: 2.5,
+                  maxHeight: { xs: 120, md: 180 },
+                  overflow: 'auto',
+                }}
+              >
                 {session?.participants.map((p) => (
                   <Typography
                     key={p.id}
                     component="li"
                     variant="body2"
-                    sx={{ mb: 0.5 }}
+                    sx={{ mb: 0.25 }}
                   >
                     {p.name}
                   </Typography>
@@ -426,7 +432,63 @@ export function SessionHostView({
               </Box>
             )}
           </Paper>
-        </>
+
+          <Paper
+            sx={{
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 0,
+            }}
+          >
+            {joinUrlForQr ? (
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  backgroundColor: qrFrameBg,
+                  border: 1,
+                  borderColor: 'divider',
+                }}
+              >
+                <QRCodeSVG
+                  value={joinUrlForQr}
+                  size={200}
+                  includeMargin={false}
+                  bgColor={qrFrameBg}
+                  fgColor={theme.palette.text.primary}
+                  title="Code QR pour rejoindre la session"
+                />
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Chargement du QR Code…
+              </Typography>
+            )}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 1.5, textAlign: 'center' }}
+            >
+              Scannez le QR ou saisissez le code sur la page Rejoindre
+            </Typography>
+          </Paper>
+        </Box>
+      ) : (
+        <Paper sx={{ p: 1.5, mb: 1.5, flexShrink: 0 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              letterSpacing: 2,
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontWeight: 700,
+            }}
+          >
+            {sessionCode}
+          </Typography>
+        </Paper>
       )}
 
       {error && (
@@ -436,29 +498,16 @@ export function SessionHostView({
       )}
 
       {showLiveQuestion && displayedQuestion && (
-        <QuestionPlayModeBanner playMode={displayedQuestion.playMode} />
+        <QuestionPlayModeBanner playMode={displayedQuestion.playMode} compact />
       )}
 
       {showLiveQuestion && (
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Participants
-          </Typography>
-          <Typography variant="body1" sx={{ fontWeight: 600, mb: 2 }}>
+        <Paper sx={{ p: 1.5, mb: 1.5, flexShrink: 0 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
             Réponses : {respondentsCount} / {totalConnected}
           </Typography>
           {questionShownAtMs != null && hostTimerDisplaySeconds != null ? (
             <>
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                gutterBottom
-              >
-                Temps restant
-                {displayedQuestion?.playMode === 'course'
-                  ? ' — mode cours (comptabilisé dans la note)'
-                  : ' — mode découverte (la vitesse compte)'}
-              </Typography>
               <LinearProgress
                 variant="determinate"
                 value={
@@ -467,20 +516,22 @@ export function SessionHostView({
                     : 0
                 }
                 color="primary"
-                sx={{ height: 8, borderRadius: 1 }}
+                sx={{ height: 6, borderRadius: 1, mt: 1 }}
               />
               <Typography
                 variant="caption"
                 color="text.secondary"
-                sx={{ mt: 0.5, display: 'block' }}
+                sx={{ mt: 0.35, display: 'block' }}
               >
-                {Math.ceil(hostTimerDisplaySeconds)} s restante
-                {Math.ceil(hostTimerDisplaySeconds) !== 1 ? 's' : ''}
+                {Math.ceil(hostTimerDisplaySeconds)} s
+                {displayedQuestion?.playMode === 'course'
+                  ? ' — mode cours'
+                  : ' — mode découverte'}
               </Typography>
             </>
           ) : (
-            <Typography variant="body2" color="text.secondary">
-              Temps restant : indisponible (horodatage non chargé).
+            <Typography variant="caption" color="text.secondary">
+              Temps restant : indisponible
             </Typography>
           )}
         </Paper>
