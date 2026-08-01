@@ -2,14 +2,23 @@ import type {
   QuizRepository,
   SessionRepository,
   RealtimeTransport,
+  GradeRepository,
 } from '@kahin/qcm-domain';
+import { PersistGradesOnSessionFinished } from './PersistGradesOnSessionFinished';
 
 export class NextQuestionUseCase {
+  private readonly persistGrades: PersistGradesOnSessionFinished | null;
+
   constructor(
     private readonly quizRepository: QuizRepository,
     private readonly sessionRepository: SessionRepository,
-    private readonly realtimeTransport: RealtimeTransport
-  ) {}
+    private readonly realtimeTransport: RealtimeTransport,
+    gradeRepository?: GradeRepository
+  ) {
+    this.persistGrades = gradeRepository
+      ? new PersistGradesOnSessionFinished(gradeRepository, quizRepository)
+      : null;
+  }
 
   async execute(sessionId: string): Promise<{ finished: boolean }> {
     const session = await this.sessionRepository.getById(sessionId);
@@ -98,6 +107,9 @@ export class NextQuestionUseCase {
         showingCumulativeRanking: true,
       };
       await this.sessionRepository.save(updatedSession);
+      if (this.persistGrades) {
+        await this.persistGrades.execute(updatedSession, quiz);
+      }
       await this.realtimeTransport.publish('session_finished', {
         sessionId,
       });

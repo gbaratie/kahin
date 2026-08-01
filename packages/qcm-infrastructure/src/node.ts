@@ -19,3 +19,5 @@ export { JsonFileStudentRosterRepository } from './JsonFileStudentRosterReposito
 export { PostgresStudentRosterRepository } from './PostgresStudentRosterRepository';
 export { JsonFileClassRepository } from './JsonFileClassRepository';
 export { PostgresClassRepository } from './PostgresClassRepository';
+export { JsonFileGradeRepository } from './JsonFileGradeRepository';
+export { PostgresGradeRepository } from './PostgresGradeRepository';

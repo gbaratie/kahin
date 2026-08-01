@@ -7,8 +7,20 @@ import {
 
 export type UpdateQuizInput = {
   title: string;
+  coefficient?: number;
   questions: QuizQuestionInput[];
 };
+
+function normalizeCoefficient(value: unknown): number {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+}
 
 export class UpdateQuizUseCase {
   constructor(
@@ -39,6 +51,9 @@ export class UpdateQuizUseCase {
     const quiz: Quiz = {
       id: quizId,
       title: input.title,
+      coefficient: normalizeCoefficient(
+        input.coefficient ?? existing.coefficient
+      ),
       questions,
     };
 

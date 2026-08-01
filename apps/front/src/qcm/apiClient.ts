@@ -73,13 +73,14 @@ async function apiFetch<T>(
   return { data: body as T };
 }
 
-export type QuizSummary = { id: string; title: string };
+export type QuizSummary = { id: string; title: string; coefficient?: number };
 
 type QuizWriteInput = CreateQuizInput | UpdateQuizInput;
 
 function quizInputToApiBody(input: QuizWriteInput) {
   return {
     title: input.title,
+    coefficient: input.coefficient,
     questions: input.questions.map((q) => ({
       id: (q as { id?: string }).id,
       label: q.label,
@@ -90,6 +91,7 @@ function quizInputToApiBody(input: QuizWriteInput) {
       scoringRange: q.scoringRange,
       timerSeconds: q.timerSeconds,
       themeId: (q as { themeId?: string | null }).themeId,
+      playMode: (q as { playMode?: string }).playMode,
     })),
   };
 }
@@ -532,12 +534,14 @@ export const apiDeleteTheme = {
 export const apiListQuestions = {
   async execute(opts?: {
     themeId?: string | null;
+    sort?: 'label' | 'theme';
     summaries?: boolean;
   }): Promise<Question[] | QuestionSummaryDto[]> {
     const params = new URLSearchParams();
     if (opts?.themeId === null) params.set('themeId', 'null');
     else if (typeof opts?.themeId === 'string')
       params.set('themeId', opts.themeId);
+    if (opts?.sort) params.set('sort', opts.sort);
     if (opts?.summaries) params.set('summaries', '1');
     const qs = params.toString();
     const { data, error } = await apiFetch<Question[] | QuestionSummaryDto[]>(
@@ -546,6 +550,127 @@ export const apiListQuestions = {
     );
     if (error) throw new Error(error);
     return Array.isArray(data) ? data : [];
+  },
+};
+
+export type ClassGradesMacroDto = {
+  classId: string;
+  className: string;
+  students: string[];
+  quizzes: Array<{
+    quizId: string;
+    quizTitle: string;
+    coefficient: number;
+    attemptId: string;
+    completedAt: string;
+    scoresByStudent: Record<
+      string,
+      { courseCorrect: number; courseTotal: number; ratio: number }
+    >;
+  }>;
+  averagesByStudent: Record<string, number | null>;
+};
+
+export type ClassQuizGradeDetailDto = {
+  classId: string;
+  quizId: string;
+  quizTitle: string;
+  coefficient: number;
+  attempt: {
+    id: string;
+    classId: string;
+    quizId: string;
+    sessionId?: string | null;
+    completedAt: string | Date;
+    source: string;
+    scores: Array<{
+      attemptId: string;
+      studentName: string;
+      courseCorrect: number;
+      courseTotal: number;
+    }>;
+    details: Array<{
+      attemptId: string;
+      studentName: string;
+      questionId: string;
+      isCorrect: boolean;
+      points: number;
+    }>;
+  };
+  questions: Array<{ id: string; label: string }>;
+};
+
+export const apiGetClassGrades = {
+  async execute(classId: string): Promise<ClassGradesMacroDto> {
+    const { data, error } = await apiFetch<ClassGradesMacroDto>(
+      `/api/grades/classes/${encodeURIComponent(classId)}`,
+      { requireAdminAuth: true }
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Load grades failed');
+    return data;
+  },
+};
+
+export const apiGetClassQuizGrades = {
+  async execute(
+    classId: string,
+    quizId: string,
+    attemptId?: string
+  ): Promise<ClassQuizGradeDetailDto> {
+    const params = new URLSearchParams();
+    if (attemptId) params.set('attemptId', attemptId);
+    const qs = params.toString();
+    const { data, error } = await apiFetch<ClassQuizGradeDetailDto>(
+      `/api/grades/classes/${encodeURIComponent(classId)}/quizzes/${encodeURIComponent(quizId)}${qs ? `?${qs}` : ''}`,
+      { requireAdminAuth: true }
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Load grade detail failed');
+    return data;
+  },
+};
+
+export const apiUpdateGradeAnswers = {
+  async execute(
+    attemptId: string,
+    updates: Array<{
+      studentName: string;
+      questionId: string;
+      isCorrect?: boolean;
+      points?: number;
+    }>
+  ): Promise<ClassQuizGradeDetailDto['attempt']> {
+    const { data, error } = await apiFetch<ClassQuizGradeDetailDto['attempt']>(
+      `/api/grades/attempts/${encodeURIComponent(attemptId)}/answers`,
+      {
+        method: 'PATCH',
+        requireAdminAuth: true,
+        body: JSON.stringify({ updates }),
+      }
+    );
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Update grades failed');
+    return data;
+  },
+};
+
+export const apiUpdateQuizCoefficient = {
+  async execute(
+    quizId: string,
+    coefficient: number
+  ): Promise<{ quizId: string; coefficient: number }> {
+    const { data, error } = await apiFetch<{
+      quizId: string;
+      coefficient: number;
+    }>(`/api/grades/quizzes/${encodeURIComponent(quizId)}/coefficient`, {
+      method: 'PATCH',
+      requireAdminAuth: true,
+      body: JSON.stringify({ coefficient }),
+    });
+    if (error) throw new Error(error);
+    if (!data) throw new Error('Update coefficient failed');
+    return data;
   },
 };
 

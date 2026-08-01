@@ -1,5 +1,6 @@
 import type { CreateQuizInput } from '@kahin/qcm-application';
-import type { QuestionType } from '@kahin/qcm-domain';
+import type { QuestionType, PlayMode } from '@kahin/qcm-domain';
+import { parsePlayMode } from '@kahin/qcm-domain';
 
 type RawQuestion = {
   id?: string;
@@ -11,10 +12,12 @@ type RawQuestion = {
   scoringRange?: number;
   timerSeconds?: number;
   themeId?: string | null;
+  playMode?: string;
 };
 
 type RawBody = {
   title?: unknown;
+  coefficient?: unknown;
   questions?: unknown;
 };
 
@@ -33,12 +36,14 @@ function parseOptionalNumber(v: unknown): number | undefined {
 }
 
 export function validateQuizBody(body: RawBody): CreateQuizInput {
-  const { title, questions } = body;
+  const { title, questions, coefficient } = body;
   if (!title || !Array.isArray(questions)) {
     throw new Error('title and questions required');
   }
+  const coef = parseOptionalNumber(coefficient);
   return {
     title: String(title),
+    coefficient: coef !== undefined && coef > 0 ? coef : undefined,
     questions: (questions as RawQuestion[]).map((q) => {
       const type = parseQuestionType(q?.type) ?? 'qcm';
       const choices =
@@ -52,6 +57,7 @@ export function validateQuizBody(body: RawBody): CreateQuizInput {
       if (type === 'closest' && expectedNumber === undefined) {
         throw new Error('expectedNumber required for closest question');
       }
+      const playMode: PlayMode = parsePlayMode(q?.playMode);
       return {
         id: typeof q?.id === 'string' && q.id.trim() ? q.id.trim() : undefined,
         label: String(q?.label ?? ''),
@@ -76,6 +82,7 @@ export function validateQuizBody(body: RawBody): CreateQuizInput {
             : typeof q?.themeId === 'string'
               ? q.themeId
               : undefined,
+        playMode,
       };
     }),
   };

@@ -57,7 +57,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Quiz, Question, QuestionType } from '@kahin/qcm-domain';
+import type { Quiz, Question, QuestionType, PlayMode } from '@kahin/qcm-domain';
+import { parsePlayMode } from '@kahin/qcm-domain';
 import {
   apiListQuestions,
   apiListQuizzes,
@@ -85,6 +86,7 @@ export type QuestionDraft = {
   scoringRange?: number | '';
   timerSeconds?: number;
   themeId?: string | null;
+  playMode?: PlayMode;
   /** Clé stable pour le drag-and-drop (même sans id serveur). */
   clientKey: string;
 };
@@ -100,15 +102,18 @@ export const initialQuestion = (): QuestionDraft => ({
   label: '',
   choices: ['', ''],
   timerSeconds: DEFAULT_QCM_TIMER,
+  playMode: 'discovery',
   clientKey: newClientKey(),
 });
 
 /** Convertit les questions brouillon en payload pour create/update API */
 export function draftToPayload(
   title: string,
-  questions: QuestionDraft[]
+  questions: QuestionDraft[],
+  coefficient?: number
 ): {
   title: string;
+  coefficient?: number;
   questions: Array<{
     id?: string;
     label: string;
@@ -119,10 +124,13 @@ export function draftToPayload(
     scoringRange?: number;
     timerSeconds?: number;
     themeId?: string | null;
+    playMode?: PlayMode;
   }>;
 } {
   return {
     title: title.trim() || 'Sans titre',
+    coefficient:
+      typeof coefficient === 'number' && coefficient > 0 ? coefficient : 1,
     questions: questions
       .filter((q) => q.label.trim())
       .map((q) => {
@@ -176,6 +184,7 @@ export function draftToPayload(
           scoringRange,
           timerSeconds,
           themeId: q.themeId,
+          playMode: parsePlayMode(q.playMode),
         };
       }),
   };
@@ -230,6 +239,7 @@ export function quizToDraft(quiz: Quiz): QuestionDraft[] {
             : undefined,
       timerSeconds: q.timerSeconds ?? defaultTimer,
       themeId: q.themeId ?? null,
+      playMode: parsePlayMode(q.playMode),
       clientKey: q.id || newClientKey(),
     };
   });
@@ -243,6 +253,8 @@ export type QcmFormProps = {
   pageTitle?: string;
   title: string;
   onTitleChange: (title: string) => void;
+  coefficient?: number;
+  onCoefficientChange?: (coefficient: number) => void;
   questions: QuestionDraft[];
   setQuestions: React.Dispatch<React.SetStateAction<QuestionDraft[]>>;
   onSubmit: (e: React.FormEvent) => void | Promise<void>;
@@ -268,6 +280,7 @@ function SortableQuestionCard({
   onSetType,
   onUpdateExpectedNumber,
   onUpdateScoringRange,
+  onSetPlayMode,
 }: {
   q: QuestionDraft;
   qIndex: number;
@@ -282,6 +295,7 @@ function SortableQuestionCard({
   onSetType: (type: QuestionType) => void;
   onUpdateExpectedNumber: (value: number | '') => void;
   onUpdateScoringRange: (value: number | '') => void;
+  onSetPlayMode: (mode: PlayMode) => void;
 }) {
   const {
     attributes,
@@ -406,6 +420,18 @@ function SortableQuestionCard({
               <MenuItem value="qcm">QCM</MenuItem>
               <MenuItem value="word_cloud">Nuage de mots</MenuItem>
               <MenuItem value="closest">Au plus proche</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 130 }}>
+            <InputLabel id={`play-mode-${q.clientKey}`}>Mode</InputLabel>
+            <Select
+              labelId={`play-mode-${q.clientKey}`}
+              value={q.playMode ?? 'discovery'}
+              label="Mode"
+              onChange={(e) => onSetPlayMode(e.target.value as PlayMode)}
+            >
+              <MenuItem value="discovery">Découverte</MenuItem>
+              <MenuItem value="course">Cours</MenuItem>
             </Select>
           </FormControl>
           <Tooltip title="Durée en secondes">
@@ -606,6 +632,8 @@ export default function QcmForm({
   pageTitle,
   title,
   onTitleChange,
+  coefficient = 1,
+  onCoefficientChange,
   questions,
   setQuestions,
   onSubmit,
@@ -623,6 +651,7 @@ export default function QcmForm({
   const [bankError, setBankError] = useState<string | null>(null);
   const [themes, setThemes] = useState<ThemeDto[]>([]);
   const [themeFilter, setThemeFilter] = useState<string>('all');
+  const [bankSort, setBankSort] = useState<'label' | 'theme'>('label');
   const [search, setSearch] = useState('');
   const [bankItems, setBankItems] = useState<QuestionSummaryDto[]>([]);
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
@@ -654,7 +683,13 @@ export default function QcmForm({
         apiListThemes.execute(),
         apiListQuestions.execute({
           summaries: true,
-          themeId: themeFilter === 'all' ? undefined : themeFilter === 'none' ? null : themeFilter,
+          sort: bankSort,
+          themeId:
+            themeFilter === 'all'
+              ? undefined
+              : themeFilter === 'none'
+                ? null
+                : themeFilter,
         }) as Promise<QuestionSummaryDto[]>,
       ]);
       setThemes(themeList);
@@ -669,7 +704,7 @@ export default function QcmForm({
   useEffect(() => {
     if (bankOpen) void loadBank();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bankOpen, themeFilter]);
+  }, [bankOpen, themeFilter, bankSort]);
 
   const filteredBank = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -796,6 +831,39 @@ export default function QcmForm({
       )
     );
 
+  const setPlayMode = (qIndex: number, playMode: PlayMode) =>
+    setQuestions((q) =>
+      q.map((item, i) => (i === qIndex ? { ...item, playMode } : item))
+    );
+
+  const reorderByTheme = (themeList: ThemeDto[] = themes) => {
+    const themeOrder = new Map(themeList.map((t) => [t.id, t.sortOrder]));
+    const themeName = new Map(themeList.map((t) => [t.id, t.name]));
+    setQuestions((prev) => {
+      const indexed = prev.map((q, index) => ({ q, index }));
+      indexed.sort((a, b) => {
+        const aNo = a.q.themeId ? 0 : 1;
+        const bNo = b.q.themeId ? 0 : 1;
+        if (aNo !== bNo) return aNo - bNo;
+        const orderA = a.q.themeId
+          ? (themeOrder.get(a.q.themeId) ?? Number.MAX_SAFE_INTEGER)
+          : Number.MAX_SAFE_INTEGER;
+        const orderB = b.q.themeId
+          ? (themeOrder.get(b.q.themeId) ?? Number.MAX_SAFE_INTEGER)
+          : Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        const nameCmp = (themeName.get(a.q.themeId ?? '') ?? '').localeCompare(
+          themeName.get(b.q.themeId ?? '') ?? ''
+        );
+        if (nameCmp !== 0) return nameCmp;
+        const labelCmp = a.q.label.localeCompare(b.q.label);
+        if (labelCmp !== 0) return labelCmp;
+        return a.index - b.index;
+      });
+      return indexed.map(({ q }) => q);
+    });
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -900,23 +968,39 @@ export default function QcmForm({
           ),
         }}
       />
-      <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
-        <InputLabel id="theme-filter-label">Thématique</InputLabel>
-        <Select
-          labelId="theme-filter-label"
-          label="Thématique"
-          value={themeFilter}
-          onChange={(e) => setThemeFilter(e.target.value)}
-        >
-          <MenuItem value="all">Toutes</MenuItem>
-          <MenuItem value="none">Sans thématique</MenuItem>
-          {themes.map((t) => (
-            <MenuItem key={t.id} value={t.id}>
-              {t.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
+        <FormControl size="small" fullWidth>
+          <InputLabel id="theme-filter-label">Filtre</InputLabel>
+          <Select
+            labelId="theme-filter-label"
+            label="Filtre"
+            value={themeFilter}
+            onChange={(e) => setThemeFilter(e.target.value)}
+          >
+            <MenuItem value="all">Toutes</MenuItem>
+            <MenuItem value="none">Sans thématique</MenuItem>
+            {themes.map((t) => (
+              <MenuItem key={t.id} value={t.id}>
+                {t.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 130 }}>
+          <InputLabel id="bank-sort-label">Trier</InputLabel>
+          <Select
+            labelId="bank-sort-label"
+            label="Trier"
+            value={bankSort}
+            onChange={(e) =>
+              setBankSort(e.target.value as 'label' | 'theme')
+            }
+          >
+            <MenuItem value="label">Alphabétique</MenuItem>
+            <MenuItem value="theme">Thématique</MenuItem>
+          </Select>
+        </FormControl>
+      </Stack>
       {bankError && (
         <Typography color="error" variant="body2" sx={{ mb: 1 }}>
           {bankError}
@@ -1007,13 +1091,32 @@ export default function QcmForm({
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <form onSubmit={onSubmit}>
-            <TextField
-              fullWidth
-              label="Titre du QCM"
-              value={title}
-              onChange={(e) => onTitleChange(e.target.value)}
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
               sx={{ mb: 2 }}
-            />
+            >
+              <TextField
+                fullWidth
+                label="Titre du QCM"
+                value={title}
+                onChange={(e) => onTitleChange(e.target.value)}
+              />
+              {onCoefficientChange && (
+                <TextField
+                  label="Coefficient"
+                  type="number"
+                  size="small"
+                  value={coefficient}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (Number.isFinite(n) && n > 0) onCoefficientChange(n);
+                  }}
+                  inputProps={{ min: 0.1, step: 0.5 }}
+                  sx={{ width: { xs: '100%', sm: 140 }, flexShrink: 0 }}
+                />
+              )}
+            </Stack>
 
             <Stack
               direction="row"
@@ -1028,9 +1131,28 @@ export default function QcmForm({
                     size="small"
                     variant={bankOpen ? 'contained' : 'outlined'}
                     startIcon={<LibraryBooksIcon />}
-                    onClick={() => setBankOpen((o) => !o)}
+                    onClick={() => {
+                      setBankOpen((o) => !o);
+                      if (!themes.length) void apiListThemes.execute().then(setThemes);
+                    }}
                   >
                     Banque
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      if (!themes.length) {
+                        void apiListThemes.execute().then((list) => {
+                          setThemes(list);
+                          reorderByTheme(list);
+                        });
+                      } else {
+                        reorderByTheme();
+                      }
+                    }}
+                  >
+                    Ordonner par thématique
                   </Button>
                   <Button
                     size="small"
@@ -1073,6 +1195,7 @@ export default function QcmForm({
                       updateExpectedNumber(qIndex, v)
                     }
                     onUpdateScoringRange={(v) => updateScoringRange(qIndex, v)}
+                    onSetPlayMode={(mode) => setPlayMode(qIndex, mode)}
                   />
                 ))}
               </SortableContext>

@@ -28,6 +28,9 @@ const BAD_REQUEST_MESSAGES = new Set([
   'label required',
   'Theme name required',
   'Question label required',
+  'updates required',
+  'studentName and questionId required',
+  'coefficient must be a positive number',
 ]);
 
 function getStatusForError(e: unknown): number {
@@ -38,6 +41,9 @@ function getStatusForError(e: unknown): number {
   if (code === 'THEME_NOT_FOUND' || message === 'Theme not found') return 404;
   if (code === 'QUESTION_NOT_FOUND' || message === 'Question not found')
     return 404;
+  if (code === 'GRADE_NOT_FOUND' || message === 'Grade attempt not found')
+    return 404;
+  if (code === 'CLASS_NOT_FOUND' || message === 'Class not found') return 404;
   if (message === 'Session not found') return 404;
   if (message === 'Class not found') return 404;
   if (BAD_REQUEST_MESSAGES.has(message)) return 400;

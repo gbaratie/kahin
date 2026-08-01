@@ -1,19 +1,40 @@
-import type { Quiz, Question, Theme } from '@kahin/qcm-domain';
+import type {
+  Quiz,
+  Question,
+  Theme,
+  PlayMode,
+  QuestionListFilters,
+} from '@kahin/qcm-domain';
 import type {
   QuizRepository,
   QuestionRepository,
   QuestionSummary,
   ThemeRepository,
 } from '@kahin/qcm-domain';
+import { parsePlayMode } from '@kahin/qcm-domain';
 import fs from 'fs/promises';
 import path from 'path';
 
 const defaultEncoding = 'utf-8' as const;
 
+export type JsonQuizQuestionRef = {
+  questionId: string;
+  playMode?: PlayMode;
+};
+
 export type JsonBankFile = {
   themes: Record<string, Theme>;
   questions: Record<string, Question>;
-  quizzes: Record<string, { id: string; title: string; questionIds: string[] }>;
+  quizzes: Record<
+    string,
+    {
+      id: string;
+      title: string;
+      coefficient?: number;
+      /** Nouveau format avec playMode ; anciens fichiers : string[]. */
+      questionIds: Array<string | JsonQuizQuestionRef>;
+    }
+  >;
 };
 
 type LegacyJsonFile = {
@@ -26,20 +47,51 @@ function emptyBank(): JsonBankFile {
   return { themes: {}, questions: {}, quizzes: {} };
 }
 
+function normalizeCoefficient(value: unknown): number {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+}
+
+function normalizeQuestionRefs(
+  raw: Array<string | JsonQuizQuestionRef> | undefined
+): JsonQuizQuestionRef[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => {
+    if (typeof item === 'string') {
+      return { questionId: item, playMode: 'discovery' };
+    }
+    return {
+      questionId: item.questionId,
+      playMode: parsePlayMode(item.playMode),
+    };
+  });
+}
+
 /** Convertit l’ancien format imbriqué vers banque + questionIds. */
 export function migrateLegacyQuizzes(
   legacy: Record<string, Quiz>
 ): JsonBankFile {
   const bank = emptyBank();
   for (const quiz of Object.values(legacy)) {
-    const questionIds: string[] = [];
+    const questionIds: JsonQuizQuestionRef[] = [];
     for (const q of quiz.questions ?? []) {
-      bank.questions[q.id] = { ...q, choices: [...(q.choices ?? [])] };
-      questionIds.push(q.id);
+      const { playMode, ...rest } = q;
+      bank.questions[q.id] = { ...rest, choices: [...(q.choices ?? [])] };
+      questionIds.push({
+        questionId: q.id,
+        playMode: parsePlayMode(playMode),
+      });
     }
     bank.quizzes[quiz.id] = {
       id: quiz.id,
       title: quiz.title,
+      coefficient: normalizeCoefficient(quiz.coefficient),
       questionIds,
     };
   }
@@ -59,7 +111,11 @@ export class JsonFileBankStore {
       const data = JSON.parse(raw) as LegacyJsonFile;
 
       // Nouveau format
-      if (data.questions || data.themes || (data.quizzes && !isLegacyQuizzes(data.quizzes))) {
+      if (
+        data.questions ||
+        data.themes ||
+        (data.quizzes && !isLegacyQuizzes(data.quizzes))
+      ) {
         return {
           themes: data.themes ?? {},
           questions: data.questions ?? {},
@@ -93,9 +149,7 @@ export class JsonFileBankStore {
   }
 }
 
-function isLegacyQuizzes(
-  quizzes: Record<string, unknown>
-): boolean {
+function isLegacyQuizzes(quizzes: Record<string, unknown>): boolean {
   const first = Object.values(quizzes)[0] as
     | { questions?: unknown; questionIds?: unknown }
     | undefined;
@@ -112,24 +166,31 @@ function normalizeQuizzes(
     const q = raw as {
       id?: string;
       title?: string;
-      questionIds?: string[];
+      coefficient?: number;
+      questionIds?: Array<string | JsonQuizQuestionRef>;
       questions?: Question[];
     };
     if (Array.isArray(q.questionIds)) {
       out[id] = {
         id: q.id ?? id,
         title: q.title ?? '',
-        questionIds: q.questionIds,
+        coefficient: normalizeCoefficient(q.coefficient),
+        questionIds: normalizeQuestionRefs(q.questionIds),
       };
     } else if (Array.isArray(q.questions)) {
-      const questionIds: string[] = [];
+      const questionIds: JsonQuizQuestionRef[] = [];
       for (const question of q.questions) {
-        questions[question.id] = question;
-        questionIds.push(question.id);
+        const { playMode, ...rest } = question;
+        questions[question.id] = rest;
+        questionIds.push({
+          questionId: question.id,
+          playMode: parsePlayMode(playMode),
+        });
       }
       out[id] = {
         id: q.id ?? id,
         title: q.title ?? '',
+        coefficient: normalizeCoefficient(q.coefficient),
         questionIds,
       };
     }
@@ -137,17 +198,47 @@ function normalizeQuizzes(
   return out;
 }
 
-function hydrateQuiz(
-  bank: JsonBankFile,
-  quizId: string
-): Quiz | null {
+function hydrateQuiz(bank: JsonBankFile, quizId: string): Quiz | null {
   const row = bank.quizzes[quizId];
   if (!row) return null;
-  const questions = row.questionIds
-    .map((qid) => bank.questions[qid])
-    .filter((q): q is Question => Boolean(q))
-    .map((q) => ({ ...q, choices: [...(q.choices ?? [])] }));
-  return { id: row.id, title: row.title, questions };
+  const refs = normalizeQuestionRefs(row.questionIds);
+  const questions: Question[] = [];
+  for (const ref of refs) {
+    const q = bank.questions[ref.questionId];
+    if (!q) continue;
+    questions.push({
+      ...q,
+      choices: [...(q.choices ?? [])],
+      playMode: parsePlayMode(ref.playMode),
+    });
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    coefficient: normalizeCoefficient(row.coefficient),
+    questions,
+  };
+}
+
+function compareQuestionsBySort(
+  a: Question,
+  b: Question,
+  themes: Record<string, Theme>,
+  sort: QuestionListFilters['sort']
+): number {
+  if (sort === 'theme') {
+    const ta = a.themeId ? themes[a.themeId] : undefined;
+    const tb = b.themeId ? themes[b.themeId] : undefined;
+    const aNoTheme = a.themeId ? 0 : 1;
+    const bNoTheme = b.themeId ? 0 : 1;
+    if (aNoTheme !== bNoTheme) return aNoTheme - bNoTheme;
+    const orderA = ta?.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const orderB = tb?.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    const nameCmp = (ta?.name ?? '').localeCompare(tb?.name ?? '');
+    if (nameCmp !== 0) return nameCmp;
+  }
+  return a.label.localeCompare(b.label) || a.id.localeCompare(b.id);
 }
 
 export class JsonFileQuizRepository implements QuizRepository {
@@ -160,15 +251,20 @@ export class JsonFileQuizRepository implements QuizRepository {
   async save(quiz: Quiz): Promise<void> {
     const bank = await this.store.read();
     for (const question of quiz.questions) {
+      const { playMode: _playMode, ...bankQuestion } = question;
       bank.questions[question.id] = {
-        ...question,
+        ...bankQuestion,
         choices: [...question.choices],
       };
     }
     bank.quizzes[quiz.id] = {
       id: quiz.id,
       title: quiz.title,
-      questionIds: quiz.questions.map((q) => q.id),
+      coefficient: normalizeCoefficient(quiz.coefficient),
+      questionIds: quiz.questions.map((q) => ({
+        questionId: q.id,
+        playMode: parsePlayMode(q.playMode),
+      })),
     };
     await this.store.write(bank);
   }
@@ -178,11 +274,12 @@ export class JsonFileQuizRepository implements QuizRepository {
     return hydrateQuiz(bank, id);
   }
 
-  async list(): Promise<{ id: string; title: string }[]> {
+  async list(): Promise<{ id: string; title: string; coefficient?: number }[]> {
     const bank = await this.store.read();
     return Object.values(bank.quizzes).map((q) => ({
       id: q.id,
       title: q.title,
+      coefficient: normalizeCoefficient(q.coefficient),
     }));
   }
 
@@ -190,6 +287,18 @@ export class JsonFileQuizRepository implements QuizRepository {
     const bank = await this.store.read();
     if (!(id in bank.quizzes)) return;
     delete bank.quizzes[id];
+    await this.store.write(bank);
+  }
+
+  async updateCoefficient(quizId: string, coefficient: number): Promise<void> {
+    const bank = await this.store.read();
+    const quiz = bank.quizzes[quizId];
+    if (!quiz) {
+      const err = new Error('Quiz not found');
+      (err as Error & { code?: string }).code = 'QUIZ_NOT_FOUND';
+      throw err;
+    }
+    quiz.coefficient = normalizeCoefficient(coefficient);
     await this.store.write(bank);
   }
 }
@@ -201,17 +310,19 @@ export class JsonFileQuestionRepository implements QuestionRepository {
     this.store = new JsonFileBankStore(filePath);
   }
 
-  async list(filters?: { themeId?: string | null }): Promise<Question[]> {
+  async list(filters?: QuestionListFilters): Promise<Question[]> {
     const bank = await this.store.read();
     return Object.values(bank.questions)
       .filter((q) => matchesTheme(q, filters?.themeId))
-      .sort((a, b) => a.label.localeCompare(b.label))
+      .sort((a, b) =>
+        compareQuestionsBySort(a, b, bank.themes, filters?.sort)
+      )
       .map((q) => ({ ...q, choices: [...(q.choices ?? [])] }));
   }
 
-  async listSummaries(filters?: {
-    themeId?: string | null;
-  }): Promise<QuestionSummary[]> {
+  async listSummaries(
+    filters?: QuestionListFilters
+  ): Promise<QuestionSummary[]> {
     const list = await this.list(filters);
     return list.map((q) => ({
       id: q.id,
@@ -231,8 +342,9 @@ export class JsonFileQuestionRepository implements QuestionRepository {
 
   async save(question: Question): Promise<void> {
     const bank = await this.store.read();
+    const { playMode: _playMode, ...bankQuestion } = question;
     bank.questions[question.id] = {
-      ...question,
+      ...bankQuestion,
       choices: [...question.choices],
     };
     await this.store.write(bank);
@@ -243,7 +355,9 @@ export class JsonFileQuestionRepository implements QuestionRepository {
     if (!(id in bank.questions)) return;
     delete bank.questions[id];
     for (const quiz of Object.values(bank.quizzes)) {
-      quiz.questionIds = quiz.questionIds.filter((qid) => qid !== id);
+      quiz.questionIds = normalizeQuestionRefs(quiz.questionIds).filter(
+        (ref) => ref.questionId !== id
+      );
     }
     await this.store.write(bank);
   }

@@ -1,6 +1,7 @@
 import {
   defaultClosestScoringRange,
   isClosestQuestion,
+  isCoursePlayMode,
   type Question,
   type Quiz,
   type Session,
@@ -90,6 +91,8 @@ export function computeRanking(
   }
   for (let i = 0; i < upToQuestionIndex; i++) {
     const question = quiz.questions[i];
+    // Les questions « cours » ne participent pas à la gamification.
+    if (isCoursePlayMode(question)) continue;
     for (const answer of session.answers) {
       if (answer.questionId !== question.id) continue;
       const current = scoreByParticipant.get(answer.participantId) ?? 0;
@@ -132,6 +135,7 @@ export function pointsForQcmAnswer(
   choiceId: string | undefined,
   answeredAt: Date | string | undefined
 ): number {
+  if (isCoursePlayMode(question)) return 0;
   if (!choiceId || question.correctChoiceId == null) return 0;
   if (choiceId !== question.correctChoiceId) return 0;
   return timeWeightedCap(session, questionIndex, question, answeredAt);

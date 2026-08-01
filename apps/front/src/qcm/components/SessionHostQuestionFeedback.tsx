@@ -4,11 +4,13 @@ import { alpha } from '@mui/material/styles';
 import {
   defaultClosestScoringRange,
   isClosestQuestion,
+  isCoursePlayMode,
   type Question,
   type Session,
 } from '@kahin/qcm-domain';
 import {
   computeChoiceCounts,
+  coursePointsForAnswer,
   pointsForClosestAnswer,
 } from '@kahin/qcm-application';
 import {
@@ -101,12 +103,14 @@ function ClosestQuestionFeedback({
       }
       const distance =
         expected == null ? 0 : Math.abs(a.numberValue - expected);
+      const gamificationPts = pointsForClosestAnswer(question, a.numberValue);
+      const coursePts = coursePointsForAnswer(question, a).points;
       list.push({
         participantId: a.participantId,
         name: nameById.get(a.participantId) ?? 'Participant',
         value: a.numberValue,
         distance,
-        points: pointsForClosestAnswer(question, a.numberValue),
+        points: isCoursePlayMode(question) ? coursePts : gamificationPts,
       });
     }
     list.sort((a, b) => a.distance - b.distance || b.points - a.points);
@@ -124,6 +128,7 @@ function ClosestQuestionFeedback({
     <Paper sx={{ p: 2, mb: 2 }}>
       <Typography variant="subtitle2" color="text.secondary" gutterBottom>
         Résultat de la question
+        {isCoursePlayMode(question) ? ' (cours — 1 pt / bonne réponse)' : ''}
       </Typography>
       <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
         {question.label}
@@ -136,7 +141,7 @@ function ClosestQuestionFeedback({
             ? formatNumber(question.expectedNumber)
             : '—'}
         </strong>
-        {range != null ? (
+        {range != null && !isCoursePlayMode(question) ? (
           <Typography component="span" variant="body2" sx={{ ml: 1 }}>
             (0 pt à ±{formatNumber(range)})
           </Typography>
@@ -215,6 +220,7 @@ function QcmQuestionFeedback({
     <Paper sx={{ p: 2, mb: 2 }}>
       <Typography variant="subtitle2" color="text.secondary" gutterBottom>
         Résultat de la question
+        {isCoursePlayMode(question) ? ' (cours — 1 pt / bonne réponse)' : ''}
       </Typography>
       <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
         {question.label}
