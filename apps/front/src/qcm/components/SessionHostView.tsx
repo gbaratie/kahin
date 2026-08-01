@@ -82,7 +82,6 @@ export function SessionHostView({
   );
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
-  const autoCsvDownloadTriggeredRef = useRef(false);
 
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
@@ -225,10 +224,6 @@ export function SessionHostView({
     ? session?.status === 'finished' || finished
     : finished || sessionFinished;
 
-  useEffect(() => {
-    autoCsvDownloadTriggeredRef.current = false;
-  }, [sessionId]);
-
   const handleNextQuestion = () => {
     nextQuestion(sessionId).then(() => refetch());
   };
@@ -264,17 +259,6 @@ export function SessionHostView({
       setCsvError(e instanceof Error ? e.message : String(e));
     }
   }, [isApi, quiz, session, sessionId]);
-
-  useEffect(() => {
-    if (!isFinished) {
-      autoCsvDownloadTriggeredRef.current = false;
-      return;
-    }
-    if (!session || !quiz) return;
-    if (autoCsvDownloadTriggeredRef.current) return;
-    autoCsvDownloadTriggeredRef.current = true;
-    handleDownloadResultsCsv();
-  }, [isFinished, session, quiz, handleDownloadResultsCsv]);
 
   const showCumulativeRanking =
     session &&

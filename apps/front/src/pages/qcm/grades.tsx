@@ -31,6 +31,10 @@ import {
   type ClassGradesMacroDto,
   type ClassQuizGradeDetailDto,
 } from '@/qcm/apiClient';
+import {
+  buildClassGradesCsv,
+  buildClassGradesCsvFilename,
+} from '@kahin/qcm-application';
 import { getErrorMessage } from '@kahin/shared-utils';
 
 type ClassSummary = { id: string; name: string; studentCount: number };
@@ -170,6 +174,29 @@ function GradesPageContent() {
     return map;
   }, [detail]);
 
+  const handleExportCsv = () => {
+    if (!macro) return;
+    const csv = buildClassGradesCsv({
+      className: macro.className,
+      students: macro.students,
+      quizzes: macro.quizzes.map((q) => ({
+        quizTitle: q.quizTitle,
+        coefficient: q.coefficient,
+        scoresByStudent: q.scoresByStudent,
+      })),
+      averagesByStudent: macro.averagesByStudent,
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = buildClassGradesCsvFilename(macro.className);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objUrl);
+  };
+
   return (
     <Layout>
       <Head>
@@ -184,21 +211,35 @@ function GradesPageContent() {
           uniquement). Cliquez un QCM pour le détail et l’édition.
         </Typography>
 
-        <FormControl size="small" sx={{ minWidth: 220, mb: 2 }}>
-          <InputLabel id="grades-class">Classe</InputLabel>
-          <Select
-            labelId="grades-class"
-            label="Classe"
-            value={classId}
-            onChange={(e) => setClassId(e.target.value)}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          sx={{ mb: 2 }}
+        >
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel id="grades-class">Classe</InputLabel>
+            <Select
+              labelId="grades-class"
+              label="Classe"
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+            >
+              {classes.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            onClick={handleExportCsv}
+            disabled={!macro || macro.quizzes.length === 0}
           >
-            {classes.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            Exporter CSV
+          </Button>
+        </Stack>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
