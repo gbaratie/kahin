@@ -259,7 +259,7 @@ Ces visuels partagent volontairement : teal `#0F766E`, surfaces blanches/slate, 
 
 ## 9. Décisions à valider avant code
 
-1. **Nom** : Quorum (reco) · Klaro · autre de la shortlist · suggestion maison ?  
+1. **Nom** : Questa (reco métier) · Querio · Qast · Quorum/Qorum (coup de cœur) · autre ?  
 2. **Accent timer** : corail `#C2410C` OK, ou uniquement teal monochrome + ambre ?  
 3. **Langue UI par défaut** : EN (produit international) avec FR, ou FR d’abord ?  
 4. **Réponse 1-tap** vs confirmer : défaut proposé = **1-tap** en session, option animateur « require confirmation ».  
