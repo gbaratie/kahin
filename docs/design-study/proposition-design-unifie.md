@@ -17,34 +17,63 @@ Complète l’[audit initial](./etude-interfaces-ux.md).
 
 ## 2. Pistes de nom (remplacer Kahin)
 
-Contraintes : étudiants + contexte pro international, facile à dire, domaine / marque imaginable, neutre culturellement.
+Contraintes : lien clair avec **questionnaires / QCM / quiz / sondages**, étudiants + contexte pro international, facile à dire, domaine / marque imaginable.
 
-### Shortlist recommandée
+Les noms trop « salle / voix / assemblée » seuls (Klaro, Voxa, Atrium…) sont mis de côté ici au profit du **métier questionnaire**.
 
-| Nom | Prononciation | Pourquoi | Risques |
-| --- | --- | --- | --- |
-| **Quorum** | FR *kwo-rom* / EN *ˈkwɔːrəm* | Consensus, vote, assemblée — parfait salle de classe **et** boardroom. Sérieux, mémorable. | Mot anglais courant (SEO un peu générique) |
-| **Klaro** | *kla-ro* | « Clair » (écho esperanto) — international, court, moderne, connoté clarté des réponses. | Marque à vérifier (homonymes possibles) |
-| **Voxa** | *vok-sa* | « Voix » de la salle — brandable, tech, court. | Peut sonner « startup gadget » |
-| **Atrium** | *a-tri-om* | Lieu de rassemblement, élégant, pro. | Un peu architectural / immobilier |
-| **Chorus** | *ko-rus* | Réponses collectives — poétique et clair. | Connotation musicale |
-| **Relay** | *ri-lay* | Relayer questions/réponses — simple EN, OK international. | Très générique |
+### A. Ancrés « question / quiz / QCM »
 
-### Recommandation
+| Nom | Prononciation | Lien métier | Pourquoi | Risques |
+| --- | --- | --- | --- | --- |
+| **Questa** | *kwes-ta* | *question* | Évoque directement la question ; doux, international, pro. | « Questa » = « cette » en italien (faible collision) |
+| **Querio** | *kwé-rio* / *kwe-ree-oh* | *query / question* | Tech + questionnaire ; sonne produit SaaS. | À vérifier côté marques |
+| **Qast** | *kast* (comme *cast*) | **Q** + *cast* | Diffuser un QCM en live (broadcast) — court, moderne. | Prononciation FR à guider (« kaste ») |
+| **Quizora** | *kwi-zo-ra* | *quiz* | Lien quiz évident, encore assez premium. | Un peu « startup edu » |
+| **Askora** | *as-ko-ra* | *ask* | Poser des questions à la salle ; clair EN, OK FR. | Moins explicite « QCM » |
+| **Optio** | *op-sio* | *option* (QCM) | Met l’accent sur le choix multiple — très métier. | Peut sembler « options logicielles » |
+| **Forma** | *for-ma* | *formulaire / form* | Questionnaire au sens large (pro + pédagogie). | Générique ; collisions possibles |
+| **Qroom** | *kyu-room* | *Q* + *room* | La salle où l’on répond au QCM. | Sonore un peu gadget |
+| **LiveQ** | *live-kyu* | *live* + *Q* | QCM temps réel — descriptif. | Moins « marque », plus descriptif |
+| **PolyQ** | *po-li-kyu* | *poly* (plusieurs choix) + *Q* | Renvoie au QCM / MCQ. | Moins intuitif sans explication |
 
-**1er choix : Quorum** — le plus crédible en contexte pro international tout en restant naturel pour des étudiants (vote, consensus, participation).
+### B. Pont avec Quorum (que vous aimez)
 
-**2e choix : Klaro** — si vous voulez un nom **inventé** plus « produit » et plus facile à protéger / à domainer.
+| Nom | Idée |
+| --- | --- |
+| **Quorum** | Garde la force « assemblée / vote / consensus ». Moins littéral sur « questionnaire », mais excellent en pro. Tagline peut porter le métier : *Live quizzes for every room.* |
+| **Qorum** | Même son que Quorum + **Q** visuelle pour quiz/QCM — compromis si vous voulez le lien métier dans le logo. |
+| **Questa Quorum** | Non retenu comme nom produit (trop long) — plutôt Questa *ou* Quorum. |
 
-Les rendus ci-dessous utilisent **Quorum** comme hypothèse de travail (remplaçable sans changer le système visuel).
+### C. À éviter (pour ce brief)
+
+| Piste | Pourquoi non |
+| --- | --- |
+| Kahoot-likes (*Quizzy*, *Buzzly*…) | Trop ludique / scolaire |
+| *Interro*, *QCM App* | Trop FR ou trop littéral pour l’international |
+| *Quora* / *Qora* | Collision forte avec Quora |
+| Noms purement « voix / lieu » sans ancrage question | Hors brief actuel |
+
+### Recommandation révisée
+
+| Rang | Nom | Pour qui |
+| --- | --- | --- |
+| **1** | **Questa** | Meilleur équilibre : lien *question*, pro, international, mémorable |
+| **2** | **Querio** | Plus « SaaS / query », très questionnaire |
+| **3** | **Qast** | Si vous voulez court + connotation live/broadcast |
+| **coup de cœur conservé** | **Quorum** (ou **Qorum**) | Si le positionnement « participation de salle » prime sur le littéral « quiz » |
+
+Les rendus actuels utilisent encore **Quorum** comme hypothèse visuelle — le design system ne dépend pas du nom.
 
 ### Signature produit (tagline)
 
-À trancher avec le nom :
+À adapter au nom retenu :
 
-- EN : *Live questions. Clear answers.*
-- FR : *Questions en direct. Réponses claires.*
-- Alt. : *Engage every room.* / *Chaque salle a une voix.*
+| Nom | EN | FR |
+| --- | --- | --- |
+| Questa | *Live questions. Clear answers.* | *Questions en direct. Réponses claires.* |
+| Querio | *Run quizzes that click.* | *Des QCM qui passent en direct.* |
+| Qast | *Cast your quiz. Read the room.* | *Diffusez votre QCM. Lisez la salle.* |
+| Quorum | *Live quizzes for every room.* | *Des QCM en direct, pour chaque salle.* |
 
 ---
 
