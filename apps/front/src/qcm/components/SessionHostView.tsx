@@ -456,7 +456,7 @@ export function SessionHostView({
               >
                 Temps restant
                 {displayedQuestion?.playMode === 'course'
-                  ? ' — mode cours (n’affecte pas la note)'
+                  ? ' — mode cours (comptabilisé dans la note)'
                   : ' — mode découverte (la vitesse compte)'}
               </Typography>
               <LinearProgress

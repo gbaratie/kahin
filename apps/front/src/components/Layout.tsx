@@ -21,7 +21,7 @@ import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import BrightnessAutoOutlined from '@mui/icons-material/BrightnessAutoOutlined';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { siteName, navItems } from '@/config/site';
+import { siteName, navItems, navItemsParticipant } from '@/config/site';
 import ApiStatus from '@/components/ApiStatus';
 import AdminLoginDialog from '@/components/AdminLoginDialog';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -42,8 +42,11 @@ export default function Layout({ children }: LayoutProps) {
   const { isAdmin, openLoginDialog, logout, showAdminLoginUi } = useAdminAuth();
   const { preference, cyclePreference } = useColorMode();
 
-  /** Participants : pas d’onglets (accueil = déjà « rejoindre »). */
-  const visibleNavItems = useMemo(() => (isAdmin ? navItems : []), [isAdmin]);
+  /** Élèves : Accueil / Règles / Rejoindre ; animateur : nav complète. */
+  const visibleNavItems = useMemo(
+    () => (isAdmin ? navItems : navItemsParticipant),
+    [isAdmin]
+  );
 
   const hasNavLinks = visibleNavItems.length > 0;
 

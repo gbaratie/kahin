@@ -577,7 +577,7 @@ export function SessionParticipantView({
             {Math.ceil(remainingSeconds ?? 0)} s restante
             {Math.ceil(remainingSeconds ?? 0) !== 1 ? 's' : ''}
             {question.playMode === 'course'
-              ? ' — mode cours (n’affecte pas la note)'
+              ? ' — mode cours (comptabilisé dans la note)'
               : ' — mode découverte (la vitesse compte)'}
           </Typography>
         </Box>
