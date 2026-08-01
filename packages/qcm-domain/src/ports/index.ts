@@ -7,4 +7,10 @@ export type { ThemeRepository } from './ThemeRepository';
 export type {
   QuestionRepository,
   QuestionSummary,
+  QuestionSort,
+  QuestionListFilters,
 } from './QuestionRepository';
+export type {
+  GradeRepository,
+  GradeAttemptWithScores,
+} from './GradeRepository';

@@ -38,6 +38,10 @@ export {
   POINTS_PER_QUESTION,
 } from './ranking';
 export type { RankEntry } from './ranking';
+export {
+  coursePointsForAnswer,
+  isGradableCourseQuestion,
+} from './courseScoring';
 export { computeChoiceCounts } from './choiceCounts';
 export type { ChoiceCountEntry } from './choiceCounts';
 export {
@@ -56,3 +60,15 @@ export type { SaveQuestionInput } from './SaveQuestionUseCase';
 export { DeleteQuestionUseCase } from './DeleteQuestionUseCase';
 export { ListQuestionsUseCase } from './ListQuestionsUseCase';
 export { GetQuestionUseCase } from './GetQuestionUseCase';
+export { PersistGradesOnSessionFinished } from './PersistGradesOnSessionFinished';
+export {
+  GetClassGradesMacroUseCase,
+  GetClassQuizGradeDetailUseCase,
+  UpdateGradeAnswersUseCase,
+  UpdateQuizCoefficientUseCase,
+} from './GradeUseCases';
+export type {
+  ClassGradesMacro,
+  ClassGradesMacroQuiz,
+  ClassQuizGradeDetail,
+} from './GradeUseCases';

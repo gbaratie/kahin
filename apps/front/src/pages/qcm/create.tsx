@@ -13,17 +13,22 @@ function QcmCreatePageContent() {
   const router = useRouter();
   const { execute: createQuiz, loading, error } = useCreateQuiz();
   const [title, setTitle] = useState('');
+  const [coefficient, setCoefficient] = useState(1);
   const [questions, setQuestions] = useState([initialQuestion()]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const quiz = await createQuiz(draftToPayload(title, questions));
+    const quiz = await createQuiz(
+      draftToPayload(title, questions, coefficient)
+    );
     if (quiz) router.push('/');
   };
 
   const handleSaveAndLaunch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const quiz = await createQuiz(draftToPayload(title, questions));
+    const quiz = await createQuiz(
+      draftToPayload(title, questions, coefficient)
+    );
     if (quiz) router.push(`/qcm/launch?quizId=${quiz.id}`);
   };
 
@@ -36,6 +41,8 @@ function QcmCreatePageContent() {
         pageTitle="Créer un QCM"
         title={title}
         onTitleChange={setTitle}
+        coefficient={coefficient}
+        onCoefficientChange={setCoefficient}
         questions={questions}
         setQuestions={setQuestions}
         onSubmit={handleSave}

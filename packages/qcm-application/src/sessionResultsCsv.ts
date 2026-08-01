@@ -1,6 +1,7 @@
 import {
   isWordCloudQuestion,
   isClosestQuestion,
+  isCoursePlayMode,
   type Quiz,
   type Session,
 } from '@kahin/qcm-domain';
@@ -9,6 +10,7 @@ import {
   pointsForQcmAnswer,
   pointsForClosestAnswer,
 } from './ranking';
+import { coursePointsForAnswer } from './courseScoring';
 
 /** Séparateur point-virgule pour Excel (locale FR). */
 const CSV_SEP = ';';
@@ -71,13 +73,16 @@ export function buildSessionResultsCsv(session: Session, quiz: Quiz): string {
 
   if (simple) {
     quiz.questions.forEach((question, questionIndex) => {
-      const row: string[] = [question.label];
+      const modeLabel = isCoursePlayMode(question) ? ' [cours]' : ' [découverte]';
+      const row: string[] = [`${question.label}${modeLabel}`];
       for (const p of participants) {
         const answer = session.answers.find(
           (a) => a.participantId === p.id && a.questionId === question.id
         );
         let pts = 0;
-        if (answer) {
+        if (isCoursePlayMode(question)) {
+          pts = coursePointsForAnswer(question, answer).points;
+        } else if (answer) {
           if (isClosestQuestion(question)) {
             pts = pointsForClosestAnswer(question, answer.numberValue);
           } else {
@@ -97,7 +102,7 @@ export function buildSessionResultsCsv(session: Session, quiz: Quiz): string {
   }
 
   const totalRow = [
-    'Total',
+    'Total gamification',
     ...participants.map((p) => totalByParticipantId.get(p.id) ?? '0'),
   ];
   lines.push(csvRow(totalRow));

@@ -1,4 +1,5 @@
 import type { Choice } from './Choice';
+import type { PlayMode } from './PlayMode';
 
 export type QuestionType = 'qcm' | 'word_cloud' | 'closest';
 
@@ -20,6 +21,11 @@ export type Question = {
   timerSeconds?: number;
   /** Thématique optionnelle dans la banque de questions. */
   themeId?: string;
+  /**
+   * Mode dans le contexte d’un QCM uniquement (`course` | `discovery`).
+   * Absent / non pertinent pour une question seule en banque.
+   */
+  playMode?: PlayMode;
 };
 
 /**

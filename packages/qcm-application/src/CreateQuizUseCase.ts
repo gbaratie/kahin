@@ -1,5 +1,12 @@
-import type { Quiz, Question, Choice, QuestionType } from '@kahin/qcm-domain';
+import type {
+  Quiz,
+  Question,
+  Choice,
+  QuestionType,
+  PlayMode,
+} from '@kahin/qcm-domain';
 import type { QuizRepository } from '@kahin/qcm-domain';
+import { parsePlayMode } from '@kahin/qcm-domain';
 
 export type QuizQuestionInput = {
   /** Si fourni : réutilise l’identité en banque (partage entre QCM). */
@@ -12,12 +19,26 @@ export type QuizQuestionInput = {
   scoringRange?: number;
   timerSeconds?: number;
   themeId?: string | null;
+  /** Mode dans ce QCM uniquement. */
+  playMode?: PlayMode;
 };
 
 export type CreateQuizInput = {
   title: string;
+  coefficient?: number;
   questions: QuizQuestionInput[];
 };
+
+function normalizeCoefficient(value: unknown): number {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+}
 
 const DEFAULT_QCM_TIMER = 10;
 const DEFAULT_WORD_CLOUD_TIMER = 180;
@@ -80,6 +101,7 @@ export function buildQuestionFromInput(
     scoringRange,
     timerSeconds: input.timerSeconds ?? existing?.timerSeconds ?? defaultTimer,
     themeId,
+    playMode: parsePlayMode(input.playMode ?? existing?.playMode),
   };
 }
 
@@ -94,6 +116,7 @@ export class CreateQuizUseCase {
     const quiz: Quiz = {
       id: crypto.randomUUID(),
       title: input.title,
+      coefficient: normalizeCoefficient(input.coefficient),
       questions,
     };
 

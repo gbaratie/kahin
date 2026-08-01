@@ -80,6 +80,7 @@ function resolveQuestionType(type: QuestionType | undefined): QuestionType {
 function QuestionBankPageContent() {
   const [themes, setThemes] = useState<ThemeDto[]>([]);
   const [themeFilter, setThemeFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'label' | 'theme'>('label');
   const [items, setItems] = useState<QuestionSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +110,7 @@ function QuestionBankPageContent() {
         apiListThemes.execute(),
         apiListQuestions.execute({
           summaries: true,
+          sort: sortBy,
           themeId:
             themeFilter === 'all'
               ? undefined
@@ -124,7 +126,7 @@ function QuestionBankPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [themeFilter]);
+  }, [themeFilter, sortBy]);
 
   useEffect(() => {
     void load();
@@ -545,6 +547,23 @@ function QuestionBankPageContent() {
                   {t.name}
                 </MenuItem>
               ))}
+            </Select>
+          </FormControl>
+          <FormControl
+            size="small"
+            sx={{ minWidth: { xs: 120, sm: 150 }, flexShrink: 0 }}
+          >
+            <InputLabel id="bank-sort">Trier par</InputLabel>
+            <Select
+              labelId="bank-sort"
+              label="Trier par"
+              value={sortBy}
+              onChange={(e) =>
+                setSortBy(e.target.value as 'label' | 'theme')
+              }
+            >
+              <MenuItem value="label">Alphabétique</MenuItem>
+              <MenuItem value="theme">Thématique</MenuItem>
             </Select>
           </FormControl>
           <Button

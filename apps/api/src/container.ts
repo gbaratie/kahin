@@ -1,6 +1,6 @@
 /**
  * Injection des dépendances : use cases + repositories.
- * Quiz / questions / thèmes / classes : JSON en dev, Postgres en production.
+ * Quiz / questions / thèmes / classes / notes : JSON en dev, Postgres en production.
  * Sessions : in-memory.
  */
 import path from 'path';
@@ -14,6 +14,8 @@ import {
   PostgresThemeRepository,
   JsonFileClassRepository,
   PostgresClassRepository,
+  JsonFileGradeRepository,
+  PostgresGradeRepository,
 } from '@kahin/qcm-infrastructure/node';
 import {
   InMemorySessionRepository,
@@ -45,6 +47,10 @@ import {
   DeleteQuestionUseCase,
   ListQuestionsUseCase,
   GetQuestionUseCase,
+  GetClassGradesMacroUseCase,
+  GetClassQuizGradeDetailUseCase,
+  UpdateGradeAnswersUseCase,
+  UpdateQuizCoefficientUseCase,
 } from '@kahin/qcm-application';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -59,9 +65,12 @@ const defaultClassesJsonPath = path.join(
 const classesJsonPath = process.env.CLASSES_JSON_PATH ?? defaultClassesJsonPath;
 const defaultRosterJsonPath = path.join(__dirname, '..', 'data', 'roster.json');
 const rosterJsonPath = process.env.ROSTER_JSON_PATH ?? defaultRosterJsonPath;
+const defaultGradesJsonPath = path.join(__dirname, '..', 'data', 'grades.json');
+const gradesJsonPath = process.env.GRADES_JSON_PATH ?? defaultGradesJsonPath;
 
 export const QUIZ_JSON_STORAGE_PATH = quizJsonPath;
 export const CLASSES_JSON_STORAGE_PATH = classesJsonPath;
+export const GRADES_JSON_STORAGE_PATH = gradesJsonPath;
 
 function isPostgresStorage(): boolean {
   return (
@@ -97,10 +106,18 @@ function createClassRepository() {
   return new JsonFileClassRepository(classesJsonPath, rosterJsonPath);
 }
 
+function createGradeRepository() {
+  if (isPostgresStorage()) {
+    return new PostgresGradeRepository();
+  }
+  return new JsonFileGradeRepository(gradesJsonPath);
+}
+
 const quizRepo = createQuizRepository();
 const questionRepo = createQuestionRepository();
 const themeRepo = createThemeRepository();
 const classRepo = createClassRepository();
+const gradeRepo = createGradeRepository();
 const sessionRepo = new InMemorySessionRepository();
 const realtimeTransport = new MockRealtimeTransport();
 
@@ -109,6 +126,9 @@ export const updateQuizUseCase = new UpdateQuizUseCase(quizRepo, questionRepo);
 export const getQuizUseCase = new GetQuizUseCase(quizRepo);
 export const listQuizzesUseCase = new ListQuizzesUseCase(quizRepo);
 export const deleteQuizUseCase = new DeleteQuizUseCase(quizRepo);
+export const updateQuizCoefficientUseCase = new UpdateQuizCoefficientUseCase(
+  quizRepo
+);
 
 export const listThemesUseCase = new ListThemesUseCase(themeRepo);
 export const createThemeUseCase = new CreateThemeUseCase(themeRepo);
@@ -125,6 +145,17 @@ export const getClassUseCase = new GetClassUseCase(classRepo);
 export const createClassUseCase = new CreateClassUseCase(classRepo);
 export const updateClassUseCase = new UpdateClassUseCase(classRepo);
 export const deleteClassUseCase = new DeleteClassUseCase(classRepo);
+
+export const getClassGradesMacroUseCase = new GetClassGradesMacroUseCase(
+  gradeRepo,
+  classRepo,
+  quizRepo
+);
+export const getClassQuizGradeDetailUseCase =
+  new GetClassQuizGradeDetailUseCase(gradeRepo, quizRepo);
+export const updateGradeAnswersUseCase = new UpdateGradeAnswersUseCase(
+  gradeRepo
+);
 
 export const launchSessionUseCase = new LaunchSessionUseCase(
   quizRepo,
@@ -150,7 +181,8 @@ export const submitAnswerUseCase = new SubmitAnswerUseCase(
 export const nextQuestionUseCase = new NextQuestionUseCase(
   quizRepo,
   sessionRepo,
-  realtimeTransport
+  realtimeTransport,
+  gradeRepo
 );
 export const advanceIfTimeUpUseCase = new AdvanceIfTimeUpUseCase(
   quizRepo,

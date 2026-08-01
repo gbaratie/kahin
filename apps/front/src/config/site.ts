@@ -34,11 +34,17 @@ export const navItemRoster: NavItem = {
   href: '/qcm/classes',
 };
 
+export const navItemGrades: NavItem = {
+  label: 'Notes',
+  href: '/qcm/grades',
+};
+
 /** Navigation complète (animateur connecté ou mode bypass sans API). */
 export const navItems: NavItem[] = [
   navItemsParticipant[0],
   navItemQuestions,
   navItemCreateQuiz,
   navItemRoster,
+  navItemGrades,
   navItemsParticipant[1],
 ];

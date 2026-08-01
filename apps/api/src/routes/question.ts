@@ -24,7 +24,14 @@ questionRoutes.get(
       themeId = themeIdParam;
     }
     const summaries = req.query.summaries === '1' || req.query.summaries === 'true';
-    const result = await listQuestionsUseCase.execute({ themeId, summaries });
+    const sortParam = req.query.sort;
+    const sort =
+      sortParam === 'theme' || sortParam === 'label' ? sortParam : 'label';
+    const result = await listQuestionsUseCase.execute({
+      themeId,
+      summaries,
+      sort,
+    });
     res.json(result);
   })
 );

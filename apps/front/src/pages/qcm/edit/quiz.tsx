@@ -25,6 +25,7 @@ function QcmEditPageContent() {
     'loading' | 'ready' | 'not_found' | 'error'
   >('loading');
   const [title, setTitle] = useState('');
+  const [coefficient, setCoefficient] = useState(1);
   const [questions, setQuestions] = useState([initialQuestion()]);
 
   useEffect(() => {
@@ -38,10 +39,13 @@ function QcmEditPageContent() {
           return;
         }
         setTitle(quiz.title);
+        setCoefficient(
+          typeof quiz.coefficient === 'number' && quiz.coefficient > 0
+            ? quiz.coefficient
+            : 1
+        );
         setQuestions(
-          quiz.questions.length > 0
-            ? quizToDraft(quiz)
-            : [initialQuestion()]
+          quiz.questions.length > 0 ? quizToDraft(quiz) : [initialQuestion()]
         );
         setFetchStatus('ready');
       })
@@ -51,7 +55,10 @@ function QcmEditPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quizId) return;
-    const quiz = await updateQuiz(quizId, draftToPayload(title, questions));
+    const quiz = await updateQuiz(
+      quizId,
+      draftToPayload(title, questions, coefficient)
+    );
     if (quiz) router.push(`/qcm/launch?quizId=${quiz.id}`);
   };
 
@@ -110,6 +117,8 @@ function QcmEditPageContent() {
         pageTitle="Modifier le QCM"
         title={title}
         onTitleChange={setTitle}
+        coefficient={coefficient}
+        onCoefficientChange={setCoefficient}
         questions={questions}
         setQuestions={setQuestions}
         onSubmit={handleSubmit}

@@ -3,8 +3,11 @@
 
 CREATE TABLE IF NOT EXISTS quizzes (
   id TEXT PRIMARY KEY,
-  title TEXT NOT NULL
+  title TEXT NOT NULL,
+  coefficient NUMERIC NOT NULL DEFAULT 1
 );
+
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS coefficient NUMERIC NOT NULL DEFAULT 1;
 
 CREATE TABLE IF NOT EXISTS themes (
   id TEXT PRIMARY KEY,
@@ -44,8 +47,12 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   quiz_id TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
   question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  play_mode TEXT NOT NULL DEFAULT 'discovery',
   PRIMARY KEY (quiz_id, question_id)
 );
+
+ALTER TABLE quiz_questions
+  ADD COLUMN IF NOT EXISTS play_mode TEXT NOT NULL DEFAULT 'discovery';
 
 CREATE INDEX IF NOT EXISTS idx_quiz_questions_quiz_sort
   ON quiz_questions (quiz_id, sort_order);
@@ -103,4 +110,38 @@ CREATE TABLE IF NOT EXISTS class_roster_names (
   name TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (class_id, name)
+);
+
+-- Notes persistées (tentatives de QCM liées à une classe)
+CREATE TABLE IF NOT EXISTS grade_attempts (
+  id TEXT PRIMARY KEY,
+  class_id TEXT NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  quiz_id TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+  session_id TEXT,
+  completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  source TEXT NOT NULL DEFAULT 'session'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_grade_attempts_session
+  ON grade_attempts (session_id)
+  WHERE session_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_grade_attempts_class_quiz_completed
+  ON grade_attempts (class_id, quiz_id, completed_at DESC);
+
+CREATE TABLE IF NOT EXISTS grade_attempt_scores (
+  attempt_id TEXT NOT NULL REFERENCES grade_attempts(id) ON DELETE CASCADE,
+  student_name TEXT NOT NULL,
+  course_correct INTEGER NOT NULL DEFAULT 0,
+  course_total INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (attempt_id, student_name)
+);
+
+CREATE TABLE IF NOT EXISTS grade_answer_details (
+  attempt_id TEXT NOT NULL REFERENCES grade_attempts(id) ON DELETE CASCADE,
+  student_name TEXT NOT NULL,
+  question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  is_correct BOOLEAN NOT NULL DEFAULT FALSE,
+  points NUMERIC NOT NULL DEFAULT 0,
+  PRIMARY KEY (attempt_id, student_name, question_id)
 );

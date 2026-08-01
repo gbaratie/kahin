@@ -1,15 +1,47 @@
-import type { Quiz, Question, QuestionType, Theme } from '@kahin/qcm-domain';
+import type {
+  Quiz,
+  Question,
+  QuestionType,
+  Theme,
+  PlayMode,
+  QuestionSort,
+  QuestionListFilters,
+} from '@kahin/qcm-domain';
 import type {
   QuizRepository,
   QuestionRepository,
   QuestionSummary,
   ThemeRepository,
 } from '@kahin/qcm-domain';
+import { parsePlayMode } from '@kahin/qcm-domain';
 
 function parseQuestionType(raw: string | null | undefined): QuestionType {
   if (raw === 'word_cloud') return 'word_cloud';
   if (raw === 'closest') return 'closest';
   return 'qcm';
+}
+
+function normalizeCoefficient(value: unknown): number {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+}
+
+function questionOrderSql(sort: QuestionSort | undefined): string {
+  if (sort === 'theme') {
+    return `
+      CASE WHEN q.theme_id IS NULL THEN 1 ELSE 0 END ASC,
+      t.sort_order ASC NULLS LAST,
+      t.name ASC NULLS LAST,
+      q.label ASC,
+      q.id ASC`;
+  }
+  return `q.label ASC, q.id ASC`;
 }
 
 type PgPool = {
@@ -201,13 +233,16 @@ export class PostgresQuizRepository implements QuizRepository {
     try {
       await client.query('BEGIN');
 
+      const coefficient = normalizeCoefficient(quiz.coefficient);
       await client.query(
         `
-        INSERT INTO quizzes (id, title)
-        VALUES ($1, $2)
-        ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
+        INSERT INTO quizzes (id, title, coefficient)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          coefficient = EXCLUDED.coefficient
         `,
-        [quiz.id, quiz.title]
+        [quiz.id, quiz.title, coefficient]
       );
 
       for (const question of quiz.questions) {
@@ -220,14 +255,16 @@ export class PostgresQuizRepository implements QuizRepository {
 
       for (let i = 0; i < quiz.questions.length; i++) {
         const question = quiz.questions[i];
+        const playMode: PlayMode = parsePlayMode(question.playMode);
         await client.query(
           `
-          INSERT INTO quiz_questions (quiz_id, question_id, sort_order)
-          VALUES ($1, $2, $3)
+          INSERT INTO quiz_questions (quiz_id, question_id, sort_order, play_mode)
+          VALUES ($1, $2, $3, $4)
           ON CONFLICT (quiz_id, question_id) DO UPDATE SET
-            sort_order = EXCLUDED.sort_order
+            sort_order = EXCLUDED.sort_order,
+            play_mode = EXCLUDED.play_mode
           `,
-          [quiz.id, question.id, i]
+          [quiz.id, question.id, i, playMode]
         );
       }
 
@@ -243,10 +280,11 @@ export class PostgresQuizRepository implements QuizRepository {
   async getById(id: string): Promise<Quiz | null> {
     const client = await this.pool.connect();
     try {
-      const quizResult = await client.query<{ id: string; title: string }>(
-        'SELECT id, title FROM quizzes WHERE id = $1',
-        [id]
-      );
+      const quizResult = await client.query<{
+        id: string;
+        title: string;
+        coefficient: number | string | null;
+      }>('SELECT id, title, coefficient FROM quizzes WHERE id = $1', [id]);
       if (quizResult.rowCount === 0) return null;
 
       const quizRow = quizResult.rows[0];
@@ -262,6 +300,7 @@ export class PostgresQuizRepository implements QuizRepository {
         choice_id: string | null;
         choice_label: string | null;
         qq_sort: number;
+        play_mode: string | null;
       }>(
         `
         SELECT q.id,
@@ -274,7 +313,8 @@ export class PostgresQuizRepository implements QuizRepository {
                q.scoring_range,
                c.id AS choice_id,
                c.label AS choice_label,
-               qq.sort_order AS qq_sort
+               qq.sort_order AS qq_sort,
+               qq.play_mode
         FROM quiz_questions qq
         JOIN questions q ON q.id = qq.question_id
         LEFT JOIN choices c ON c.question_id = q.id
@@ -299,6 +339,7 @@ export class PostgresQuizRepository implements QuizRepository {
             themeId: row.theme_id ?? undefined,
             expectedNumber: parseOptionalDbNumber(row.expected_number),
             scoringRange: parseOptionalDbNumber(row.scoring_range),
+            playMode: parsePlayMode(row.play_mode),
             choices: [],
           };
           questionsMap.set(row.id, question);
@@ -315,6 +356,7 @@ export class PostgresQuizRepository implements QuizRepository {
       return {
         id: quizRow.id,
         title: quizRow.title,
+        coefficient: normalizeCoefficient(quizRow.coefficient),
         questions: order.map((qid) => questionsMap.get(qid)!),
       };
     } finally {
@@ -322,15 +364,33 @@ export class PostgresQuizRepository implements QuizRepository {
     }
   }
 
-  async list(): Promise<{ id: string; title: string }[]> {
-    const result = await this.pool.query<{ id: string; title: string }>(
-      'SELECT id, title FROM quizzes ORDER BY title ASC'
-    );
-    return result.rows.map((row) => ({ id: row.id, title: row.title }));
+  async list(): Promise<{ id: string; title: string; coefficient?: number }[]> {
+    const result = await this.pool.query<{
+      id: string;
+      title: string;
+      coefficient: number | string | null;
+    }>('SELECT id, title, coefficient FROM quizzes ORDER BY title ASC');
+    return result.rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      coefficient: normalizeCoefficient(row.coefficient),
+    }));
   }
 
   async delete(id: string): Promise<void> {
     await this.pool.query('DELETE FROM quizzes WHERE id = $1', [id]);
+  }
+
+  async updateCoefficient(quizId: string, coefficient: number): Promise<void> {
+    const result = await this.pool.query(
+      `UPDATE quizzes SET coefficient = $1 WHERE id = $2`,
+      [normalizeCoefficient(coefficient), quizId]
+    );
+    if (result.rowCount === 0) {
+      const err = new Error('Quiz not found');
+      (err as Error & { code?: string }).code = 'QUIZ_NOT_FOUND';
+      throw err;
+    }
   }
 }
 
@@ -341,7 +401,7 @@ export class PostgresQuestionRepository implements QuestionRepository {
     this.pool = customPool ?? getPostgresPool();
   }
 
-  async list(filters?: { themeId?: string | null }): Promise<Question[]> {
+  async list(filters?: QuestionListFilters): Promise<Question[]> {
     const client = await this.pool.connect();
     try {
       const params: unknown[] = [];
@@ -352,6 +412,7 @@ export class PostgresQuestionRepository implements QuestionRepository {
         params.push(filters.themeId);
         where = `WHERE q.theme_id = $${params.length}`;
       }
+      const orderBy = questionOrderSql(filters?.sort);
 
       const result = await client.query<{
         id: string;
@@ -377,9 +438,10 @@ export class PostgresQuestionRepository implements QuestionRepository {
                c.id AS choice_id,
                c.label AS choice_label
         FROM questions q
+        LEFT JOIN themes t ON t.id = q.theme_id
         LEFT JOIN choices c ON c.question_id = q.id
         ${where}
-        ORDER BY q.label ASC, q.id ASC, c.sort_order ASC NULLS LAST, c.id ASC
+        ORDER BY ${orderBy}, c.sort_order ASC NULLS LAST, c.id ASC
         `,
         params
       );
@@ -413,9 +475,9 @@ export class PostgresQuestionRepository implements QuestionRepository {
     }
   }
 
-  async listSummaries(filters?: {
-    themeId?: string | null;
-  }): Promise<QuestionSummary[]> {
+  async listSummaries(
+    filters?: QuestionListFilters
+  ): Promise<QuestionSummary[]> {
     const params: unknown[] = [];
     let where = '';
     if (filters?.themeId === null) {
@@ -424,6 +486,7 @@ export class PostgresQuestionRepository implements QuestionRepository {
       params.push(filters.themeId);
       where = `WHERE q.theme_id = $${params.length}`;
     }
+    const orderBy = questionOrderSql(filters?.sort);
 
     const result = await this.pool.query<{
       id: string;
@@ -441,10 +504,12 @@ export class PostgresQuestionRepository implements QuestionRepository {
              q.timer_seconds,
              COUNT(c.id)::text AS choice_count
       FROM questions q
+      LEFT JOIN themes t ON t.id = q.theme_id
       LEFT JOIN choices c ON c.question_id = q.id
       ${where}
-      GROUP BY q.id, q.label, q.question_type, q.theme_id, q.timer_seconds
-      ORDER BY q.label ASC, q.id ASC
+      GROUP BY q.id, q.label, q.question_type, q.theme_id, q.timer_seconds,
+               t.sort_order, t.name
+      ORDER BY ${orderBy}
       `,
       params
     );

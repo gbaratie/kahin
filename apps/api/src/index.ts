@@ -10,9 +10,11 @@ import { sessionRoutes } from './routes/session.js';
 import { classRoutes } from './routes/classes.js';
 import { themeRoutes } from './routes/theme.js';
 import { questionRoutes } from './routes/question.js';
+import { gradeRoutes } from './routes/grades.js';
 import {
   QUIZ_JSON_STORAGE_PATH,
   CLASSES_JSON_STORAGE_PATH,
+  GRADES_JSON_STORAGE_PATH,
 } from './container.js';
 
 const app = express();
@@ -33,10 +35,12 @@ app.use('/api/themes', themeRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/session', sessionRoutes);
 app.use('/api/classes', classRoutes);
+app.use('/api/grades', gradeRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`);
   console.log(`Quiz storage: ${QUIZ_JSON_STORAGE_PATH}`);
   console.log(`Classes storage: ${CLASSES_JSON_STORAGE_PATH}`);
+  console.log(`Grades storage: ${GRADES_JSON_STORAGE_PATH}`);
 });
