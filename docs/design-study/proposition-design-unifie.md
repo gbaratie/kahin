@@ -162,6 +162,10 @@ Les anciennes images `quorum-*.png` sont obsolètes (mauvaise marque / palette /
 3. **Liste des participants** en lobby : tiroir secondaire OK ?  
 4. Go pour implémenter étapes **B → E** avec palette actuelle + nom **QCM** ?
 
+### Banque de questions — thématique en liste
+
+Éviter le motif **Chip dans un Select** (double cadre). Pattern retenu : libellé texte (`caption`, couleur primary si assigné) + chevron discret (`Select` `variant="standard"` / `disableUnderline`). Le menu déroulant conserve le changement de thématique.
+
 ---
 
 ## Annexe — shortlist de noms (reportée, hors UI)
