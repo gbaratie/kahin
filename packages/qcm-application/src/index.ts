@@ -35,6 +35,8 @@ export {
   computeRanking,
   pointsForQcmAnswer,
   pointsForClosestAnswer,
+  formatRankEntryScore,
+  rankEntryBarValue,
   POINTS_PER_QUESTION,
 } from './ranking';
 export type { RankEntry } from './ranking';

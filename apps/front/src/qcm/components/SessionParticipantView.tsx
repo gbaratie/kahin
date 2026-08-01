@@ -22,7 +22,11 @@ import { useSessionStream } from '../hooks/useSessionStream';
 import { useSubmitAnswer } from '../hooks/useSubmitAnswer';
 import { useSession } from '../hooks/useSession';
 import { useQcmDependencies } from '../QcmDependenciesContext';
-import { computeRanking, pointsForClosestAnswer } from '@kahin/qcm-application';
+import {
+  computeRanking,
+  formatRankEntryScore,
+  pointsForClosestAnswer,
+} from '@kahin/qcm-application';
 import {
   isApiMode,
   apiAdvanceIfTimeUp,
@@ -31,6 +35,7 @@ import {
 import { clearRememberedParticipantName } from '../participantIdentity';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
+import { QuestionPlayModeBanner } from './QuestionPlayModeBanner';
 import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
 
 const SESSION_POLL_WHEN_WAITING_MS = 1500;
@@ -488,7 +493,10 @@ export function SessionParticipantView({
             Mon classement
           </Typography>
           <Typography variant="h3" color="primary" fontWeight="bold">
-            {myRank > 0 ? formatRank(myRank) : '—'} • {myEntry?.score ?? 0} pts
+            {myRank > 0 ? formatRank(myRank) : '—'}
+          </Typography>
+          <Typography variant="h6" color="text.secondary" sx={{ mt: 0.5 }}>
+            {myEntry ? formatRankEntryScore(myEntry) : '0 pts'}
           </Typography>
         </Box>
         <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
@@ -503,8 +511,7 @@ export function SessionParticipantView({
                 variant="body2"
                 sx={{ mb: 0.5 }}
               >
-                {entry.participantName} — {entry.score} pt
-                {entry.score !== 1 ? 's' : ''}
+                {entry.participantName} — {formatRankEntryScore(entry)}
               </Typography>
             ))}
           </Box>
@@ -549,6 +556,7 @@ export function SessionParticipantView({
 
   return (
     <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
+      <QuestionPlayModeBanner playMode={question.playMode} />
       <Typography variant="h6" gutterBottom>
         {question?.label ?? ''}
       </Typography>
@@ -568,6 +576,9 @@ export function SessionParticipantView({
           >
             {Math.ceil(remainingSeconds ?? 0)} s restante
             {Math.ceil(remainingSeconds ?? 0) !== 1 ? 's' : ''}
+            {question.playMode === 'course'
+              ? ' — mode cours (n’affecte pas la note)'
+              : ' — mode découverte (la vitesse compte)'}
           </Typography>
         </Box>
       )}

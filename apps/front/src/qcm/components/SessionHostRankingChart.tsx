@@ -13,9 +13,17 @@ import {
   LabelList,
 } from 'recharts';
 
+export type RankingChartRow = {
+  name: string;
+  /** Longueur de barre */
+  score: number;
+  /** Libellé affiché (note + pts) */
+  scoreLabel: string;
+};
+
 type SessionHostRankingChartProps = {
   title: string;
-  chartData: Array<{ name: string; score: number }>;
+  chartData: RankingChartRow[];
 };
 
 export function SessionHostRankingChart({
@@ -44,7 +52,7 @@ function SessionHostBarChartBody({
   chartData,
 }: {
   theme: Theme;
-  chartData: Array<{ name: string; score: number }>;
+  chartData: RankingChartRow[];
 }) {
   const participantCount = chartData.length;
   const maxScore = Math.max(0, ...chartData.map((d) => d.score));
@@ -56,20 +64,17 @@ function SessionHostBarChartBody({
   const chartHeight = Math.max(260, participantCount * rowHeight + 28);
   const maxContainerHeight = 520;
   const showVerticalScroll = chartHeight > maxContainerHeight;
-  const scoreLabelMaxLength = `${maxScore} pt${maxScore !== 1 ? 's' : ''}`.length;
+  const longestLabel = Math.max(
+    ...chartData.map((d) => d.scoreLabel.length),
+    4
+  );
   const showScoreLabels = participantCount <= 22;
 
-  // Laisse de la place à droite pour les libellés de score quand ils sont affichés.
   const xAxisMax =
     maxScore <= 0
       ? 1
       : Math.ceil(maxScore * (showScoreLabels ? 1.16 : 1.04));
-  const rightMargin = showScoreLabels ? 28 + scoreLabelMaxLength * 7 : 24;
-
-  const enrichedChartData = chartData.map((entry) => ({
-    ...entry,
-    scoreLabel: `${entry.score} pt${entry.score !== 1 ? 's' : ''}`,
-  }));
+  const rightMargin = showScoreLabels ? 28 + longestLabel * 7 : 24;
 
   return (
     <Box
@@ -84,7 +89,7 @@ function SessionHostBarChartBody({
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             layout="vertical"
-            data={enrichedChartData}
+            data={chartData}
             barCategoryGap={participantCount > 22 ? '20%' : '26%'}
             margin={{ top: 8, right: rightMargin, left: 8, bottom: 8 }}
             style={{
@@ -115,10 +120,10 @@ function SessionHostBarChartBody({
               }}
             />
             <Tooltip
-              formatter={(value: number) => [
-                `${value} pt${value !== 1 ? 's' : ''}`,
-                'Score',
-              ]}
+              formatter={(_value: number, _name: string, item) => {
+                const row = item?.payload as RankingChartRow | undefined;
+                return [row?.scoreLabel ?? String(_value), 'Score'];
+              }}
               labelFormatter={(label) => `Participant : ${label}`}
               contentStyle={{
                 backgroundColor: alpha(theme.palette.background.paper, 0.98),

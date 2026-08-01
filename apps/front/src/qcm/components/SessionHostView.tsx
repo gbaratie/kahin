@@ -20,6 +20,8 @@ import {
   buildResultsCsvFilename,
   buildSessionResultsCsv,
   computeRanking,
+  formatRankEntryScore,
+  rankEntryBarValue,
 } from '@kahin/qcm-application';
 import { useNextQuestion } from '../hooks/useNextQuestion';
 import { useSessionStream } from '../hooks/useSessionStream';
@@ -30,6 +32,7 @@ import { useSessionHostPolling } from '../hooks/useSessionHostPolling';
 import { SessionHostRankingChart } from './SessionHostRankingChart';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
+import { QuestionPlayModeBanner } from './QuestionPlayModeBanner';
 import { withBasePath } from '@/config/site';
 import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
 
@@ -298,7 +301,8 @@ export function SessionHostView({
     () =>
       ranking.map((entry) => ({
         name: entry.participantName,
-        score: entry.score,
+        score: rankEntryBarValue(entry),
+        scoreLabel: formatRankEntryScore(entry),
       })),
     [ranking]
   );
@@ -447,6 +451,10 @@ export function SessionHostView({
         </Alert>
       )}
 
+      {showLiveQuestion && displayedQuestion && (
+        <QuestionPlayModeBanner playMode={displayedQuestion.playMode} />
+      )}
+
       {showLiveQuestion && (
         <Paper sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -463,6 +471,9 @@ export function SessionHostView({
                 gutterBottom
               >
                 Temps restant
+                {displayedQuestion?.playMode === 'course'
+                  ? ' — mode cours (n’affecte pas la note)'
+                  : ' — mode découverte (la vitesse compte)'}
               </Typography>
               <LinearProgress
                 variant="determinate"

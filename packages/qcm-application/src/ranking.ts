@@ -6,13 +6,22 @@ import {
   type Quiz,
   type Session,
 } from '@kahin/qcm-domain';
+import {
+  coursePointsForAnswer,
+  isGradableCourseQuestion,
+} from './courseScoring';
 
 export const POINTS_PER_QUESTION = 1000;
 
 export type RankEntry = {
   participantId: string;
   participantName: string;
+  /** Points gamification (questions découverte). */
   score: number;
+  /** Bonnes réponses cours cumulées. */
+  courseCorrect: number;
+  /** Nombre de questions cours notées dans la fenêtre. */
+  courseTotal: number;
 };
 
 function toMs(value: Date | string | null | undefined): number | null {
@@ -79,23 +88,65 @@ export function pointsForClosestAnswer(
   return Math.round(POINTS_PER_QUESTION * distanceFactor);
 }
 
+export function formatRankEntryScore(entry: RankEntry): string {
+  const parts: string[] = [];
+  if (entry.courseTotal > 0) {
+    parts.push(`${entry.courseCorrect}/${entry.courseTotal} note`);
+  }
+  if (entry.score > 0 || entry.courseTotal === 0) {
+    parts.push(`${entry.score} pt${entry.score !== 1 ? 's' : ''}`);
+  }
+  return parts.join(' · ') || '0 pts';
+}
+
+/** Valeur utilisée pour la longueur de barre (échelle homogène selon le contenu). */
+export function rankEntryBarValue(entry: RankEntry): number {
+  if (entry.courseTotal > 0 && entry.score === 0) {
+    // Session (ou fenêtre) uniquement / surtout notée : la barre suit la note.
+    return entry.courseCorrect;
+  }
+  // Sinon la barre suit la gamification ; la note reste dans le libellé.
+  return entry.score;
+}
+
 export function computeRanking(
   session: Session,
   quiz: Quiz,
   upToQuestionIndex: number
 ): RankEntry[] {
   if (upToQuestionIndex <= 0) return [];
-  const scoreByParticipant = new Map<string, number>();
+
+  const discoveryByParticipant = new Map<string, number>();
+  const courseCorrectByParticipant = new Map<string, number>();
   for (const p of session.participants) {
-    scoreByParticipant.set(p.id, 0);
+    discoveryByParticipant.set(p.id, 0);
+    courseCorrectByParticipant.set(p.id, 0);
   }
+
+  let courseTotal = 0;
   for (let i = 0; i < upToQuestionIndex; i++) {
     const question = quiz.questions[i];
-    // Les questions « cours » ne participent pas à la gamification.
-    if (isCoursePlayMode(question)) continue;
+    if (isGradableCourseQuestion(question)) {
+      courseTotal += 1;
+      for (const p of session.participants) {
+        const answer = session.answers.find(
+          (a) => a.participantId === p.id && a.questionId === question.id
+        );
+        const { points } = coursePointsForAnswer(question, answer);
+        if (points > 0) {
+          courseCorrectByParticipant.set(
+            p.id,
+            (courseCorrectByParticipant.get(p.id) ?? 0) + points
+          );
+        }
+      }
+      continue;
+    }
+
+    // Découverte : scoring gamifié
     for (const answer of session.answers) {
       if (answer.questionId !== question.id) continue;
-      const current = scoreByParticipant.get(answer.participantId) ?? 0;
+      const current = discoveryByParticipant.get(answer.participantId) ?? 0;
       let points = 0;
       if (isClosestQuestion(question)) {
         points = pointsForClosestAnswer(question, answer.numberValue);
@@ -110,24 +161,30 @@ export function computeRanking(
         }
       }
       if (points > 0) {
-        scoreByParticipant.set(answer.participantId, current + points);
+        discoveryByParticipant.set(answer.participantId, current + points);
       }
     }
   }
+
   const nameById = new Map(session.participants.map((p) => [p.id, p.name]));
-  const entries: RankEntry[] = [];
-  scoreByParticipant.forEach((score, participantId) => {
-    entries.push({
-      participantId,
-      participantName: nameById.get(participantId) ?? 'Participant',
-      score,
-    });
+  const entries: RankEntry[] = session.participants.map((p) => ({
+    participantId: p.id,
+    participantName: nameById.get(p.id) ?? 'Participant',
+    score: discoveryByParticipant.get(p.id) ?? 0,
+    courseCorrect: courseCorrectByParticipant.get(p.id) ?? 0,
+    courseTotal,
+  }));
+
+  entries.sort((a, b) => {
+    if (b.courseCorrect !== a.courseCorrect) {
+      return b.courseCorrect - a.courseCorrect;
+    }
+    return b.score - a.score;
   });
-  entries.sort((a, b) => b.score - a.score);
   return entries;
 }
 
-/** Points attribués pour une réponse QCM (0 si faux ou pas de bonne réponse définie). */
+/** Points gamification pour une réponse QCM (0 si cours, faux, ou pas de bonne réponse). */
 export function pointsForQcmAnswer(
   session: Session,
   questionIndex: number,
