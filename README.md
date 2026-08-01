@@ -110,7 +110,7 @@ Sur **Render**, ajouter manuellement ces trois variables dans l’environnement 
 ## Documentation
 
 - [Architecture et SOLID](docs/ARCHITECTURE.md) : structure des packages, principes SOLID, déploiement, et **diagrammes de séquence** des flux métier (créer QCM, lancer session, rejoindre, répondre, question suivante, résultat par question).
-- [Étude de design UX](docs/design-study/etude-interfaces-ux.md) : audit des interfaces (mobile / desktop / projection), propositions UI & techniques, plan de phases, [rendus](docs/design-study/galerie.html).
+- [Étude de design UX](docs/design-study/) : [audit](docs/design-study/etude-interfaces-ux.md) + [proposition unifiée](docs/design-study/proposition-design-unifie.md) (marque, design system MUI, [galerie](docs/design-study/galerie-unifiee.html)).
 - [Postgres sur Neon](docs/neon.md) : schéma SQL, URI de connexion, variables sur Render, import depuis JSON.
 - [Configuration Render](docs/render-config.md) : complément pratique pour l’API hébergée sur Render.
 

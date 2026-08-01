@@ -1,4 +1,7 @@
-# Étude de design — Kahin (QCM interactif)
+# Étude de design — audit initial (QCM interactif)
+
+> **Suite** : la proposition aboutie (design system unique + pistes de nom) est dans
+> [proposition-design-unifie.md](./proposition-design-unifie.md). Ce document reste l’audit de départ.
 
 Document d’audit UX/UI des interfaces existantes, propositions d’amélioration (produit + technique), plan de mise en œuvre, et direction visuelle illustrée par des rendus conceptuels.
 
