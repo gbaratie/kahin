@@ -3,22 +3,27 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Quorum — proposition design unifié</title>
+    <title>QCM — proposition design unifié</title>
     <style>
       :root {
-        --primary: #0f766e;
-        --ink: #0f172a;
-        --muted: #475569;
-        --bg: #f1f5f9;
+        --primary: #3d5a9e;
+        --ink: #1a1d26;
+        --muted: #5c6578;
+        --bg: #f4f6fa;
         --surface: #ffffff;
-        --border: #e2e8f0;
+        --border: rgba(0, 0, 0, 0.1);
       }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+        font-family:
+          Roboto,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
         color: var(--ink);
         background: var(--bg);
         line-height: 1.5;
@@ -32,33 +37,15 @@
         max-width: 1100px;
         margin: 0 auto;
       }
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        font-weight: 700;
-        font-size: 1.15rem;
-        margin-bottom: 0.75rem;
-      }
-      .mark {
-        width: 28px;
-        height: 28px;
-        border-radius: 999px;
-        background: var(--primary);
-        color: #fff;
-        display: grid;
-        place-items: center;
-        font-size: 0.9rem;
-        font-weight: 700;
-      }
       h1 {
         margin: 0 0 0.4rem;
         font-size: clamp(1.5rem, 3vw, 2rem);
+        color: var(--primary);
       }
       header p {
         margin: 0;
         color: var(--muted);
-        max-width: 40rem;
+        max-width: 42rem;
       }
       header a {
         color: var(--primary);
@@ -80,14 +67,14 @@
         margin: 0;
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 12px;
+        border-radius: 8px;
         overflow: hidden;
       }
       figure img {
         display: block;
         width: 100%;
         height: auto;
-        background: #0f172a;
+        background: #0f1116;
       }
       figcaption {
         padding: 1rem 1.1rem 1.15rem;
@@ -98,8 +85,8 @@
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: var(--primary);
-        background: #ccfbf1;
+        color: #fff;
+        background: var(--primary);
         padding: 0.2rem 0.5rem;
         border-radius: 6px;
         margin-bottom: 0.45rem;
@@ -119,74 +106,89 @@
         color: var(--muted);
         font-size: 0.9rem;
       }
+      code {
+        font-size: 0.85em;
+        word-break: break-all;
+      }
     </style>
   </head>
   <body>
     <header>
       <div class="wrap">
-        <div class="brand"><span class="mark">Q</span> Quorum</div>
-        <h1>Proposition design unifié</h1>
+        <h1>QCM — proposition design unifié</h1>
         <p>
-          Un seul système (teal + slate, MUI) pour mobile, admin et projection.
-          Nom hypothétique : Quorum — voir
+          Palette actuelle, nom affiché « QCM », layouts anti-scroll. URL
+          réelle :
+          <code>https://gbaratie.github.io/kahin/join</code>. Voir
           <a href="./proposition-design-unifie.md">proposition-design-unifie.md</a>.
         </p>
       </div>
     </header>
     <main class="wrap grid">
       <figure>
-        <img src="./rendus/quorum-join.png" alt="Join session mobile" />
+        <img src="./rendus/qcm-join.png" alt="Rejoindre une session" />
         <figcaption>
           <span class="badge">Mobile</span>
-          <strong>Join session</strong>
-          <span>Même AppBar, surfaces et CTA primary teal.</span>
+          <strong>Rejoindre</strong>
+          <span>Viewport unique : code + Continuer, sans scroll.</span>
         </figcaption>
       </figure>
       <figure>
         <img
-          src="./rendus/quorum-participant-answer.png"
-          alt="Participant answer mobile"
+          src="./rendus/qcm-participant-answer.png"
+          alt="Réponse participant"
         />
         <figcaption>
           <span class="badge">Mobile</span>
-          <strong>Answer</strong>
-          <span>AnswerOption A–D + TimerBar (accent corail réservé au temps).</span>
+          <strong>Question en cours</strong>
+          <span>Choix A–D qui occupent la hauteur restante.</span>
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          src="./rendus/qcm-participant-ranking.png"
+          alt="Classement participant"
+        />
+        <figcaption>
+          <span class="badge">Mobile</span>
+          <strong>Classement / attente</strong>
+          <span>Libellés réels, pas de faux classement inventé.</span>
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="./rendus/qcm-admin-empty.png" alt="Admin état vide" />
+        <figcaption>
+          <span class="badge">Desktop</span>
+          <strong>Admin</strong>
+          <span>État vide réel : « Aucun QCM pour le moment… ».</span>
+        </figcaption>
+      </figure>
+      <figure class="span-2">
+        <img src="./rendus/qcm-presenter-lobby.png" alt="Lobby hôte" />
+        <figcaption>
+          <span class="badge">Projection</span>
+          <strong>Lobby hôte</strong>
+          <span
+            >URL réelle + état participants vide — une seule vue 16:9.</span
+          >
         </figcaption>
       </figure>
       <figure class="span-2">
         <img
-          src="./rendus/quorum-presenter-lobby.png"
-          alt="Presenter lobby"
+          src="./rendus/qcm-presenter-question.png"
+          alt="Question hôte nuage vide"
         />
         <figcaption>
-          <span class="badge">Presenter</span>
-          <strong>Lobby</strong>
-          <span>Mêmes tokens en densité present (fond slate, accent teal).</span>
-        </figcaption>
-      </figure>
-      <figure class="span-2">
-        <img
-          src="./rendus/quorum-presenter-question.png"
-          alt="Presenter question"
-        />
-        <figcaption>
-          <span class="badge">Presenter</span>
-          <strong>Live question</strong>
-          <span>Grille 2×2 = mêmes AnswerOption, échelle plus grande.</span>
-        </figcaption>
-      </figure>
-      <figure class="span-2">
-        <img src="./rendus/quorum-admin.png" alt="Admin quizzes" />
-        <figcaption>
-          <span class="badge">Admin</span>
-          <strong>Quizzes</strong>
-          <span>Sidebar + Launch primary — même langage que le reste du produit.</span>
+          <span class="badge">Projection</span>
+          <strong>Question live</strong>
+          <span
+            >Bandeau mode + « Aucun mot pour l’instant » (copy produit).</span
+          >
         </figcaption>
       </figure>
     </main>
     <footer>
-      Hypothèse de marque « Quorum » pour les maquettes — remplaçable sans
-      changer le design system.
+      Renommage produit reporté. Pas de données fictives dans les maquettes.
     </footer>
   </body>
 </html>
