@@ -35,6 +35,8 @@ export {
   computeRanking,
   pointsForQcmAnswer,
   pointsForClosestAnswer,
+  formatRankEntryScore,
+  rankEntryBarValue,
   POINTS_PER_QUESTION,
 } from './ranking';
 export type { RankEntry } from './ranking';
@@ -46,9 +48,13 @@ export { computeChoiceCounts } from './choiceCounts';
 export type { ChoiceCountEntry } from './choiceCounts';
 export {
   buildResultsCsvFilename,
+  buildClassGradesCsvFilename,
   buildSessionResultsCsv,
+  buildClassGradesCsv,
   escapeCsvField,
+  csvRow,
 } from './sessionResultsCsv';
+export type { ClassGradesCsvInput } from './sessionResultsCsv';
 export { CreateThemeUseCase } from './CreateThemeUseCase';
 export type { CreateThemeInput } from './CreateThemeUseCase';
 export { UpdateThemeUseCase } from './UpdateThemeUseCase';

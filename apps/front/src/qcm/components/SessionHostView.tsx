@@ -20,6 +20,8 @@ import {
   buildResultsCsvFilename,
   buildSessionResultsCsv,
   computeRanking,
+  formatRankEntryScore,
+  rankEntryBarValue,
 } from '@kahin/qcm-application';
 import { useNextQuestion } from '../hooks/useNextQuestion';
 import { useSessionStream } from '../hooks/useSessionStream';
@@ -30,6 +32,7 @@ import { useSessionHostPolling } from '../hooks/useSessionHostPolling';
 import { SessionHostRankingChart } from './SessionHostRankingChart';
 import { SessionHostDisplayedQuestion } from './SessionHostDisplayedQuestion';
 import { SessionHostQuestionFeedback } from './SessionHostQuestionFeedback';
+import { QuestionPlayModeBanner } from './QuestionPlayModeBanner';
 import { withBasePath } from '@/config/site';
 import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
 
@@ -79,7 +82,6 @@ export function SessionHostView({
   );
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
-  const autoCsvDownloadTriggeredRef = useRef(false);
 
   const isWaiting = session?.status === 'waiting';
   const showingResult = Boolean(session?.showingResult);
@@ -222,10 +224,6 @@ export function SessionHostView({
     ? session?.status === 'finished' || finished
     : finished || sessionFinished;
 
-  useEffect(() => {
-    autoCsvDownloadTriggeredRef.current = false;
-  }, [sessionId]);
-
   const handleNextQuestion = () => {
     nextQuestion(sessionId).then(() => refetch());
   };
@@ -262,17 +260,6 @@ export function SessionHostView({
     }
   }, [isApi, quiz, session, sessionId]);
 
-  useEffect(() => {
-    if (!isFinished) {
-      autoCsvDownloadTriggeredRef.current = false;
-      return;
-    }
-    if (!session || !quiz) return;
-    if (autoCsvDownloadTriggeredRef.current) return;
-    autoCsvDownloadTriggeredRef.current = true;
-    handleDownloadResultsCsv();
-  }, [isFinished, session, quiz, handleDownloadResultsCsv]);
-
   const showCumulativeRanking =
     session &&
     (isFinished ||
@@ -298,7 +285,8 @@ export function SessionHostView({
     () =>
       ranking.map((entry) => ({
         name: entry.participantName,
-        score: entry.score,
+        score: rankEntryBarValue(entry),
+        scoreLabel: formatRankEntryScore(entry),
       })),
     [ranking]
   );
@@ -447,6 +435,10 @@ export function SessionHostView({
         </Alert>
       )}
 
+      {showLiveQuestion && displayedQuestion && (
+        <QuestionPlayModeBanner playMode={displayedQuestion.playMode} />
+      )}
+
       {showLiveQuestion && (
         <Paper sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -463,6 +455,9 @@ export function SessionHostView({
                 gutterBottom
               >
                 Temps restant
+                {displayedQuestion?.playMode === 'course'
+                  ? ' — mode cours (n’affecte pas la note)'
+                  : ' — mode découverte (la vitesse compte)'}
               </Typography>
               <LinearProgress
                 variant="determinate"

@@ -1112,7 +1112,7 @@ export default function QcmForm({
                     const n = Number(e.target.value);
                     if (Number.isFinite(n) && n > 0) onCoefficientChange(n);
                   }}
-                  inputProps={{ min: 0.1, step: 0.5 }}
+                  inputProps={{ min: 0.1, step: 0.1 }}
                   sx={{ width: { xs: '100%', sm: 140 }, flexShrink: 0 }}
                 />
               )}
