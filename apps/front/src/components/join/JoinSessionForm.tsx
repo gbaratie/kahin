@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import {
   Alert,
   Box,
@@ -9,6 +10,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Link as MuiLink,
   List,
   ListItemButton,
   ListItemText,
@@ -29,6 +31,7 @@ import {
   setRememberedParticipantName,
 } from '@/qcm/participantIdentity';
 import { getErrorMessage } from '@kahin/shared-utils';
+import { navItemRules } from '@/config/site';
 
 type JoinSessionFormProps = {
   title?: string;
@@ -187,8 +190,13 @@ export default function JoinSessionForm({
       <Typography variant="h4" gutterBottom>
         {title}
       </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
+      <Typography color="text.secondary" sx={{ mb: 1.5 }}>
         {description}
+      </Typography>
+      <Typography variant="body2" sx={{ mb: 3 }}>
+        <MuiLink component={Link} href={navItemRules.href} underline="hover">
+          Lire les règles (modes découverte / cours, types de questions)
+        </MuiLink>
       </Typography>
 
       {step === 'code' && (

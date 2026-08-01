@@ -14,8 +14,14 @@ export interface NavItem {
   href: string;
 }
 
+export const navItemRules: NavItem = {
+  label: 'Règles',
+  href: '/rules',
+};
+
 export const navItemsParticipant: NavItem[] = [
   { label: 'Accueil', href: '/' },
+  navItemRules,
   { label: 'Rejoindre', href: '/join' },
 ];
 
@@ -42,9 +48,10 @@ export const navItemGrades: NavItem = {
 /** Navigation complète (animateur connecté ou mode bypass sans API). */
 export const navItems: NavItem[] = [
   navItemsParticipant[0],
+  navItemRules,
   navItemQuestions,
   navItemCreateQuiz,
   navItemRoster,
   navItemGrades,
-  navItemsParticipant[1],
+  navItemsParticipant[2],
 ];
