@@ -9,7 +9,7 @@ export default function JoinPage() {
       <Head>
         <title>Rejoindre une session</title>
       </Head>
-      <JoinSessionForm />
+      <JoinSessionForm description="Saisissez le code affiché à l’écran, puis choisissez votre nom." />
     </Layout>
   );
 }

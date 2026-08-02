@@ -1,31 +1,112 @@
 import React from 'react';
-import {
-  Alert,
-  Box,
-  Divider,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Paper, Stack, Typography } from '@mui/material';
+import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
+import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
 import { layout } from '@/config/layout';
 
-function RuleSection({
+function ModeCard({
+  variant,
+  label,
   title,
   children,
 }: {
+  variant: 'course' | 'discovery';
+  label: string;
   title: string;
   children: React.ReactNode;
 }) {
+  const course = variant === 'course';
+  const accent = course ? 'warning.main' : 'primary.main';
+  const softBg = course
+    ? (t: { palette: { mode: string } }) =>
+        t.palette.mode === 'dark'
+          ? 'rgba(237, 108, 2, 0.14)'
+          : 'rgba(237, 108, 2, 0.08)'
+    : (t: { palette: { mode: string } }) =>
+        t.palette.mode === 'dark'
+          ? 'rgba(124, 156, 224, 0.14)'
+          : 'rgba(61, 90, 158, 0.08)';
+
   return (
-    <Box sx={{ mb: 4 }}>
-      <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-        {title}
-      </Typography>
-      {children}
-    </Box>
+    <Paper
+      variant="outlined"
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        borderColor: accent,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'stretch',
+          bgcolor: softBg,
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
+        <Box aria-hidden sx={{ width: 6, flexShrink: 0, bgcolor: accent }} />
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.5}
+          sx={{ px: 2, py: 1.5, minWidth: 0 }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+              bgcolor: accent,
+              color: course ? 'warning.contrastText' : 'primary.contrastText',
+            }}
+          >
+            {course ? (
+              <SchoolOutlinedIcon fontSize="small" />
+            ) : (
+              <ExploreOutlinedIcon fontSize="small" />
+            )}
+          </Box>
+          <Typography
+            sx={{
+              fontWeight: 800,
+              fontSize: '1.05rem',
+              color: course ? 'warning.dark' : 'primary.main',
+              lineHeight: 1.2,
+            }}
+          >
+            {label}
+          </Typography>
+        </Stack>
+      </Box>
+      <Box sx={{ p: { xs: 1.75, sm: 2 }, display: 'flex', flexDirection: 'column', gap: 1.25, flex: 1 }}>
+        <Typography variant="body2" sx={{ lineHeight: 1.45, fontWeight: 500 }}>
+          {title}
+        </Typography>
+        <Typography
+          component="ul"
+          variant="body2"
+          sx={{
+            m: 0,
+            pl: 2.25,
+            color: 'text.secondary',
+            lineHeight: 1.45,
+            '& li + li': { mt: 0.35 },
+          }}
+        >
+          {children}
+        </Typography>
+      </Box>
+    </Paper>
   );
 }
 
-function TypeBlock({
+function TypeCard({
   title,
   children,
 }: {
@@ -33,128 +114,190 @@ function TypeBlock({
   children: React.ReactNode;
 }) {
   return (
-    <Box sx={{ mb: 2.5 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: { xs: 1.5, sm: 2 },
+        height: '100%',
+        width: '100%',
+        minWidth: 0,
+      }}
+    >
+      <Typography
+        variant="subtitle2"
+        sx={{ fontWeight: 700, mb: 0.75, fontSize: '0.95rem' }}
+      >
         {title}
       </Typography>
-      <Typography color="text.secondary" component="div">
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ lineHeight: 1.45, fontSize: '0.88rem' }}
+      >
         {children}
       </Typography>
-    </Box>
+    </Paper>
   );
 }
 
 /** Page pédagogique : modes (découverte / cours) et types de questions. */
 export default function RulesContent() {
   return (
-    <Box sx={{ ...layout.pagePaddingAuto, py: { xs: 2, sm: 4 }, maxWidth: 720 }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' }, fontWeight: 700 }}
-      >
-        Règles du jeu
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        À lire en début d’année (et avant chaque session) : comment
-        reconnaître une question notée, et comment répondre selon le type.
-      </Typography>
-
-      <RuleSection title="Deux modes de questions">
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          Chaque question d’un QCM est soit en <strong>mode découverte</strong>
-          , soit en <strong>mode cours</strong>. Un bandeau coloré s’affiche
-          dès le lancement pour indiquer le mode.
+    <Box
+      sx={{
+        ...layout.pagePaddingAuto,
+        py: { xs: 2, sm: 3 },
+        minHeight: {
+          xs: 'auto',
+          md: 'calc(100dvh - 72px)',
+        },
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: 2, sm: 2.5 },
+      }}
+    >
+      <Box sx={{ flexShrink: 0 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontSize: { xs: '1.4rem', sm: '1.85rem' },
+            fontWeight: 700,
+            mb: 0.5,
+          }}
+        >
+          Règles du jeu
         </Typography>
+        <Typography
+          color="text.secondary"
+          variant="body2"
+          sx={{ maxWidth: 720, lineHeight: 1.45 }}
+        >
+          Comment reconnaître une question notée, et comment répondre selon le
+          type.
+        </Typography>
+      </Box>
 
-        <Stack spacing={2} sx={{ mb: 1 }}>
-          <Alert
-            severity="warning"
-            variant="filled"
-            sx={{
-              fontWeight: 700,
-              bgcolor: 'warning.dark',
-              color: 'warning.contrastText',
-              '& .MuiAlert-icon': { color: 'inherit' },
-            }}
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.25 }}>
+          Deux modes de questions
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 2,
+            width: '100%',
+          }}
+        >
+          <ModeCard
+            variant="course"
+            label="Mode cours — question notée"
+            title="Ces questions comptent dans la note."
           >
-            Mode cours — question notée
-          </Alert>
-          <Box sx={{ pl: { sm: 1 } }}>
-            <Typography paragraph sx={{ mb: 1 }}>
-              Ces questions <strong>comptent dans la note</strong>. Soyez
-              attentifs : le bandeau orange signale clairement qu’il ne
-              s’agit pas d’un simple entraînement.
-            </Typography>
-            <Typography component="ul" sx={{ m: 0, pl: 2.5, color: 'text.secondary' }}>
-              <li>1 point par bonne réponse (0 sinon)</li>
-              <li>La vitesse ne change pas la note : juste ou faux</li>
-              <li>Les nuages de mots ne sont jamais notés, même en mode cours</li>
-            </Typography>
-          </Box>
+            <li>1 point par bonne réponse (0 sinon)</li>
+            <li>La vitesse ne change pas la note</li>
+            <li>Les nuages de mots ne sont jamais notés</li>
+          </ModeCard>
 
-          <Divider />
+          <ModeCard
+            variant="discovery"
+            label="Mode découverte — s’entraîner"
+            title="Participation et entraînement, hors note du cours."
+          >
+            <li>Points « fun » : vitesse + juste = plus de points</li>
+            <li>Utile pour le classement de session</li>
+          </ModeCard>
+        </Box>
+      </Box>
 
-          <Alert severity="info" variant="filled" sx={{ fontWeight: 500 }}>
-            Mode découverte — s’entraîner
-          </Alert>
-          <Box sx={{ pl: { sm: 1 } }}>
-            <Typography paragraph sx={{ mb: 1 }}>
-              Ces questions servent à <strong>participer et s’entraîner</strong>
-              . Elles n’entrent pas dans la note du cours.
-            </Typography>
-            <Typography component="ul" sx={{ m: 0, pl: 2.5, color: 'text.secondary' }}>
-              <li>
-                Points « fun » : plus vous répondez vite (et juste), plus vous
-                gagnez de points
-              </li>
-              <li>Utile pour le classement de session, pas pour la moyenne</li>
-            </Typography>
-          </Box>
-        </Stack>
-      </RuleSection>
-
-      <RuleSection title="Types de questions">
-        <TypeBlock title="QCM">
-          Plusieurs propositions, une seule bonne réponse. Choisissez l’option
-          qui vous semble correcte avant la fin du chrono.
-        </TypeBlock>
-
-        <TypeBlock title="Nuage de mots">
-          Saisissez un ou plusieurs mots librement. Il n’y a pas de « bonne »
-          réponse unique : les contributions forment un nuage collectif. Ce
-          type n’est jamais comptabilisé dans la note.
-        </TypeBlock>
-
-        <TypeBlock title="Au plus proche">
-          Entrez un nombre. Plus votre réponse est proche de la valeur
-          attendue, mieux c’est.
-          <Typography component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
-            <li>
-              <strong>Découverte</strong> : les points dépendent de la distance
-              à la bonne valeur
-            </li>
-            <li>
-              <strong>Cours</strong> : 1 point si vous êtes dans la plage
-              acceptée, 0 sinon
-            </li>
-          </Typography>
-        </TypeBlock>
-      </RuleSection>
-
-      <RuleSection title="En résumé">
-        <Typography component="ul" sx={{ m: 0, pl: 2.5, color: 'text.secondary' }}>
-          <li>
-            Bandeau <strong>orange</strong> = mode cours ={' '}
-            <strong>ça compte pour la note</strong>
-          </li>
-          <li>
-            Bandeau <strong>bleu</strong> = mode découverte = entraînement /
-            points de participation
-          </li>
-          <li>Lisez toujours le bandeau avant de répondre</li>
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.25 }}>
+          Types de questions
         </Typography>
-      </RuleSection>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(3, minmax(0, 1fr))',
+            },
+            gap: 2,
+            width: '100%',
+          }}
+        >
+          <TypeCard title="QCM">
+            Plusieurs propositions, une seule bonne réponse. Choisissez avant
+            la fin du chrono.
+          </TypeCard>
+          <TypeCard title="Nuage de mots">
+            Saisissez librement un ou plusieurs mots. Jamais comptabilisé dans
+            la note.
+          </TypeCard>
+          <TypeCard title="Au plus proche">
+            Entrez un nombre. Découverte : points selon la distance. Cours : 1
+            point dans la plage, 0 sinon.
+          </TypeCard>
+        </Box>
+      </Box>
+
+      <Paper
+        variant="outlined"
+        sx={{
+          px: { xs: 2, sm: 2.5 },
+          py: 1.5,
+          bgcolor: (t) =>
+            t.palette.mode === 'dark'
+              ? 'rgba(124,156,224,0.08)'
+              : 'rgba(61,90,158,0.06)',
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 700, mb: 0.75, fontSize: '0.9rem' }}
+        >
+          En résumé
+        </Typography>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 0.75, sm: 3 }}
+          flexWrap="wrap"
+          useFlexGap
+        >
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: '0.9rem' }}
+          >
+            <Box
+              component="span"
+              sx={{ color: 'warning.dark', fontWeight: 700 }}
+            >
+              Orange
+            </Box>{' '}
+            = mode cours = note
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: '0.9rem' }}
+          >
+            <Box
+              component="span"
+              sx={{ color: 'primary.main', fontWeight: 700 }}
+            >
+              Bleu
+            </Box>{' '}
+            = découverte = entraînement
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: '0.9rem' }}
+          >
+            Lisez toujours le bandeau avant de répondre
+          </Typography>
+        </Stack>
+      </Paper>
     </Box>
   );
 }

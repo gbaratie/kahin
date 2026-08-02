@@ -633,11 +633,13 @@ function QuestionBankPageContent() {
                     </Typography>
                     <FormControl
                       size="small"
-                      sx={{ minWidth: 140, maxWidth: '100%' }}
+                      variant="standard"
+                      sx={{ minWidth: 0, maxWidth: '100%' }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Select
                         displayEmpty
+                        disableUnderline
                         value={item.themeId ?? 'none'}
                         disabled={assigningThemeId === item.id}
                         onChange={(e) => {
@@ -653,38 +655,28 @@ function QuestionBankPageContent() {
                         }}
                         renderValue={(selected) => {
                           if (selected === 'none' || !selected) {
-                            return (
-                              <Chip
-                                size="small"
-                                label="Sans thématique"
-                                variant="outlined"
-                                sx={{ height: 24 }}
-                              />
-                            );
+                            return 'Sans thématique';
                           }
                           return (
-                            <Chip
-                              size="small"
-                              color="primary"
-                              label={
-                                themeNameById.get(String(selected)) ??
-                                'Thématique'
-                              }
-                              sx={{ height: 24, fontWeight: 600 }}
-                            />
+                            themeNameById.get(String(selected)) ?? 'Thématique'
                           );
                         }}
                         sx={{
+                          typography: 'caption',
+                          color: item.themeId
+                            ? 'primary.main'
+                            : 'text.secondary',
+                          fontWeight: item.themeId ? 600 : 400,
                           '& .MuiSelect-select': {
-                            py: 0.5,
-                            pr: '28px !important',
-                            display: 'flex',
-                            alignItems: 'center',
+                            py: 0,
+                            pr: '20px !important',
+                            pb: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           },
-                          '& fieldset': {
-                            borderColor: item.themeId
-                              ? 'primary.main'
-                              : undefined,
+                          '& .MuiSelect-icon': {
+                            color: 'text.secondary',
+                            right: 0,
                           },
                         }}
                       >

@@ -22,6 +22,7 @@ import BrightnessAutoOutlined from '@mui/icons-material/BrightnessAutoOutlined';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { siteName, navItems, navItemsParticipant } from '@/config/site';
+import { layout } from '@/config/layout';
 import ApiStatus from '@/components/ApiStatus';
 import AdminLoginDialog from '@/components/AdminLoginDialog';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -49,6 +50,9 @@ export default function Layout({ children }: LayoutProps) {
   );
 
   const hasNavLinks = visibleNavItems.length > 0;
+  /** Session live : header plus compact pour libérer de la hauteur utile. */
+  const isLiveSession =
+    pathname.startsWith('/session/') || pathname.startsWith('/qcm/session/');
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -87,17 +91,19 @@ export default function Layout({ children }: LayoutProps) {
       <Box
         component="header"
         sx={{
-          py: 2,
-          px: 2,
+          py: isLiveSession ? 1 : 2,
+          px: { xs: 2, md: 3, lg: 4 },
           borderBottom: 1,
           borderColor: 'divider',
+          flexShrink: 0,
+          bgcolor: 'background.paper',
         }}
       >
         <Stack
           direction="row"
           alignItems="center"
           justifyContent="space-between"
-          sx={{ maxWidth: { xs: '100%', md: 960, lg: 1200 }, mx: 'auto' }}
+          sx={{ maxWidth: layout.pageMaxWidth, mx: 'auto', width: '100%' }}
         >
           <Stack direction="row" alignItems="center" spacing={2}>
             <Typography
@@ -125,7 +131,6 @@ export default function Layout({ children }: LayoutProps) {
               </Stack>
             )}
 
-            {/* Thème : bandeau desktop uniquement ; sur mobile → menu burger */}
             <IconButton
               color="inherit"
               aria-label={themeToggleLabel(preference)}

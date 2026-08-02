@@ -8,8 +8,11 @@ import {
   Paper,
   LinearProgress,
   TextField,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import Link from 'next/link';
+import { layout } from '@/config/layout';
 import {
   isWordCloudQuestion,
   isClosestQuestion,
@@ -39,7 +42,8 @@ import { QuestionPlayModeBanner } from './QuestionPlayModeBanner';
 import { isPerQuestionFeedbackPhase } from '../sessionFeedbackPhase';
 
 const SESSION_POLL_WHEN_WAITING_MS = 1500;
-const TOP_RANKING_LIMIT = 10;
+const TOP_RANKING_LIMIT_MOBILE = 5;
+const TOP_RANKING_LIMIT_DESKTOP = 10;
 const TIMER_TICK_MS = 100;
 
 type SessionParticipantViewProps = {
@@ -56,6 +60,14 @@ export function SessionParticipantView({
   sessionId,
   participantId,
 }: SessionParticipantViewProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'), {
+    noSsr: true,
+    defaultMatches: true,
+  });
+  const topRankingLimit = isMobile
+    ? TOP_RANKING_LIMIT_MOBILE
+    : TOP_RANKING_LIMIT_DESKTOP;
   const { currentQuestion, sessionFinished, sessionSnapshot } =
     useSessionStream(sessionId);
   const { session, refetch } = useSession(sessionId);
@@ -121,7 +133,7 @@ export function SessionParticipantView({
   const myRank = myEntry
     ? ranking.findIndex((e) => e.participantId === participantId) + 1
     : 0;
-  const top10 = ranking.slice(0, TOP_RANKING_LIMIT);
+  const topRanking = ranking.slice(0, topRankingLimit);
 
   const myParticipantName = useMemo(() => {
     const fromSession = effectiveSession?.participants.find(
@@ -298,7 +310,7 @@ export function SessionParticipantView({
     isWordCloud,
   ]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (choiceIdOverride?: string) => {
     if (!currentQuestion) return;
     if (isWordCloud) {
       const w = wordInput.trim();
@@ -337,13 +349,15 @@ export function SessionParticipantView({
       }
       return;
     }
-    if (!selectedChoiceId) return;
+    const choiceId = choiceIdOverride ?? selectedChoiceId;
+    if (!choiceId) return;
+    setSelectedChoiceId(choiceId);
     try {
       await submitAnswer({
         sessionId,
         participantId,
         questionId: currentQuestion.question.id,
-        choiceId: selectedChoiceId,
+        choiceId,
       });
       setSelectedChoiceId(null);
       setHasAnsweredCurrentQuestion(true);
@@ -463,16 +477,16 @@ export function SessionParticipantView({
     }
 
     return (
-      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
+      <Box sx={layout.sessionViewport}>
         {timeUpForCurrentQuestion && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
+          <Alert severity="warning" sx={{ mb: 1, py: 0.5 }}>
             Le temps est écoulé
           </Alert>
         )}
         {rankingUpTo === 0 && myParticipantName && (
           <Alert
             severity="info"
-            sx={{ mb: 2 }}
+            sx={{ mb: 1, py: 0.5 }}
             action={
               <Button
                 color="inherit"
@@ -488,28 +502,54 @@ export function SessionParticipantView({
             Connecté en tant que <strong>{myParticipantName}</strong>
           </Alert>
         )}
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
+        <Box sx={{ textAlign: 'center', mb: 1.5, flexShrink: 0 }}>
+          <Typography variant="subtitle1" fontWeight={700}>
             Mon classement
           </Typography>
-          <Typography variant="h3" color="primary" fontWeight="bold">
+          <Typography
+            variant="h3"
+            color="primary"
+            fontWeight="bold"
+            sx={{ lineHeight: 1.1, fontSize: { xs: '2.25rem', sm: '3rem' } }}
+          >
             {myRank > 0 ? formatRank(myRank) : '—'}
           </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body1" color="text.secondary">
             {myEntry ? formatRankEntryScore(myEntry) : '0 pts'}
           </Typography>
         </Box>
-        <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Classement (10 premiers)
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 1.5,
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+            Classement ({topRankingLimit} premiers)
           </Typography>
-          <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
-            {top10.map((entry) => (
+          <Box
+            component="ol"
+            sx={{ m: 0, pl: 2.5, overflow: 'auto', minHeight: 0, flex: 1 }}
+          >
+            {topRanking.map((entry) => (
               <Typography
                 key={entry.participantId}
                 component="li"
                 variant="body2"
-                sx={{ mb: 0.5 }}
+                sx={{
+                  mb: 0.35,
+                  fontWeight:
+                    entry.participantId === participantId ? 700 : 400,
+                  color:
+                    entry.participantId === participantId
+                      ? 'primary.main'
+                      : 'text.primary',
+                }}
               >
                 {entry.participantName} — {formatRankEntryScore(entry)}
               </Typography>
@@ -518,7 +558,8 @@ export function SessionParticipantView({
         </Paper>
         <Typography
           color="text.secondary"
-          sx={{ display: 'block', textAlign: 'center' }}
+          variant="body2"
+          sx={{ display: 'block', textAlign: 'center', mt: 1.5, flexShrink: 0 }}
         >
           {rankingUpTo === 0
             ? "En attente du démarrage par l'animateur…"
@@ -531,8 +572,8 @@ export function SessionParticipantView({
   // Le participant a déjà répondu à cette question (QCM / au plus proche) : page d'attente
   if (!isWordCloud && hasAnsweredCurrentQuestion) {
     return (
-      <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
-        <Alert severity="success" icon={false}>
+      <Box sx={layout.sessionViewport}>
+        <Alert severity="success" icon={false} sx={{ mt: 1 }}>
           <Typography variant="body1" fontWeight={500}>
             Merci d&apos;avoir répondu à cette question.
           </Typography>
@@ -555,43 +596,53 @@ export function SessionParticipantView({
       : 0;
 
   return (
-    <Box sx={{ p: 2, maxWidth: { xs: 600, md: 960 }, mx: 'auto' }}>
-      <QuestionPlayModeBanner playMode={question.playMode} />
-      <Typography variant="h6" gutterBottom>
+    <Box sx={layout.sessionViewport}>
+      <QuestionPlayModeBanner playMode={question.playMode} compact />
+      <Typography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 600,
+          mb: 1,
+          flexShrink: 0,
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
         {question?.label ?? ''}
       </Typography>
 
       {showTimerBar && (
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ mb: 1, flexShrink: 0 }}>
           <LinearProgress
             variant="determinate"
             value={progressValue}
             color="primary"
-            sx={{ height: 8, borderRadius: 1 }}
+            sx={{ height: 6, borderRadius: 1 }}
           />
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ mt: 0.5, display: 'block' }}
+            sx={{ mt: 0.35, display: 'block' }}
           >
-            {Math.ceil(remainingSeconds ?? 0)} s restante
-            {Math.ceil(remainingSeconds ?? 0) !== 1 ? 's' : ''}
+            {Math.ceil(remainingSeconds ?? 0)} s
             {question.playMode === 'course'
-              ? ' — mode cours (comptabilisé dans la note)'
-              : ' — mode découverte (la vitesse compte)'}
+              ? ' — mode cours'
+              : ' — mode découverte'}
           </Typography>
         </Box>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 1, py: 0.5 }}>
           {error.message}
         </Alert>
       )}
 
       {isWordCloud ? (
-        <>
-          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+        <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+          <Stack direction="row" spacing={1}>
             <TextField
               fullWidth
               size="medium"
@@ -616,13 +667,13 @@ export function SessionParticipantView({
             </Button>
           </Stack>
           {displayedMyWords.length > 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
               Mots envoyés : {displayedMyWords.join(', ')}
             </Typography>
           )}
-        </>
+        </Stack>
       ) : isClosest ? (
-        <>
+        <Stack spacing={1.5} sx={{ flex: 1, justifyContent: 'flex-start' }}>
           <TextField
             fullWidth
             type="number"
@@ -640,7 +691,6 @@ export function SessionParticipantView({
               step: 'any',
               'aria-label': 'Réponse numérique',
             }}
-            sx={{ mb: 2 }}
           />
           <Button
             variant="contained"
@@ -655,43 +705,34 @@ export function SessionParticipantView({
           >
             {loading ? 'Envoi…' : 'Valider'}
           </Button>
-        </>
+        </Stack>
       ) : (
-        <>
-          <Stack spacing={1.5} sx={{ mb: 3 }}>
-            {(question?.choices ?? []).map((choice) => (
-              <Button
-                key={choice.id}
-                variant={
-                  selectedChoiceId === choice.id ? 'contained' : 'outlined'
-                }
-                size="large"
-                fullWidth
-                onClick={() => setSelectedChoiceId(choice.id)}
-                sx={{
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  textTransform: 'none',
-                  py: 1.5,
-                  fontSize: '1rem',
-                  whiteSpace: 'normal',
-                }}
-              >
-                {choice.label}
-              </Button>
-            ))}
-          </Stack>
-
-          <Button
-            variant="contained"
-            size="large"
-            fullWidth
-            onClick={() => void handleSubmit()}
-            disabled={!selectedChoiceId || loading}
-          >
-            {loading ? 'Envoi…' : 'Valider'}
-          </Button>
-        </>
+        <Stack spacing={1} sx={{ flex: 1, minHeight: 0 }}>
+          {(question?.choices ?? []).map((choice) => (
+            <Button
+              key={choice.id}
+              variant={
+                selectedChoiceId === choice.id ? 'contained' : 'outlined'
+              }
+              size="large"
+              fullWidth
+              disabled={loading}
+              onClick={() => void handleSubmit(choice.id)}
+              sx={{
+                flex: 1,
+                minHeight: 48,
+                justifyContent: 'center',
+                textAlign: 'center',
+                textTransform: 'none',
+                py: 1.25,
+                fontSize: '1rem',
+                whiteSpace: 'normal',
+              }}
+            >
+              {choice.label}
+            </Button>
+          ))}
+        </Stack>
       )}
     </Box>
   );

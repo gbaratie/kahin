@@ -32,12 +32,14 @@ import { getErrorMessage } from '@kahin/shared-utils';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 const homeNavButtonSx = {
-  py: 1,
-  fontSize: { xs: '0.8rem', sm: '0.875rem' },
+  py: 0.75,
+  px: { xs: 1, sm: 1.5 },
+  fontSize: { xs: '0.75rem', sm: '0.8rem' },
   justifyContent: 'center',
   textAlign: 'center',
-  whiteSpace: 'normal',
-  lineHeight: 1.3,
+  whiteSpace: { xs: 'normal', sm: 'nowrap' },
+  lineHeight: 1.25,
+  minHeight: 36,
 } as const;
 
 function loadQuizzes(
@@ -116,7 +118,7 @@ export default function HomePage() {
         </Head>
         <JoinSessionForm
           title={siteName}
-          description="Saisissez le code de session, puis choisissez votre nom (ou inscrivez-vous librement selon le choix de l’animateur). L’animateur se connecte via l’icône en haut à droite."
+          description="Saisissez le code affiché à l’écran, puis choisissez votre nom."
         />
       </Layout>
     );
@@ -131,40 +133,39 @@ export default function HomePage() {
           content="Créez et lancez des QCM interactifs, ou rejoignez une session."
         />
       </Head>
-      <Box sx={{ ...layout.pagePaddingAuto, py: { xs: 2, sm: 4 } }}>
-        <Typography
-          variant="h4"
-          gutterBottom
-          sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
+      <Box
+        sx={{
+          ...layout.pagePaddingAuto,
+          py: { xs: 2, sm: 2.5 },
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: {
+            xs: 'auto',
+            md: 'calc(100dvh - 72px)',
+          },
+          boxSizing: 'border-box',
+        }}
+      >
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent="space-between"
+          spacing={1.5}
+          sx={{ mb: 2, flexShrink: 0 }}
         >
-          {siteName}
-        </Typography>
-        <Typography
-          color="text.secondary"
-          sx={{
-            mb: { xs: 2, sm: 3 },
-            display: { xs: 'none', sm: 'block' },
-          }}
-        >
-          Gérez une banque de questions par thématique, composez des QCM
-          réutilisables, ou rejoignez une session avec le code de
-          l&apos;animateur.
-        </Typography>
-
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: { xs: 2, md: 3 },
-            alignItems: 'stretch',
-          }}
-        >
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.4rem' } }}
+          >
+            Mes QCM
+          </Typography>
           <Box
             sx={{
-              width: { md: 220 },
-              flexShrink: 0,
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: '1fr' },
+              gridTemplateColumns: {
+                xs: '1fr 1fr',
+                sm: 'repeat(4, auto)',
+              },
               gap: 1,
             }}
           >
@@ -172,18 +173,16 @@ export default function HomePage() {
               component={Link}
               href="/qcm/questions"
               variant="contained"
-              size="medium"
-              fullWidth
+              size="small"
               sx={homeNavButtonSx}
             >
-              Banque de questions
+              Banque
             </Button>
             <Button
               component={Link}
               href="/qcm/create"
               variant="outlined"
-              size="medium"
-              fullWidth
+              size="small"
               sx={homeNavButtonSx}
             >
               Créer un QCM
@@ -192,8 +191,7 @@ export default function HomePage() {
               component={Link}
               href="/qcm/classes"
               variant="outlined"
-              size="medium"
-              fullWidth
+              size="small"
               sx={homeNavButtonSx}
             >
               Classes
@@ -202,58 +200,89 @@ export default function HomePage() {
               component={Link}
               href="/join"
               variant="outlined"
-              size="medium"
-              fullWidth
+              size="small"
               sx={homeNavButtonSx}
             >
               Rejoindre
             </Button>
           </Box>
+        </Stack>
 
-          {isApiMode() && (
-            <Paper
-              variant="outlined"
+        {isApiMode() && (
+          <Paper
+            variant="outlined"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              minHeight: 0,
+              p: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              maxHeight: {
+                xs: 'none',
+                md: 'calc(100dvh - 160px)',
+              },
+            }}
+          >
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              spacing={1}
               sx={{
-                flex: 1,
-                minWidth: 0,
-                p: { xs: 1.5, sm: 2 },
-                display: 'flex',
-                flexDirection: 'column',
+                px: { xs: 1.5, sm: 2 },
+                py: 1.25,
+                borderBottom: 1,
+                borderColor: 'divider',
+                flexShrink: 0,
+                bgcolor: 'background.paper',
               }}
             >
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                spacing={1}
-                sx={{ mb: 1.5 }}
-              >
+              <Stack direction="row" alignItems="baseline" spacing={1}>
                 <Typography
-                  variant="h6"
-                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: { xs: '1rem', sm: '1.1rem' },
+                  }}
                 >
                   QCM existants
                 </Typography>
-                <Button
-                  component={Link}
-                  href="/qcm/create"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  sx={{
-                    display: { xs: 'none', sm: 'inline-flex' },
-                    flexShrink: 0,
-                  }}
-                >
-                  Nouveau
-                </Button>
+                {!loading && !error && (
+                  <Typography variant="caption" color="text.secondary">
+                    {quizzes.length}
+                  </Typography>
+                )}
               </Stack>
+              <Button
+                component={Link}
+                href="/qcm/create"
+                size="small"
+                startIcon={<AddIcon />}
+                sx={{
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  flexShrink: 0,
+                }}
+              >
+                Nouveau
+              </Button>
+            </Stack>
+            <Box
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'auto',
+                px: { xs: 1.5, sm: 2 },
+              }}
+            >
               {loading && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                   <CircularProgress size={28} />
                 </Box>
               )}
               {error && (
-                <Alert severity="error" sx={{ mt: 1 }}>
+                <Alert severity="error" sx={{ my: 1.5 }}>
                   {error}
                 </Alert>
               )}
@@ -261,7 +290,7 @@ export default function HomePage() {
                 <Typography
                   color="text.secondary"
                   variant="body2"
-                  sx={{ py: 2 }}
+                  sx={{ py: 3 }}
                 >
                   Aucun QCM pour le moment. Créez-en un pour commencer.
                 </Typography>
@@ -274,7 +303,7 @@ export default function HomePage() {
                       disableGutters
                       sx={{
                         px: 0,
-                        py: { xs: 1.25, sm: 1.5 },
+                        py: 0.85,
                         borderBottom: 1,
                         borderColor: 'divider',
                         display: 'flex',
@@ -284,15 +313,17 @@ export default function HomePage() {
                       }}
                     >
                       <Typography
-                        variant="body1"
+                        variant="body2"
                         sx={{
                           flex: 1,
                           minWidth: 0,
                           fontWeight: 500,
-                          fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                          wordBreak: 'break-word',
-                          overflowWrap: 'anywhere',
+                          fontSize: { xs: '0.9rem', sm: '0.95rem' },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
                         }}
+                        title={q.title}
                       >
                         {q.title}
                       </Typography>
@@ -307,14 +338,19 @@ export default function HomePage() {
                           href={`/qcm/launch?quizId=${encodeURIComponent(q.id)}`}
                           size="small"
                           variant="contained"
-                          sx={{ px: { xs: 1, sm: 1.5 } }}
+                          sx={{
+                            px: { xs: 1, sm: 1.25 },
+                            py: 0.35,
+                            minHeight: 0,
+                            fontSize: '0.8rem',
+                          }}
                         >
                           Lancer
                         </Button>
                         <IconButton
                           component={Link}
                           href={`/qcm/edit/quiz?quizId=${encodeURIComponent(q.id)}`}
-                          aria-label="Modifier le QCM"
+                          aria-label="modifier le QCM"
                           size="small"
                         >
                           <EditIcon fontSize="small" />
@@ -332,9 +368,9 @@ export default function HomePage() {
                   ))}
                 </List>
               )}
-            </Paper>
-          )}
-        </Box>
+            </Box>
+          </Paper>
+        )}
       </Box>
 
       <Dialog

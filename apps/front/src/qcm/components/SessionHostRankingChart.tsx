@@ -62,7 +62,8 @@ function SessionHostBarChartBody({
   const barSize = participantCount > 24 ? 12 : participantCount > 14 ? 16 : 22;
   const rowHeight = barSize + (participantCount > 24 ? 8 : 10);
   const chartHeight = Math.max(260, participantCount * rowHeight + 28);
-  const maxContainerHeight = 520;
+  /** Borne la hauteur pour limiter le scroll en projection / desktop. */
+  const maxContainerHeight = 360;
   const showVerticalScroll = chartHeight > maxContainerHeight;
   const longestLabel = Math.max(
     ...chartData.map((d) => d.scoreLabel.length),
