@@ -59,6 +59,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { Quiz, Question, QuestionType, PlayMode } from '@kahin/qcm-domain';
 import { parsePlayMode } from '@kahin/qcm-domain';
+import { layout } from '@/config/layout';
 import {
   apiListQuestions,
   apiListQuizzes,
@@ -315,99 +316,137 @@ function SortableQuestionCard({
 
   const isWordCloud = q.type === 'word_cloud';
   const isClosest = q.type === 'closest';
+  const isCourse = (q.playMode ?? 'discovery') === 'course';
   const defaultTimer = isWordCloud
     ? DEFAULT_WORD_CLOUD_TIMER
     : isClosest
       ? DEFAULT_CLOSEST_TIMER
       : DEFAULT_QCM_TIMER;
+  const accent = isCourse ? 'warning.main' : 'primary.main';
 
   return (
     <Paper
       ref={setNodeRef}
       style={style}
+      variant="outlined"
       sx={{
-        p: { xs: 1.5, sm: 2 },
-        mb: 2,
+        mb: 2.5,
         overflow: 'hidden',
-        border: isDragging ? 2 : 0,
-        borderColor: 'primary.main',
+        borderColor: isDragging ? 'primary.main' : 'divider',
+        borderWidth: isDragging ? 2 : 1,
         touchAction: 'manipulation',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <Stack spacing={1.25} sx={{ mb: 1 }}>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ minWidth: 0 }}
+      {/* En-tête */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          px: { xs: 1.25, sm: 1.75 },
+          py: 1.1,
+          bgcolor: (t) =>
+            t.palette.mode === 'dark'
+              ? 'rgba(255,255,255,0.03)'
+              : 'rgba(61,90,158,0.04)',
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
+        <Box
+          aria-hidden
+          sx={{
+            width: 4,
+            alignSelf: 'stretch',
+            borderRadius: 1,
+            bgcolor: accent,
+            flexShrink: 0,
+            my: -0.25,
+          }}
+        />
+        <IconButton
+          size="small"
+          aria-label="Réordonner la question"
+          sx={{
+            cursor: 'grab',
+            touchAction: 'none',
+            color: 'text.secondary',
+            flexShrink: 0,
+          }}
+          {...attributes}
+          {...listeners}
         >
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={0.5}
-            sx={{ minWidth: 0, flex: 1 }}
-          >
+          <DragIndicatorIcon fontSize="small" />
+        </IconButton>
+        <Box
+          sx={{
+            minWidth: 28,
+            height: 28,
+            px: 0.75,
+            borderRadius: 1,
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: accent,
+            color: isCourse ? 'warning.contrastText' : 'primary.contrastText',
+            fontWeight: 800,
+            fontSize: '0.8rem',
+            flexShrink: 0,
+          }}
+        >
+          {qIndex + 1}
+        </Box>
+        <Typography
+          variant="subtitle2"
+          sx={{ flex: 1, minWidth: 0, fontWeight: 700 }}
+        >
+          Question {qIndex + 1}
+          {q.id ? (
+            <Typography
+              component="span"
+              variant="caption"
+              color="text.secondary"
+              sx={{ ml: 1, fontWeight: 500 }}
+            >
+              banque
+            </Typography>
+          ) : null}
+        </Typography>
+        <Tooltip title="Retirer du QCM (reste dans la banque si déjà enregistrée)">
+          <span>
             <IconButton
               size="small"
-              aria-label="Réordonner la question"
+              onClick={onRemove}
+              disabled={questionsCount <= 1}
+              aria-label="Retirer la question du QCM"
               sx={{
-                cursor: 'grab',
-                touchAction: 'none',
-                color: 'text.secondary',
                 flexShrink: 0,
+                color: 'text.secondary',
+                '&:hover': { color: 'error.main' },
               }}
-              {...attributes}
-              {...listeners}
             >
-              <DragIndicatorIcon fontSize="small" />
+              <RemoveCircleOutlineIcon fontSize="small" />
             </IconButton>
-            <Typography variant="subtitle2" sx={{ minWidth: 0, pr: 1 }}>
-              Question {qIndex + 1}
-              {q.id ? (
-                <Typography
-                  component="span"
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ ml: 1 }}
-                >
-                  (banque)
-                </Typography>
-              ) : null}
-            </Typography>
-          </Stack>
-          <Tooltip title="Retirer du QCM (reste dans la banque si déjà enregistrée)">
-            <span>
-              <IconButton
-                size="small"
-                onClick={onRemove}
-                disabled={questionsCount <= 1}
-                aria-label="Retirer la question du QCM"
-                sx={{
-                  flexShrink: 0,
-                  color: 'text.secondary',
-                  opacity: 0.7,
-                  '&:hover': { opacity: 1, color: 'text.primary' },
-                }}
-              >
-                <RemoveCircleOutlineIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Stack>
+          </span>
+        </Tooltip>
+      </Box>
+
+      <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
+        {/* Type / Mode / Timer */}
         <Stack
           direction="row"
           alignItems="center"
-          spacing={0.5}
+          spacing={1}
           flexWrap="wrap"
           useFlexGap
-          sx={{ minWidth: 0 }}
+          sx={{ mb: 2 }}
         >
           <FormControl
             size="small"
             sx={{
-              minWidth: { xs: 140, sm: 160 },
+              minWidth: { xs: 140, sm: 168 },
               flex: { xs: '1 1 140px', sm: '0 0 auto' },
-              maxWidth: '100%',
             }}
           >
             <InputLabel id={`question-type-${q.clientKey}`}>Type</InputLabel>
@@ -422,7 +461,7 @@ function SortableQuestionCard({
               <MenuItem value="closest">Au plus proche</MenuItem>
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 130 }}>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel id={`play-mode-${q.clientKey}`}>Mode</InputLabel>
             <Select
               labelId={`play-mode-${q.clientKey}`}
@@ -443,14 +482,15 @@ function SortableQuestionCard({
                 border: 1,
                 borderColor: 'divider',
                 borderRadius: 1,
-                bgcolor: 'action.hover',
-                pl: 0.5,
-                pr: 0.25,
-                py: 0.125,
+                bgcolor: 'background.default',
+                pl: 1,
+                pr: 0.5,
+                py: 0.35,
+                minHeight: 40,
               }}
             >
               <AccessTimeIcon
-                sx={{ color: 'text.secondary', mr: 0.375, fontSize: 14 }}
+                sx={{ color: 'text.secondary', mr: 0.5, fontSize: 18 }}
               />
               <TextField
                 type="number"
@@ -465,15 +505,19 @@ function SortableQuestionCard({
                   min: 1,
                   max: 180,
                   step: 1,
-                  style: { textAlign: 'center', width: 30 },
+                  style: {
+                    textAlign: 'center',
+                    width: 36,
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                  },
                   'aria-label': 'Durée en secondes',
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': { border: 'none' },
                     backgroundColor: 'transparent',
-                    minHeight: 24,
-                    '& .MuiInput-input': { fontSize: '0.7rem', py: 0.125 },
+                    minHeight: 28,
                   },
                   '& input[type=number]': { MozAppearance: 'textfield' },
                   '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button':
@@ -481,7 +525,14 @@ function SortableQuestionCard({
                 }}
                 variant="outlined"
               />
-              <Stack direction="column" sx={{ ml: 0 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mr: 0.5, fontWeight: 600 }}
+              >
+                s
+              </Typography>
+              <Stack direction="column">
                 <IconButton
                   size="small"
                   onClick={() =>
@@ -491,9 +542,9 @@ function SortableQuestionCard({
                   }
                   disabled={(q.timerSeconds ?? defaultTimer) >= 300}
                   aria-label="Augmenter la durée"
-                  sx={{ py: 0, minWidth: 18, height: 12 }}
+                  sx={{ py: 0, minWidth: 20, height: 14 }}
                 >
-                  <KeyboardArrowUpIcon sx={{ fontSize: 12 }} />
+                  <KeyboardArrowUpIcon sx={{ fontSize: 14 }} />
                 </IconButton>
                 <IconButton
                   size="small"
@@ -504,126 +555,203 @@ function SortableQuestionCard({
                   }
                   disabled={(q.timerSeconds ?? defaultTimer) <= 1}
                   aria-label="Diminuer la durée"
-                  sx={{ py: 0, minWidth: 18, height: 12 }}
+                  sx={{ py: 0, minWidth: 20, height: 14 }}
                 >
-                  <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
+                  <KeyboardArrowDownIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Stack>
             </Stack>
           </Tooltip>
         </Stack>
-      </Stack>
-      <TextField
-        fullWidth
-        label="Énoncé"
-        value={q.label}
-        onChange={(e) => onUpdateLabel(e.target.value)}
-        sx={{ mb: 2 }}
-      />
-      {isClosest && (
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1.5}
-          sx={{ mb: 2 }}
-        >
-          <TextField
-            fullWidth
-            type="number"
-            label="Réponse attendue"
-            value={q.expectedNumber ?? ''}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === '') {
-                onUpdateExpectedNumber('');
-                return;
-              }
-              const n = Number(raw);
-              if (Number.isFinite(n)) onUpdateExpectedNumber(n);
-            }}
-            inputProps={{ step: 'any' }}
-          />
-          <TextField
-            fullWidth
-            type="number"
-            label="Écart max (0 pt)"
-            helperText="Optionnel — défaut = |réponse|"
-            value={q.scoringRange ?? ''}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === '') {
-                onUpdateScoringRange('');
-                return;
-              }
-              const n = Number(raw);
-              if (Number.isFinite(n) && n > 0) onUpdateScoringRange(n);
-            }}
-            inputProps={{ min: 0, step: 'any' }}
-          />
-        </Stack>
-      )}
-      {!isWordCloud &&
-        !isClosest &&
-        q.choices.map((choice, cIndex) => (
+
+        <TextField
+          fullWidth
+          multiline
+          minRows={2}
+          label="Énoncé"
+          value={q.label}
+          onChange={(e) => onUpdateLabel(e.target.value)}
+          sx={{
+            mb: 2,
+            '& .MuiOutlinedInput-root': {
+              bgcolor: 'background.default',
+              alignItems: 'flex-start',
+            },
+          }}
+        />
+
+        {isClosest && (
           <Stack
-            key={cIndex}
-            direction="row"
-            alignItems="flex-start"
-            spacing={0.75}
-            sx={{ mb: 1, minWidth: 0 }}
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            sx={{ mb: 0.5 }}
           >
             <TextField
-              size="small"
-              label={`Choix ${cIndex + 1}`}
-              value={choice}
-              onChange={(e) => onUpdateChoice(cIndex, e.target.value)}
-              sx={{
-                flex: '1 1 0%',
-                minWidth: 0,
-                '& .MuiOutlinedInput-root': { alignItems: 'center' },
+              fullWidth
+              type="number"
+              label="Réponse attendue"
+              value={q.expectedNumber ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  onUpdateExpectedNumber('');
+                  return;
+                }
+                const n = Number(raw);
+                if (Number.isFinite(n)) onUpdateExpectedNumber(n);
               }}
+              inputProps={{ step: 'any' }}
             />
-            <Stack
-              direction="row"
-              alignItems="center"
-              sx={{ flexShrink: 0, pt: 0.5 }}
-            >
-              <Tooltip title="Bonne réponse">
-                <Checkbox
-                  size="small"
-                  icon={<CheckBoxOutlineBlankIcon />}
-                  checkedIcon={<CheckBoxIcon color="success" />}
-                  checked={q.correctChoiceIndex === cIndex}
-                  onChange={() =>
-                    onSetCorrect(
-                      q.correctChoiceIndex === cIndex ? undefined : cIndex
-                    )
-                  }
-                  sx={{
-                    color: 'action.disabled',
-                    '&.Mui-checked': { color: 'success.main' },
-                    p: 0.5,
-                    borderRadius: 0,
-                    '& .MuiSvgIcon-root': { borderRadius: 0 },
-                  }}
-                />
-              </Tooltip>
-              <IconButton
-                size="small"
-                onClick={() => onRemoveChoice(cIndex)}
-                disabled={q.choices.length <= 2}
-                aria-label="Supprimer le choix"
-                sx={{ flexShrink: 0 }}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Stack>
+            <TextField
+              fullWidth
+              type="number"
+              label="Écart max (0 pt)"
+              helperText="Optionnel — défaut = |réponse|"
+              value={q.scoringRange ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  onUpdateScoringRange('');
+                  return;
+                }
+                const n = Number(raw);
+                if (Number.isFinite(n) && n > 0) onUpdateScoringRange(n);
+              }}
+              inputProps={{ min: 0, step: 'any' }}
+            />
           </Stack>
-        ))}
-      {!isWordCloud && !isClosest && (
-        <Button size="small" startIcon={<AddIcon />} onClick={onAddChoice}>
-          Ajouter un choix
-        </Button>
-      )}
+        )}
+
+        {!isWordCloud && !isClosest && (
+          <Box
+            sx={{
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 2,
+              bgcolor: (t) =>
+                t.palette.mode === 'dark'
+                  ? 'rgba(255,255,255,0.02)'
+                  : 'rgba(0,0,0,0.015)',
+              p: { xs: 1.25, sm: 1.5 },
+            }}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                display: 'block',
+                mb: 1.25,
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Choix de réponse
+            </Typography>
+            <Stack spacing={1}>
+              {q.choices.map((choice, cIndex) => {
+                const isCorrect = q.correctChoiceIndex === cIndex;
+                const letter = String.fromCharCode(65 + cIndex);
+                return (
+                  <Stack
+                    key={cIndex}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1}
+                    sx={{ minWidth: 0 }}
+                  >
+                    <Box
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 1,
+                        flexShrink: 0,
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        bgcolor: isCorrect ? 'success.main' : 'action.hover',
+                        color: isCorrect
+                          ? 'success.contrastText'
+                          : 'text.secondary',
+                      }}
+                    >
+                      {letter}
+                    </Box>
+                    <TextField
+                      size="small"
+                      placeholder={`Choix ${cIndex + 1}`}
+                      value={choice}
+                      onChange={(e) => onUpdateChoice(cIndex, e.target.value)}
+                      sx={{
+                        flex: '1 1 0%',
+                        minWidth: 0,
+                        '& .MuiOutlinedInput-root': {
+                          bgcolor: 'background.paper',
+                          ...(isCorrect
+                            ? {
+                                borderColor: 'success.main',
+                                '& fieldset': {
+                                  borderColor: 'success.light',
+                                },
+                              }
+                            : {}),
+                        },
+                      }}
+                    />
+                    <Tooltip
+                      title={
+                        isCorrect ? 'Bonne réponse' : 'Marquer comme bonne réponse'
+                      }
+                    >
+                      <Checkbox
+                        size="small"
+                        icon={<CheckBoxOutlineBlankIcon />}
+                        checkedIcon={<CheckBoxIcon color="success" />}
+                        checked={isCorrect}
+                        onChange={() =>
+                          onSetCorrect(isCorrect ? undefined : cIndex)
+                        }
+                        sx={{
+                          color: 'action.disabled',
+                          '&.Mui-checked': { color: 'success.main' },
+                          p: 0.75,
+                          flexShrink: 0,
+                        }}
+                        inputProps={{
+                          'aria-label': `Bonne réponse choix ${cIndex + 1}`,
+                        }}
+                      />
+                    </Tooltip>
+                    <IconButton
+                      size="small"
+                      onClick={() => onRemoveChoice(cIndex)}
+                      disabled={q.choices.length <= 2}
+                      aria-label="Supprimer le choix"
+                      sx={{
+                        flexShrink: 0,
+                        color: 'text.secondary',
+                        '&:hover': { color: 'error.main' },
+                      }}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                );
+              })}
+            </Stack>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={onAddChoice}
+              sx={{ mt: 1.5 }}
+            >
+              Ajouter un choix
+            </Button>
+          </Box>
+        )}
+      </Box>
     </Paper>
   );
 }
@@ -1066,20 +1194,26 @@ export default function QcmForm({
   return (
     <Box
       sx={{
-        py: 4,
-        px: { xs: 1.5, sm: 2 },
-        maxWidth: { xs: '100%', sm: 640, md: bankOpen ? 1200 : 960 },
-        mx: 'auto',
-        width: '100%',
-        boxSizing: 'border-box',
+        ...layout.pagePaddingAuto,
+        py: { xs: 2.5, sm: 3.5 },
+        maxWidth: bankOpen
+          ? layout.pageMaxWidth
+          : { xs: '100%', sm: 900, md: 1100 },
       }}
     >
       {pageTitle && (
-        <Typography variant="h4" gutterBottom>
+        <Typography
+          variant="h4"
+          sx={{
+            fontSize: { xs: '1.4rem', sm: '1.75rem' },
+            fontWeight: 700,
+            mb: 0.75,
+          }}
+        >
           {pageTitle}
         </Typography>
       )}
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
+      <Typography color="text.secondary" sx={{ mb: 2.5, maxWidth: 720 }}>
         Glissez les questions pour changer l’ordre. Ajoutez depuis la banque ou
         un autre QCM — le contenu reste partagé.
       </Typography>
@@ -1201,24 +1335,46 @@ export default function QcmForm({
               </SortableContext>
             </DndContext>
 
-            <Stack spacing={2} sx={{ mt: 2 }}>
+            <Stack spacing={2} sx={{ mt: 2.5 }}>
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
                 onClick={addQuestion}
+                fullWidth
+                sx={{ py: 1.1 }}
               >
                 Nouvelle question
               </Button>
-              <Stack direction="row" spacing={2} flexWrap="wrap">
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                justifyContent="flex-end"
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+              >
+                {cancelButton && (
+                  <Button
+                    variant="text"
+                    onClick={cancelButton.onClick}
+                    sx={{ mr: { sm: 'auto' } }}
+                  >
+                    {cancelButton.label}
+                  </Button>
+                )}
                 {secondarySubmitLabel && onSecondarySubmit ? (
                   <>
-                    <Button type="submit" variant="outlined" disabled={loading}>
+                    <Button
+                      type="submit"
+                      variant="outlined"
+                      disabled={loading}
+                      sx={{ minWidth: { sm: 160 } }}
+                    >
                       {submitLabel}
                     </Button>
                     <Button
                       type="button"
                       variant="contained"
                       disabled={loading}
+                      sx={{ minWidth: { sm: 200 } }}
                       onClick={(e) => {
                         e.preventDefault();
                         void onSecondarySubmit(e);
@@ -1230,11 +1386,6 @@ export default function QcmForm({
                 ) : (
                   <Button type="submit" variant="contained" disabled={loading}>
                     {submitLabel}
-                  </Button>
-                )}
-                {cancelButton && (
-                  <Button variant="text" onClick={cancelButton.onClick}>
-                    {cancelButton.label}
                   </Button>
                 )}
               </Stack>

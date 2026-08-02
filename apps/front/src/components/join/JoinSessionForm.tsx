@@ -187,127 +187,85 @@ export default function JoinSessionForm({
     return error.message ?? 'Une erreur est survenue.';
   })();
 
+  const isCodeStep = step === 'code';
+
   return (
-    <Box sx={{ ...layout.sessionViewport, maxWidth: { xs: 400, md: 480 } }}>
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: 700, fontSize: { xs: '1.35rem', sm: '1.5rem' } }}
+    <Box
+      sx={{
+        ...layout.sessionViewport,
+        maxWidth: { xs: 440, md: 480 },
+        justifyContent: isCodeStep ? 'center' : 'flex-start',
+        alignItems: 'stretch',
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: isCodeStep ? '0 1 auto' : 1,
+          minHeight: 0,
+          py: isCodeStep ? { xs: 2, sm: 3 } : 0,
+        }}
       >
-        {title}
-      </Typography>
-      <Typography
-        color="text.secondary"
-        variant="body2"
-        sx={{ mt: 0.5, mb: 2 }}
-      >
-        {description}
-      </Typography>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            fontSize: { xs: '1.4rem', sm: '1.65rem' },
+            textAlign: isCodeStep ? 'center' : 'left',
+          }}
+        >
+          {title}
+        </Typography>
+        <Typography
+          color="text.secondary"
+          variant="body2"
+          sx={{
+            mt: 0.75,
+            mb: { xs: 2.5, sm: 3 },
+            textAlign: isCodeStep ? 'center' : 'left',
+            maxWidth: 360,
+            mx: isCodeStep ? 'auto' : 0,
+          }}
+        >
+          {description}
+        </Typography>
 
-      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {step === 'code' && (
-          <form
-            onSubmit={handleCodeSubmit}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: 1,
-              minHeight: 0,
-            }}
-          >
-            <Stack spacing={1.5} sx={{ flex: 1 }}>
-              {infoError && <Alert severity="error">{infoError}</Alert>}
-              <SessionCodeField
-                value={code}
-                onChange={setCode}
-                autoFocus
-                disabled={infoLoading}
-              />
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                fullWidth
-                disabled={infoLoading || code.trim().length < 1}
-              >
-                {infoLoading ? 'Vérification…' : 'Continuer'}
-              </Button>
-            </Stack>
-          </form>
-        )}
-
-        {step === 'identity' && joinInfo && rosterConfigured && (
-          <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0 }}>
-            <Alert
-              severity="info"
-              sx={{ py: 0.5 }}
-              action={
-                <Button color="inherit" size="small" onClick={handleBackToCode}>
-                  Changer
-                </Button>
-              }
-            >
-              Session <strong>{joinInfo.code}</strong>
-              {joinInfo.className ? (
-                <>
-                  {' '}
-                  — <strong>{joinInfo.className}</strong>
-                </>
-              ) : null}
-            </Alert>
-            <Typography variant="subtitle2" fontWeight={600}>
-              Qui êtes-vous ?
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              label="Rechercher mon nom"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              autoFocus
-              placeholder="Tapez quelques lettres…"
-            />
-            <List
-              dense
-              disablePadding
-              sx={{
-                flex: 1,
-                minHeight: 0,
-                overflow: 'auto',
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 1,
-              }}
-            >
-              {filteredNames.length === 0 && (
-                <Box sx={{ px: 2, py: 2 }}>
-                  <Typography color="text.secondary" variant="body2">
-                    Aucun nom ne correspond.
-                  </Typography>
-                </Box>
-              )}
-              {filteredNames.map((name) => (
-                <ListItemButton
-                  key={name}
-                  onClick={() => handlePickName(name)}
-                  divider
+        <Box
+          sx={{
+            flex: isCodeStep ? '0 0 auto' : 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {step === 'code' && (
+            <form onSubmit={handleCodeSubmit}>
+              <Stack spacing={2}>
+                {infoError && <Alert severity="error">{infoError}</Alert>}
+                <SessionCodeField
+                  value={code}
+                  onChange={setCode}
+                  autoFocus
+                  disabled={infoLoading}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  disabled={infoLoading || code.trim().length < 1}
+                  sx={{ py: 1.35 }}
                 >
-                  <ListItemText primary={name} />
-                </ListItemButton>
-              ))}
-            </List>
-            <Button
-              variant="outlined"
-              startIcon={<ArrowBackIcon />}
-              onClick={handleBackToCode}
-            >
-              Retour
-            </Button>
-          </Stack>
-        )}
+                  {infoLoading ? 'Vérification…' : 'Continuer'}
+                </Button>
+              </Stack>
+            </form>
+          )}
 
-        {step === 'identity' && joinInfo && !rosterConfigured && (
-          <form onSubmit={handleJoin}>
-            <Stack spacing={1.5}>
+          {step === 'identity' && joinInfo && rosterConfigured && (
+            <Stack spacing={1.5} sx={{ flex: 1, minHeight: 0 }}>
               <Alert
                 severity="info"
                 sx={{ py: 0.5 }}
@@ -321,99 +279,179 @@ export default function JoinSessionForm({
                   </Button>
                 }
               >
-                Session <strong>{joinInfo.code}</strong> — inscription libre
+                Session <strong>{joinInfo.code}</strong>
+                {joinInfo.className ? (
+                  <>
+                    {' '}
+                    — <strong>{joinInfo.className}</strong>
+                  </>
+                ) : null}
               </Alert>
+              <Typography variant="subtitle2" fontWeight={600}>
+                Qui êtes-vous ?
+              </Typography>
               <TextField
                 fullWidth
-                label="Votre nom"
-                value={freeName}
-                onChange={(e) => setFreeName(e.target.value)}
-                required
+                size="small"
+                label="Rechercher mon nom"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
                 autoFocus
+                placeholder="Tapez quelques lettres…"
               />
-              <Stack direction="row" spacing={1}>
-                <Button
-                  type="button"
-                  variant="outlined"
-                  startIcon={<ArrowBackIcon />}
-                  onClick={handleBackToCode}
-                  disabled={loading}
-                >
-                  Retour
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading || !freeName.trim()}
-                  fullWidth
-                  size="large"
-                >
-                  {loading ? 'Connexion…' : 'Rejoindre'}
-                </Button>
-              </Stack>
-            </Stack>
-          </form>
-        )}
-
-        {step === 'confirm' && joinInfo && selectedName && (
-          <form onSubmit={handleJoin}>
-            <Stack spacing={1.5}>
-              <Alert
-                severity="info"
-                sx={{ py: 0.5 }}
-                action={
-                  <Button
-                    color="inherit"
-                    size="small"
-                    onClick={handleChangeName}
-                  >
-                    Changer
-                  </Button>
-                }
+              <List
+                dense
+                disablePadding
+                sx={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: 'auto',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                }}
               >
-                Vous participez en tant que <strong>{selectedName}</strong>
-                {joinInfo.className ? <> ({joinInfo.className})</> : null}.
-              </Alert>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  type="button"
-                  variant="outlined"
-                  startIcon={<ArrowBackIcon />}
-                  onClick={handleChangeName}
-                  disabled={loading}
-                >
-                  Retour
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  fullWidth
-                  size="large"
-                >
-                  {loading ? 'Connexion…' : 'Rejoindre'}
-                </Button>
-              </Stack>
+                {filteredNames.length === 0 && (
+                  <Box sx={{ px: 2, py: 2 }}>
+                    <Typography color="text.secondary" variant="body2">
+                      Aucun nom ne correspond.
+                    </Typography>
+                  </Box>
+                )}
+                {filteredNames.map((name) => (
+                  <ListItemButton
+                    key={name}
+                    onClick={() => handlePickName(name)}
+                    divider
+                  >
+                    <ListItemText primary={name} />
+                  </ListItemButton>
+                ))}
+              </List>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={handleBackToCode}
+              >
+                Retour
+              </Button>
             </Stack>
-          </form>
-        )}
+          )}
 
-        {infoLoading && step !== 'code' && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
-        )}
+          {step === 'identity' && joinInfo && !rosterConfigured && (
+            <form onSubmit={handleJoin}>
+              <Stack spacing={1.5}>
+                <Alert
+                  severity="info"
+                  sx={{ py: 0.5 }}
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={handleBackToCode}
+                    >
+                      Changer
+                    </Button>
+                  }
+                >
+                  Session <strong>{joinInfo.code}</strong> — inscription libre
+                </Alert>
+                <TextField
+                  fullWidth
+                  label="Votre nom"
+                  value={freeName}
+                  onChange={(e) => setFreeName(e.target.value)}
+                  required
+                  autoFocus
+                />
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    startIcon={<ArrowBackIcon />}
+                    onClick={handleBackToCode}
+                    disabled={loading}
+                  >
+                    Retour
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loading || !freeName.trim()}
+                    fullWidth
+                    size="large"
+                  >
+                    {loading ? 'Connexion…' : 'Rejoindre'}
+                  </Button>
+                </Stack>
+              </Stack>
+            </form>
+          )}
+
+          {step === 'confirm' && joinInfo && selectedName && (
+            <form onSubmit={handleJoin}>
+              <Stack spacing={1.5}>
+                <Alert
+                  severity="info"
+                  sx={{ py: 0.5 }}
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={handleChangeName}
+                    >
+                      Changer
+                    </Button>
+                  }
+                >
+                  Vous participez en tant que <strong>{selectedName}</strong>
+                  {joinInfo.className ? <> ({joinInfo.className})</> : null}.
+                </Alert>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    startIcon={<ArrowBackIcon />}
+                    onClick={handleChangeName}
+                    disabled={loading}
+                  >
+                    Retour
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loading}
+                    fullWidth
+                    size="large"
+                  >
+                    {loading ? 'Connexion…' : 'Rejoindre'}
+                  </Button>
+                </Stack>
+              </Stack>
+            </form>
+          )}
+
+          {infoLoading && step !== 'code' && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+        </Box>
+
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            mt: { xs: 3, sm: 4 },
+            textAlign: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <MuiLink component={Link} href={navItemRules.href} underline="hover">
+            Règles du jeu
+          </MuiLink>
+        </Typography>
       </Box>
-
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ mt: 2, textAlign: 'center' }}
-      >
-        <MuiLink component={Link} href={navItemRules.href} underline="hover">
-          Règles du jeu
-        </MuiLink>
-      </Typography>
 
       <Dialog open={Boolean(error)} onClose={clearError}>
         <DialogTitle>Erreur</DialogTitle>
