@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QCM — proposition design unifié</title>
+    <style>
+      :root {
+        --primary: #3d5a9e;
+        --ink: #1a1d26;
+        --muted: #5c6578;
+        --bg: #f4f6fa;
+        --surface: #ffffff;
+        --border: rgba(0, 0, 0, 0.1);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          Roboto,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.5;
+      }
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 1.75rem 1.5rem;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0 0 0.4rem;
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        color: var(--primary);
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 42rem;
+      }
+      header a {
+        color: var(--primary);
+      }
+      .grid {
+        display: grid;
+        gap: 1.25rem;
+        padding: 1.5rem;
+      }
+      @media (min-width: 860px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .span-2 {
+          grid-column: 1 / -1;
+        }
+      }
+      figure {
+        margin: 0;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #0f1116;
+      }
+      figcaption {
+        padding: 1rem 1.1rem 1.15rem;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #fff;
+        background: var(--primary);
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+        margin-bottom: 0.45rem;
+      }
+      figcaption strong {
+        display: block;
+        margin-bottom: 0.2rem;
+      }
+      figcaption span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      footer {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 1.5rem 2.5rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      code {
+        font-size: 0.85em;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <h1>QCM — proposition design unifié</h1>
+        <p>
+          Palette actuelle, nom affiché « QCM », layouts anti-scroll. URL
+          réelle :
+          <code>https://gbaratie.github.io/kahin/join</code>. Voir
+          <a href="./proposition-design-unifie.md">proposition-design-unifie.md</a>.
+        </p>
+      </div>
+    </header>
+    <main class="wrap grid">
+      <figure>
+        <img src="./rendus/qcm-join.png" alt="Rejoindre une session" />
+        <figcaption>
+          <span class="badge">Mobile</span>
+          <strong>Rejoindre</strong>
+          <span>Viewport unique : code + Continuer, sans scroll.</span>
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          src="./rendus/qcm-participant-answer.png"
+          alt="Réponse participant"
+        />
+        <figcaption>
+          <span class="badge">Mobile</span>
+          <strong>Question en cours</strong>
+          <span>Choix A–D qui occupent la hauteur restante.</span>
+        </figcaption>
+      </figure>
+      <figure>
+        <img
+          src="./rendus/qcm-participant-ranking.png"
+          alt="Classement participant"
+        />
+        <figcaption>
+          <span class="badge">Mobile</span>
+          <strong>Classement / attente</strong>
+          <span>Libellés réels, pas de faux classement inventé.</span>
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="./rendus/qcm-admin-empty.png" alt="Admin état vide" />
+        <figcaption>
+          <span class="badge">Desktop</span>
+          <strong>Admin</strong>
+          <span>État vide réel : « Aucun QCM pour le moment… ».</span>
+        </figcaption>
+      </figure>
+      <figure class="span-2">
+        <img src="./rendus/qcm-presenter-lobby.png" alt="Lobby hôte" />
+        <figcaption>
+          <span class="badge">Projection</span>
+          <strong>Lobby hôte</strong>
+          <span
+            >URL réelle + état participants vide — une seule vue 16:9.</span
+          >
+        </figcaption>
+      </figure>
+      <figure class="span-2">
+        <img
+          src="./rendus/qcm-presenter-question.png"
+          alt="Question hôte nuage vide"
+        />
+        <figcaption>
+          <span class="badge">Projection</span>
+          <strong>Question live</strong>
+          <span
+            >Bandeau mode + « Aucun mot pour l’instant » (copy produit).</span
+          >
+        </figcaption>
+      </figure>
+    </main>
+    <footer>
+      Renommage produit reporté. Pas de données fictives dans les maquettes.
+    </footer>
+  </body>
+</html>
