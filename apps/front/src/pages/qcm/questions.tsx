@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import {
   Box,
@@ -37,6 +37,7 @@ import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import Layout from '@/components/Layout';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
+import SwipeToDeleteRow from '@/components/common/SwipeToDeleteRow';
 import { layout } from '@/config/layout';
 import {
   apiListThemes,
@@ -97,13 +98,16 @@ function QuestionBankPageContent() {
   const [quickThemeName, setQuickThemeName] = useState('');
   const [quickThemeSaving, setQuickThemeSaving] = useState(false);
   const [themesPanelOpen, setThemesPanelOpen] = useState(false);
+  const [swipedRowId, setSwipedRowId] = useState<string | null>(null);
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'), {
     noSsr: true,
   });
+  const hasLoadedOnceRef = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true || hasLoadedOnceRef.current;
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [themeList, summaries] = await Promise.all([
@@ -121,10 +125,11 @@ function QuestionBankPageContent() {
       ]);
       setThemes(themeList);
       setItems(summaries);
+      hasLoadedOnceRef.current = true;
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [themeFilter, sortBy]);
 
@@ -155,6 +160,7 @@ function QuestionBankPageContent() {
 
   const openEdit = async (id: string) => {
     setError(null);
+    setSwipedRowId(null);
     try {
       const q = await apiGetQuestion.execute(id);
       if (!q) {
@@ -254,7 +260,7 @@ function QuestionBankPageContent() {
         themeId: editor.themeId,
       });
       setEditorOpen(false);
-      await load();
+      await load({ silent: true });
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
@@ -266,10 +272,13 @@ function QuestionBankPageContent() {
     if (!deleteId) return;
     const id = deleteId;
     setDeleteId(null);
+    setSwipedRowId(null);
+    const snapshot = items;
+    setItems((prev) => prev.filter((i) => i.id !== id));
     try {
       await apiDeleteQuestion.execute(id);
-      await load();
     } catch (e) {
+      setItems(snapshot);
       setError(getErrorMessage(e));
     }
   };
@@ -280,7 +289,7 @@ function QuestionBankPageContent() {
     try {
       await apiCreateTheme.execute(name);
       setNewThemeName('');
-      await load();
+      await load({ silent: true });
     } catch (e) {
       setError(getErrorMessage(e));
     }
@@ -290,7 +299,7 @@ function QuestionBankPageContent() {
     try {
       await apiDeleteTheme.execute(themeId);
       if (themeFilter === themeId) setThemeFilter('all');
-      await load();
+      await load({ silent: true });
     } catch (e) {
       setError(getErrorMessage(e));
     }
@@ -322,7 +331,7 @@ function QuestionBankPageContent() {
       const q = await apiGetQuestion.execute(questionId);
       if (!q) {
         setError('Question introuvable');
-        await load();
+        await load({ silent: true });
         return;
       }
       const type = resolveQuestionType(q.type);
@@ -592,130 +601,139 @@ function QuestionBankPageContent() {
         ) : (
           <List disablePadding>
             {filtered.map((item) => (
-              <ListItem
+              <SwipeToDeleteRow
                 key={item.id}
-                disableGutters
-                sx={{
-                  px: 0,
-                  py: 1.25,
-                  alignItems: 'flex-start',
-                  borderBottom: 1,
-                  borderColor: 'divider',
-                  gap: 1,
-                  display: 'flex',
-                }}
+                rowId={item.id}
+                openId={swipedRowId}
+                onOpenChange={setSwipedRowId}
+                onDelete={() => setDeleteId(item.id)}
+                enabled={isMobile}
               >
-                <Box sx={{ flex: 1, minWidth: 0, pr: 0.5 }}>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      wordBreak: 'break-word',
-                      overflowWrap: 'anywhere',
-                      pr: 0.5,
-                    }}
-                  >
-                    {item.label}
-                  </Typography>
+                <ListItem
+                  disableGutters
+                  sx={{
+                    px: 0,
+                    py: 1.25,
+                    alignItems: 'flex-start',
+                    gap: 1,
+                    display: 'flex',
+                  }}
+                >
+                  <Box sx={{ flex: 1, minWidth: 0, pr: 0.5 }}>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                        pr: 0.5,
+                      }}
+                    >
+                      {item.label}
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      flexWrap="wrap"
+                      useFlexGap
+                      spacing={1}
+                      alignItems="center"
+                      sx={{ mt: 0.75 }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        {item.type === 'word_cloud'
+                          ? 'Nuage de mots'
+                          : item.type === 'closest'
+                            ? 'Au plus proche'
+                            : `${item.choiceCount} choix`}
+                      </Typography>
+                      <FormControl
+                        size="small"
+                        variant="standard"
+                        sx={{ minWidth: 0, maxWidth: '100%' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Select
+                          displayEmpty
+                          disableUnderline
+                          value={item.themeId ?? 'none'}
+                          disabled={assigningThemeId === item.id}
+                          onChange={(e) => {
+                            const value = String(e.target.value);
+                            if (value === '__new__') {
+                              openQuickThemeDialog(item.id);
+                              return;
+                            }
+                            void handleAssignTheme(
+                              item.id,
+                              value === 'none' ? null : value
+                            );
+                          }}
+                          renderValue={(selected) => {
+                            if (selected === 'none' || !selected) {
+                              return 'Sans thématique';
+                            }
+                            return (
+                              themeNameById.get(String(selected)) ??
+                              'Thématique'
+                            );
+                          }}
+                          sx={{
+                            typography: 'caption',
+                            color: item.themeId
+                              ? 'primary.main'
+                              : 'text.secondary',
+                            fontWeight: item.themeId ? 600 : 400,
+                            '& .MuiSelect-select': {
+                              py: 0,
+                              pr: '20px !important',
+                              pb: 0,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            },
+                            '& .MuiSelect-icon': {
+                              color: 'text.secondary',
+                              right: 0,
+                            },
+                          }}
+                        >
+                          <MenuItem value="none">Sans thématique</MenuItem>
+                          {themes.map((t) => (
+                            <MenuItem key={t.id} value={t.id}>
+                              {t.name}
+                            </MenuItem>
+                          ))}
+                          <Divider />
+                          <MenuItem value="__new__">
+                            <AddIcon fontSize="small" sx={{ mr: 1 }} />
+                            Nouvelle thématique…
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Stack>
+                  </Box>
                   <Stack
                     direction="row"
-                    flexWrap="wrap"
-                    useFlexGap
-                    spacing={1}
-                    alignItems="center"
-                    sx={{ mt: 0.75 }}
+                    spacing={0}
+                    sx={{ flexShrink: 0, mt: -0.5 }}
                   >
-                    <Typography variant="caption" color="text.secondary">
-                      {item.type === 'word_cloud'
-                        ? 'Nuage de mots'
-                        : item.type === 'closest'
-                          ? 'Au plus proche'
-                          : `${item.choiceCount} choix`}
-                    </Typography>
-                    <FormControl
+                    <IconButton
+                      aria-label="Modifier"
+                      onClick={() => void openEdit(item.id)}
                       size="small"
-                      variant="standard"
-                      sx={{ minWidth: 0, maxWidth: '100%' }}
-                      onClick={(e) => e.stopPropagation()}
                     >
-                      <Select
-                        displayEmpty
-                        disableUnderline
-                        value={item.themeId ?? 'none'}
-                        disabled={assigningThemeId === item.id}
-                        onChange={(e) => {
-                          const value = String(e.target.value);
-                          if (value === '__new__') {
-                            openQuickThemeDialog(item.id);
-                            return;
-                          }
-                          void handleAssignTheme(
-                            item.id,
-                            value === 'none' ? null : value
-                          );
-                        }}
-                        renderValue={(selected) => {
-                          if (selected === 'none' || !selected) {
-                            return 'Sans thématique';
-                          }
-                          return (
-                            themeNameById.get(String(selected)) ?? 'Thématique'
-                          );
-                        }}
-                        sx={{
-                          typography: 'caption',
-                          color: item.themeId
-                            ? 'primary.main'
-                            : 'text.secondary',
-                          fontWeight: item.themeId ? 600 : 400,
-                          '& .MuiSelect-select': {
-                            py: 0,
-                            pr: '20px !important',
-                            pb: 0,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          },
-                          '& .MuiSelect-icon': {
-                            color: 'text.secondary',
-                            right: 0,
-                          },
-                        }}
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    {!isMobile && (
+                      <IconButton
+                        aria-label="Supprimer"
+                        onClick={() => setDeleteId(item.id)}
+                        size="small"
                       >
-                        <MenuItem value="none">Sans thématique</MenuItem>
-                        {themes.map((t) => (
-                          <MenuItem key={t.id} value={t.id}>
-                            {t.name}
-                          </MenuItem>
-                        ))}
-                        <Divider />
-                        <MenuItem value="__new__">
-                          <AddIcon fontSize="small" sx={{ mr: 1 }} />
-                          Nouvelle thématique…
-                        </MenuItem>
-                      </Select>
-                    </FormControl>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </Stack>
-                </Box>
-                <Stack
-                  direction="row"
-                  spacing={0}
-                  sx={{ flexShrink: 0, mt: -0.5 }}
-                >
-                  <IconButton
-                    aria-label="Modifier"
-                    onClick={() => void openEdit(item.id)}
-                    size="small"
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    aria-label="Supprimer"
-                    onClick={() => setDeleteId(item.id)}
-                    size="small"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Stack>
-              </ListItem>
+                </ListItem>
+              </SwipeToDeleteRow>
             ))}
           </List>
         )}
